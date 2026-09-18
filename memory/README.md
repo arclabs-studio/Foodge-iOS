@@ -18,6 +18,11 @@ what already went wrong**.
 | `troubleshooting/` | A concrete failure and its root cause | Something broke in a way that cost real time and could recur |
 | `sessions/` | What a working session actually did | At the end of any session that produced commits |
 
+**Write the note when the decision is made, not at the end of the session.** You are already
+writing the ledger's D-number at that moment; the note costs nothing extra then, and it is the
+only version that survives an unexpected compaction. Code survives a lost session. The *why*
+does not.
+
 Numbered decisions (D1, D2, …) live in `docs/implementation-tasks.md` — that is the canonical
 ledger and the audit trail. This folder is for the ones that carry a *lesson*, written long
 enough to be useful cold. A note here links back to its ledger number.
@@ -39,6 +44,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[metric-preference-and-failure-reporting]] — energy vs steps, and which refusal is reported
 - [[baseline-window-ownership]] — who owns calendar correctness
 - [[claude-md-kept-out-of-the-remote]] — and how the history was purged
+- [[audit-prompts-should-target-evidence]] — ask whether a test *could fail*
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
