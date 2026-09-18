@@ -18,15 +18,33 @@ public repository — keep it that way when editing.
 
 | What | Where |
 |---|---|
-| Engineering constitution | `~/.claude/CLAUDE.md` (global, always loaded) |
-| Studio engineering constitution | Kept outside this repository; never copied in |
+| Engineering constitution | `~/.claude/CLAUDE.md` — machine-level, loaded automatically every session |
 | Product specification | `docs/foodge-plan.md` |
 | Screens, visual identity, voice | `DESIGN.md` |
 | Work units + numbered decisions log | `docs/implementation-tasks.md` |
 | Decisions, troubleshooting, session log | `memory/` |
 
-Foodge decisions in `docs/foodge-plan.md` beat general ARC conventions where they conflict.
+Foodge decisions in `docs/foodge-plan.md` beat general studio conventions where they conflict.
 Apple's HIG governs interaction and presentation.
+
+### How the rules are actually enforced
+
+Not by this file. The binding rules load from the studio's machine-level configuration at the
+start of every session, independently of anything in the repository:
+
+1. **The constitution** — always in context, never opt-in.
+2. **Doctrine skills** — `swiftui-doctrine`, `swift-concurrency-strict`, `swift-testing-doctrine`,
+   `swiftdata-architecture`, `ios-accessibility-wcag`, `apple-app-security`, `swift-modern-apis`,
+   `foundation-models`. Read the matching one *before* working in its area.
+3. **Audit agents** — `arc-test-engineer`, `arc-audit-concurrency`, `arc-verify-ui`,
+   `arc-audit-hig`, `arc-audit-accessibility`, `arc-audit-security`, `arc-constitution-review`.
+   These are the external verifier: a work unit closes on their green, not on your own reading.
+
+So the rules hold whether or not a repository file mentions them. **The converse is the risk:**
+an agent working from a clone on a machine without that configuration gets only what this file
+restates. That is why the Non-negotiables and Product rules below are written out in full here
+rather than referenced — treat them as the floor if nothing else is loaded, and say so plainly
+rather than proceeding as if the full doctrine were in effect.
 
 ## Toolchain and targets
 
