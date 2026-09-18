@@ -13,6 +13,10 @@ import HealthKit
 /// It deliberately cannot tell you whether the user granted anything: HealthKit does not expose
 /// read authorization, and pretending otherwise would let the interface claim a denial that may
 /// simply be absent data. Whether data is readable is answered by trying to read it.
+///
+/// The `Sendable` conformance is spelled out rather than left implicit — normally redundant on a
+/// struct, but this one stores a class reference, so writing it down turns "someone puts a
+/// non-Sendable type in here" from a silent loss of the guarantee into a compile error.
 struct HealthAuthorizationService: Sendable {
     private let store: HKHealthStore
 
