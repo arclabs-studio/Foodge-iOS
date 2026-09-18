@@ -48,6 +48,9 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D15 | Judge artwork is a placeholder `JudgeBadgeView` wrapping an SF Symbol until Day 24. | The final-artwork swap then touches one file. |
 | D16 | Even-count median is the mean of the middle pair. The sleep window is the previous day 18:00 → evaluation time. | Product rules not specified in the plan; recorded here so they are reviewable. |
 | D17 | `.DS_Store` added to `.gitignore`; the in-repo constitution copy deleted (the original stays at outside the repository). | Hygiene, and licensed material must remain outside the submission repository. |
+| D18 | `SWIFT_VERSION` is set to `6.0` on all three targets rather than left at the template's value. | The Xcode 27 multiplatform App template sets `SWIFT_VERSION = 5.0`, which silently forces `SWIFT_STRICT_CONCURRENCY` to `minimal` and disables every Swift 6 upcoming feature. The plan said to keep the language-mode value the template set and never invent `6.4`; `6.0` is the language-mode value that actually satisfies the plan's "Swift 6 language mode" baseline. |
+| D19 | `SUPPORTS_MACCATALYST` is not set. | Xcode 27 rejects it: "Unknown build setting". `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` already excludes macOS and Mac Catalyst. |
+| D20 | `LocalizationPlanner` was called although its documented precondition skill (`xcode-integration:translation-coordinator`) does not exist in this environment. | The user directed that localization must use the Apple/Xcode-native route, and the planner is that route. The missing item is Xcode's own instruction skill, not a capability. No `.xcstrings` file is ever hand-edited. |
 
 ---
 
@@ -70,7 +73,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 - **Next**: WU-18-B.
 - **Commit**: `chore(repo): persist plan, design spec and task ledger`
 
-### WU-18-B ⬜ Project creation with strict Swift 6 settings
+### WU-18-B ✅ Project creation with strict Swift 6 settings
 
 - **Objective / scope**: create the Xcode project and its three targets through the Xcode MCP only.
   No domain code.
@@ -96,7 +99,25 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 - **Acceptance**: `BuildProject` succeeds for simulator and device; `GetBuildLog(severity: warning)`
   is empty; settings confirmed via `GetTargetBuildSettings`.
 - **Tests / verifier**: Xcode MCP build + build log.
-- **Evidence**:
+- **Evidence**: 2026-09-18/19. `XcodeNewProject` created all three targets (`Foodge`, `FoodgeTests`,
+  `FoodgeUITests`) — the template supplied the UI-test bundle, so no `XcodeNewTarget` was needed.
+  All ten build settings applied per target; `SUPPORTS_MACCATALYST` rejected as unknown (D19) and
+  `SWIFT_VERSION` raised from the template's `5.0` to `6.0` (D18).
+  Confirmed on `FoodgeTests` via `GetTargetBuildSettings`: `SWIFT_VERSION 6.0`,
+  `SWIFT_STRICT_CONCURRENCY complete`, `SWIFT_DEFAULT_ACTOR_ISOLATION nonisolated`,
+  `SWIFT_TREAT_WARNINGS_AS_ERRORS YES`, `SWIFT_APPROACHABLE_CONCURRENCY YES`,
+  `SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY YES`, `IPHONEOS_DEPLOYMENT_TARGET 26.0`,
+  `TARGETED_DEVICE_FAMILY 1`, `SUPPORTED_PLATFORMS "iphoneos iphonesimulator"`.
+  Confirmed for all three targets from the compiler command lines in the build log:
+  `-swift-version 6` matches 7 tasks, `-swift-version 5` matches 0.
+  The first device build failed with "No Accounts" and a provisioning profile lacking HealthKit;
+  after the user signed in to Xcode it succeeded. Final state: device (`iPhone de CR`) and
+  simulator (`iPhone 17 Pro (27.0)`) builds both succeed with `buildForTesting`, and
+  `GetBuildLog(severity: warning)` returns 0 entries.
+  `LocalizationPlanner(es)` created `Resources/Localizable.xcstrings` and
+  `Resources/Foodge-InfoPlist.xcstrings` (D20); the catalogue already extracts `AppRootView`'s
+  two strings. Template `ContentView.swift` removed; `FoodgeApp.swift` and `Assets.xcassets`
+  relocated into `App/` and `Resources/`.
 - **Next**: WU-18-C.
 - **Commit**: `chore(project): create Foodge Xcode project with strict Swift 6 settings`
 
