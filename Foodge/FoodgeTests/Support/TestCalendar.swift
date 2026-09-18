@@ -12,8 +12,14 @@ import Foundation
 /// from. Tests never read the machine's current calendar or time zone.
 enum TestCalendar {
     static let madrid: Calendar = {
+        // Fixture loading is the one place the constitution allows failing loudly, and this is
+        // worth failing loudly for: falling back to GMT would leave every assertion here passing
+        // while quietly removing the daylight-saving behaviour the time tests exist to prove.
+        guard let madrid = TimeZone(identifier: "Europe/Madrid") else {
+            fatalError("These fixtures require the Europe/Madrid time zone.")
+        }
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Europe/Madrid") ?? .gmt
+        calendar.timeZone = madrid
         return calendar
     }()
 
@@ -34,8 +40,8 @@ enum TestCalendar {
         return calendar.date(from: components) ?? .distantPast
     }
 
-    /// A fortnight ending the day before 18 September 2026, which is the window every baseline
-    /// fixture in these suites describes.
+    /// The window the category-rule fixtures carry on their baseline. It is inert there — the
+    /// rule never reads it — and the calculator suite asserts its own window per D24.
     static let fortnight = DateInterval(
         start: date(2026, 9, 4),
         end: date(2026, 9, 18)

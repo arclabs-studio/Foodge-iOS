@@ -15,6 +15,10 @@ import Foundation
 enum SleepIntervalUnion {
     /// - Note: Not implemented yet — WU-19-A. It returns zero so the suites that pin the real
     ///   behaviour are red rather than crashing the test run.
+    ///
+    ///   Zero is indistinguishable from a real night with nothing recorded, which is the one
+    ///   thing the product must never confuse. Nothing outside the tests may call this until
+    ///   WU-19-A lands.
     static func duration(of intervals: [DateInterval]) -> Duration {
         .zero
     }

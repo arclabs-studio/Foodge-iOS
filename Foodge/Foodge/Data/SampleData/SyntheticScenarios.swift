@@ -17,7 +17,10 @@ struct SyntheticScenario: Hashable, Sendable, Identifiable {
     let snapshot: EvidenceSnapshot
 }
 
-/// The fixed set of scenarios used by previews, tests and demonstration mode.
+/// The fixed set of scenarios that previews, tests and demonstration mode will be fed from.
+///
+/// Nothing consumes them yet: the previews arrive with the onboarding screens on Day 19 and
+/// demonstration mode on Day 24.
 ///
 /// They are all evaluated at 19:30 on 18 September 2026 in Europe/Madrid, except the
 /// daylight-saving case, so their numbers can be compared against hand-computed expectations.
@@ -167,7 +170,7 @@ enum SyntheticScenarios {
         snapshot: EvidenceSnapshot(
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
-            today: .none,
+            today: .empty,
             history: [],
             availability: .readable(missing: Set(HealthKind.allCases)),
             isSynthetic: true
@@ -261,7 +264,7 @@ enum SyntheticScenarios {
             ),
             history: observations(
                 days: springForwardHistoryDays,
-                energy: springForwardEnergyAtCutoff.map { $0 },
+                energy: springForwardEnergyAtCutoff,
                 steps: []
             ),
             availability: .readable(missing: [.restingEnergy, .sleep, .dietaryEnergy]),

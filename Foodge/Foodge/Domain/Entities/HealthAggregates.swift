@@ -63,7 +63,7 @@ struct HealthAggregates: Hashable, Codable, Sendable {
     let workouts: [WorkoutSummary]?
     let dietaryEnergy: EnergyAggregate?
 
-    static let none = HealthAggregates(
+    static let empty = HealthAggregates(
         activeEnergy: nil,
         restingEnergy: nil,
         steps: nil,

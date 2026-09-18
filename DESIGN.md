@@ -100,5 +100,6 @@ Assets.xcassets/
 ```
 
 Colours are referenced by asset name only — hex and RGB literals never appear in code.
-Until the final artwork lands (Day 24), `JudgeBadgeView` stands in with an SF Symbol so the swap
-touches exactly one file.
+Until the final artwork lands (Day 24), `JudgeBadgeView` will stand in with an SF Symbol so the
+swap touches exactly one file. Neither it nor the asset groups above exist yet: the placeholder
+arrives with onboarding on Day 19, the artwork on Day 24.

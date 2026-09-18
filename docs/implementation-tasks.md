@@ -34,7 +34,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D1 | Project template created with `storageType: None`; SwiftData is added by hand. | The template's `Item` model and `.modelContainer(for:)` boilerplate is dead code. We need a `VersionedSchema` V1, an in-memory demo container and `modelContainer(_:onSetup:)`. |
 | D2 | `testingSystem: Swift Testing`. The UI-test bundle stays XCTest and carries only the template smoke test this session. | Constitution: Swift Testing for unit/integration, XCTest for UI automation. |
 | D3 | Module default actor isolation is `nonisolated`; every View and ViewModel is explicitly `@MainActor`. | Plan §4 overrides the MainActor-by-default convention used in FavRes. |
-| D4 | `HealthKitSampleSource` is an `actor` owning `HKHealthStore`, mapping HealthKit results to `Sendable` values inside the actor. | The store never crosses an isolation boundary, so no `@concurrent` and no sendability suppression is needed. Its Sendability is unverified; the design does not depend on it. |
+| D4 | `HealthKitSampleSource` is an `actor` owning `HKHealthStore`, mapping HealthKit results to `Sendable` values inside the actor. | Updated after review: `HKHealthStore` **is** `Sendable` (annotated `NS_SWIFT_SENDABLE` in the iOS 27 SDK, and documented as conforming), and `HealthAuthorizationService` already depends on that to be a `Sendable` struct. The actor therefore stands on its real merit rather than on sendability: it serialises query state and keeps the fan-out of 15 windows off the main actor. |
 | D5 | The test seam is the `HealthSampleSource` protocol (raw per-window sums, raw asleep intervals, workout list). `HealthEvidenceReader` composes a source, an injected `Calendar` and pure domain aggregators. | Sleep union, absent-vs-zero and workout non-double-counting are then testable in the unit target with no HealthKit present. |
 | D6 | Same-local-time history is 15 parallel `HKStatisticsQueryDescriptor(.cumulativeSum)` queries in a `TaskGroup`, one per window `[startOfDay(d), sameClockTime(d))`. | A collection query yields full-day buckets and cannot cut each historical day at today's clock time. |
 | D7 | The `Calendar` is injected with an explicit `timeZone` and frozen into the snapshot; `.autoupdatingCurrent` never appears in domain code. DST handled with `matchingPolicy: .nextTime`, `repeatedTimePolicy: .first`; day length always from `dateInterval(of: .day)`. | Plan §3 requires calendar-aware windows and forbids assuming 86,400-second days. |
@@ -57,6 +57,8 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D24 | `ActivityBaseline.window` is the span from the first to the last day actually used. Calendar-aware cutting of each day at the evaluation's local clock time is `EvidenceWindowPlanner`'s job (WU-19-B), not the calculator's. | The calculator receives only `[DailyActivityObservation]` — no calendar, time zone or cutoff — so it cannot be where the DST rule lives. Splitting it this way keeps the calculator pure and puts the daylight-saving tests where the calendar actually is. Pinned by the window expectations in `aFullFortnightUsesTheMedian`. |
 | D25 | The test target declares a fifth tag, `.domain`, alongside the constitution's `.unit` / `.integration` / `.ui` / `.critical`. | Additive, not a substitution: it separates domain-rule suites from plumbing suites once the Data and Presentation suites arrive. All four constitutional tags remain declared. |
 | D26 | Every Info.plist key and entitlement is verified against the **built** `Foodge.app/Info.plist`, never against `AddInfoPlist`'s return value. | The first `AddInfoPlist(NSHealthShareUsageDescription)` returned `{"result": true}` and persisted nothing — the key was absent from the build settings, from `Foodge-InfoPlist.xcstrings` and from the built plist. HealthKit then terminated the app on the device the moment authorization was requested: *"NSHealthShareUsageDescription must be set in the app's Info.plist in order to request read authorization"*. A second identical call persisted correctly. A tool's success result is not evidence that the project changed. |
+| D27 | "One type per file" is read as one *concept* per file: a primary type may share its file with the small value types that exist only as its members, and the file is named after the primary type. | Splitting `BaselineUnavailableReason` or `ActivityMetric` into their own files would scatter one idea across four, and the plan's own type sketch groups them this way. The rule still bites where it matters: no file mixes unrelated types. Applies to `Dish`, `HealthAggregates`, `DailyContext`, `ActivityBaseline`, `VerdictDecision`, `EvidenceAvailability`, `EvaluationClock` and `SyntheticScenarios`. |
+| D28 | `Data/SampleData/SampleData.swift` — the `PreviewModifier` with an in-memory container — moves from WU-18-C to WU-19-C. | A `PreviewModifier` needs a `ModelContainer`, and the schema does not exist until WU-19-C (D10). Writing it in WU-18-C would have meant a preview helper with nothing to hold. The scenarios themselves landed on Day 18 as planned. |
 
 ---
 
@@ -121,8 +123,9 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
   simulator (`iPhone 17 Pro (27.0)`) builds both succeed with `buildForTesting`, and
   `GetBuildLog(severity: warning)` returns 0 entries.
   `LocalizationPlanner(es)` created `Resources/Localizable.xcstrings` and
-  `Resources/Foodge-InfoPlist.xcstrings` (D20); the catalogue already extracts `AppRootView`'s
-  two strings. Template `ContentView.swift` removed; `FoodgeApp.swift` and `Assets.xcassets`
+  `Resources/Foodge-InfoPlist.xcstrings` (D20). Corrected after review: `Localizable.xcstrings`
+  is committed **empty** — no view strings have been extracted yet. Only the Info.plist catalogue
+  has entries (`CFBundleName`, `NSHealthShareUsageDescription`), English only. Template `ContentView.swift` removed; `FoodgeApp.swift` and `Assets.xcassets`
   relocated into `App/` and `Resources/`.
 - **Next**: WU-18-C.
 - **Commit**: `chore(project): create Foodge Xcode project with strict Swift 6 settings`
@@ -141,7 +144,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
     (+ `DailyActivityObservation`, `ActivityMetric`, `BaselineUnavailableReason`),
     `VerdictDecision` (+ `CategoryBasis`, `ReasonCode`, `CategoryOutcome`), `Dish`
     (`DishFamily`, `DishVariant`, `DietProfile`, `Ingredient`, `ConvenienceTag`),
-    `CalorieReference`, `DietaryConstraints`. One type per file.
+    `CalorieReference`, `DietaryConstraints`. Grouped per D27.
   - `Domain/Services/`: `HealthEvidenceProvider`, `VerdictEngine`, `VerdictNarrator`, `CaseStore`,
     `ReminderService`, `EvaluationClock` (+ `FixedClock`).
   - `Domain/UseCases/`: `ActivityBaselineCalculator`, `DinnerCategoryRule`, `SleepIntervalUnion` — stubs.
@@ -221,6 +224,20 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 - **Commit**: `chore(debug): add temporary Health and Foundation Models feasibility probe`
 
 ---
+
+### Day 18 close
+
+`arc-constitution-review` audited commits `9d483a1..42af208` on 2026-09-19 and returned
+**0 blockers**, verifying the zero-warning claim itself through the MCP rather than taking it on
+trust: `GetBuildLog(severity: warning)` empty, all three targets present, `-swift-version 6` on
+every compile task and `-swift-version 5` on none, and `SWIFT_DEFAULT_ACTOR_ISOLATION`,
+`SWIFT_STRICT_CONCURRENCY` and `SWIFT_TREAT_WARNINGS_AS_ERRORS` confirmed on all six
+configurations. It found no force unwrap, no sendability suppression, no secret, no logged Health
+value, no framework leak into Domain, and explicit `@MainActor` on every UI-facing type.
+
+Fourteen non-blocking findings; the substantive ones are fixed in the commit that closes Day 18. Three deferred, each
+with a reason: the UI-test template smoke test stays until Day 26 (D2), the probe's unlocalized
+display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is still owed.
 
 ## Day 19 — evidence and onboarding
 

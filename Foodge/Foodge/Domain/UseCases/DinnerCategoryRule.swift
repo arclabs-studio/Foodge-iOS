@@ -23,6 +23,10 @@ enum DinnerCategoryRule {
 
     /// - Note: Not implemented yet — WU-19-A. It returns the provisional branch so the suites
     ///   that pin the real behaviour are red rather than crashing the test run.
+    ///
+    ///   Because this stub hardcodes exactly the provisional-balanced answer,
+    ///   `nothingAtAllIsProvisionallyBalanced` and `aMissingTodayIsNotTreatedAsZero` pass against
+    ///   it by coincidence. Those two greens are not evidence of anything.
     static func decide(
         today: Double?,
         baseline: ActivityBaseline?,
