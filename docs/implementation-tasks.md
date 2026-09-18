@@ -241,7 +241,7 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 
 ## Day 19 — evidence and onboarding
 
-### WU-19-A ⬜ Baseline calculator, category rule and sleep union
+### WU-19-A ✅ Baseline calculator, category rule and sleep union
 
 - **Objective / scope**: fill the three pure use-case stubs. Domain only — no Health, no UI.
 - **Inputs / docs**: plan §3 (activity baseline, category decision table); `swift-testing-doctrine`.
@@ -257,7 +257,16 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   - `SleepIntervalUnion.duration(of:)` — sort, merge overlaps, sum.
 - **Acceptance**: every Day 18 test green; zero warnings.
 - **Tests / verifier**: `RunSomeTests` on the three suites.
-- **Evidence**:
+- **Evidence**: 2026-09-19. `RunSomeTests` over the three suites: **25 tests, 25 passed, 0 failed**
+  (from 22 failing). `GetBuildLog(severity: warning)` empty.
+  Three things the tests forced that a reading of the brief alone would not have:
+  the sleep union sorts before merging and extends the open span only forwards, so a stage nested
+  inside a longer record cannot shorten it; the calculator reports the **preferred** metric's
+  failure when both metrics refuse, so the reason does not depend on evaluation order (D23); and
+  the rule returns `nil` from its recorded branch when today's reading is missing, so an absent
+  value can never fall through the "below 75%" door into a light verdict.
+  `Duration` equality held exactly, as the test auditor predicted — the implementation computes
+  from `DateInterval.duration`, a `Double`, and still compares equal to integer seconds.
 - **Next**: WU-19-B.
 - **Commit**: `feat(domain): implement activity baseline calculator, category rule and sleep union`
 
