@@ -63,3 +63,8 @@ fastlane/test_output
 
 ## macOS
 .DS_Store
+
+## Agent working files (local only, never pushed)
+# Project instructions for Claude Code. Kept out of the remote deliberately:
+# it is working context, not part of the submission.
+CLAUDE.md
