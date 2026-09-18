@@ -1,40 +1,51 @@
 ---
-title: CLAUDE.md is local-only, and the history was rewritten to keep it that way
-tags: [foodge, decision, git, workflow]
+title: CLAUDE.md is tracked, and names no local paths
+tags: [foodge, decision, git, workflow, privacy]
 date: 2026-09-19
 ---
 
-# CLAUDE.md is local-only
+# CLAUDE.md is tracked, and names no local paths
+
+## How this ended up being decided twice
+
+First decision: gitignore `CLAUDE.md`, because it referenced an internal studio folder by name
+and absolute path, and the repository is public. It was purged from history with `filter-branch`
+while `develop` was still unpushed.
+
+That was aimed at the wrong file. A later audit — `git grep` across every commit, not just the
+working tree — found the same reference in **`docs/foodge-plan.md`**, which is the product brief
+and had been pushed to a public repository. Also in `docs/implementation-tasks.md` and a session
+note. Hiding `CLAUDE.md` had achieved nothing for the actual goal.
 
 ## Decision
 
-`CLAUDE.md` is gitignored. It is agent working context, not part of the hackathon submission.
+Two changes, in this order:
 
-Because it had already been committed in five local commits, gitignoring alone was not enough —
-the blob would still have travelled to GitHub on the first push of `develop`. `develop` had
-never been pushed (only `origin/main` existed, with the initial commit), so the history was
-rewritten rather than merely patched at the tip:
+1. **Neutralise the reference everywhere**, not just in one file. Internal material is described
+   by role — "the studio's engineering constitution, kept outside this repository" — and never by
+   name or path. History and commit messages were rewritten and force-pushed.
+2. **Track `CLAUDE.md` again.** Once it names no path, there is nothing to hide, and keeping it
+   in the repo removes the single-copy risk that gitignoring it created.
 
+## The lesson
+
+The instinct was "which file mentions this?" The right question was **"grep every commit,
+including messages, for the thing itself."** A secret is not in a file, it is in the repository;
+and a working-tree grep says nothing about what has already been pushed.
+
+Checks worth keeping:
+
+```bash
+git grep -n -i -E "<term>" $(git rev-list --all) --      # every tree, every commit
+git log --all --format='%B' | grep -i -E "<term>"         # every message
 ```
-git branch backup/pre-claude-md-purge
-FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f \
-  --index-filter 'git rm -q --cached --ignore-unmatch CLAUDE.md' -- <initial>..HEAD
-```
 
-Verified with `git log develop -- CLAUDE.md` returning nothing. All nine work commits survive
-with new hashes. `backup/pre-claude-md-purge` still holds the originals.
+## Residual risk
 
-## The cost
-
-Any commit hash written down before the rewrite is now wrong. The ledger deliberately refers to
-"the commit that closes Day 18" rather than a hash, for exactly this reason — a self-referential
-hash in a file that is itself part of the commit can never be right anyway.
-
-## Trade-off worth knowing
-
-The repo no longer carries its own agent instructions. A fresh clone gets `docs/foodge-plan.md`,
-`DESIGN.md`, `docs/implementation-tasks.md` and `memory/` — enough to work from — but not the
-condensed rules. Keep a copy somewhere durable; losing this file loses real context.
+Force-pushing removes the objects from the branch, but GitHub may keep unreachable commits
+reachable by direct SHA URL until it garbage-collects. Guaranteed removal would have meant
+deleting and recreating the repository, which was judged not worth losing the creation date on a
+hackathon entry. Recorded so the trade-off is visible rather than forgotten.
 
 ## See also
 

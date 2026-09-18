@@ -43,7 +43,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[file-protection-complete-unless-open]] — why not `.complete` on a live database
 - [[metric-preference-and-failure-reporting]] — energy vs steps, and which refusal is reported
 - [[baseline-window-ownership]] — who owns calendar correctness
-- [[claude-md-kept-out-of-the-remote]] — and how the history was purged
+- [[claude-md-kept-out-of-the-remote]] — why hiding one file was the wrong fix
 - [[audit-prompts-should-target-evidence]] — ask whether a test *could fail*
 
 ### Troubleshooting
