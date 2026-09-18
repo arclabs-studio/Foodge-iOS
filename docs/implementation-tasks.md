@@ -59,6 +59,8 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D26 | Every Info.plist key and entitlement is verified against the **built** `Foodge.app/Info.plist`, never against `AddInfoPlist`'s return value. | The first `AddInfoPlist(NSHealthShareUsageDescription)` returned `{"result": true}` and persisted nothing — the key was absent from the build settings, from `Foodge-InfoPlist.xcstrings` and from the built plist. HealthKit then terminated the app on the device the moment authorization was requested: *"NSHealthShareUsageDescription must be set in the app's Info.plist in order to request read authorization"*. A second identical call persisted correctly. A tool's success result is not evidence that the project changed. |
 | D27 | "One type per file" is read as one *concept* per file: a primary type may share its file with the small value types that exist only as its members, and the file is named after the primary type. | Splitting `BaselineUnavailableReason` or `ActivityMetric` into their own files would scatter one idea across four, and the plan's own type sketch groups them this way. The rule still bites where it matters: no file mixes unrelated types. Applies to `Dish`, `HealthAggregates`, `DailyContext`, `ActivityBaseline`, `VerdictDecision`, `EvidenceAvailability`, `EvaluationClock` and `SyntheticScenarios`. |
 | D28 | `Data/SampleData/SampleData.swift` — the `PreviewModifier` with an in-memory container — moves from WU-18-C to WU-19-C. | A `PreviewModifier` needs a `ModelContainer`, and the schema does not exist until WU-19-C (D10). Writing it in WU-18-C would have meant a preview helper with nothing to hold. The scenarios themselves landed on Day 18 as planned. |
+| D29 | The store directory uses `.completeUnlessOpen` file protection, not `.complete`, and is excluded from backups. | The plan said "complete file protection". `.complete` makes a file unreadable the instant the screen locks, including one the app already has open — which for a database mid-write means failed saves and a corrupt store, exactly the failure the setting was meant to prevent. `.completeUnlessOpen` keeps the protection at rest (nothing readable while locked and the app is not running) without breaking an open database. Protection and backup exclusion are applied to the directory so the SQLite sidecar files are covered too. |
+| D30 | Redundant `Sendable` conformances were removed from `QuantityKind` and the test fixture's `Today`, but kept on `HealthAuthorizationService`. | The constitution forbids redundant conformances on value types, and for pure value types they are noise. `HealthAuthorizationService` is the exception: it stores a class reference (`HKHealthStore`), so spelling the conformance out converts "someone stores a non-Sendable type here" from a silent loss of the guarantee into a compile error. Documented in the file itself. |
 
 ---
 
@@ -270,7 +272,7 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 - **Next**: WU-19-B.
 - **Commit**: `feat(domain): implement activity baseline calculator, category rule and sleep union`
 
-### WU-19-B ⬜ Health reader
+### WU-19-B ✅ Health reader
 
 - **Objective / scope**: `Data/Health/` — `HealthSampleSource` (protocol), `HealthKitSampleSource`
   (actor), `HealthEvidenceReader: HealthEvidenceProvider`, `HealthReadTypes`,
@@ -287,11 +289,27 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 - **Acceptance**: `EvidenceWindowPlannerTests` and `HealthEvidenceReaderTests` green
   (fixtures per D11); zero warnings.
 - **Tests / verifier**: `RunSomeTests`; `arc-audit-concurrency` clean.
-- **Evidence**:
+- **Evidence**: 2026-09-19. **11 tests, 11 passed**; 39 across the whole unit suite, zero warnings.
+  Both daylight-saving cases verify against real arithmetic rather than assertion: 29 March 2026
+  gives a 3-hour window from midnight to 04:00 and 25 October gives a 5-hour one, so the
+  same-clock-time cut is demonstrably calendar-aware and not seconds-based.
+  `arc-audit-concurrency` returned **0 blockers**, confirming no `nonisolated(unsafe)`,
+  `@unchecked Sendable`, `@preconcurrency`, GCD or continuation anywhere in the layer, and
+  verifying the zero-warning build itself. Three of its findings are fixed here:
+  today's reads and the fortnight were being awaited one after the other despite sharing nothing
+  (now concurrent, so the cost is the slower rather than the sum); the actor's doc comment claimed
+  it *serialised* queries, which is false for a reentrant actor and would have misled the next
+  person who added state to it; and `compactMap` on the reassembled history could have silently
+  returned a short fortnight that the baseline would treat as complete.
+  The fourth mattered most for the tests: the fixture never suspended, so
+  `historyReadingsStayAlignedWithTheirDays` would have passed against a serial loop. It now delays
+  the earliest window longest, which forces results to arrive out of submission order and puts the
+  index-keyed reassembly under real test.
+  D30 records the one `Sendable` conformance deliberately kept.
 - **Next**: WU-19-C.
 - **Commit**: `feat(health): add HealthKit sample source and evidence reader with same-local-time windows`
 
-### WU-19-C ⬜ Schema V1 and persistence actor
+### WU-19-C ✅ Schema V1 and persistence actor
 
 - **Objective / scope**: `Data/Persistence/` — `FoodgeSchemaV1` (`VersionedSchema`,
   `[UserPreferences.self]`), `FoodgeMigrationPlan` (no stages yet), `Models/UserPreferences.swift`
@@ -303,7 +321,17 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 - **Inputs / docs**: plan §4; skills `swiftdata-architecture`, `apple-app-security`.
 - **Acceptance**: `ContainerFactoryTests.preferencesSurviveContainerReopen` green; zero warnings.
 - **Tests / verifier**: `RunSomeTests`; `arc-audit-concurrency` clean.
-- **Evidence**:
+- **Evidence**: 2026-09-19. `ContainerFactoryTests`: **3 tests, 3 passed**. The reopen test writes
+  through `PersistenceActor` into a real on-disk store, opens a **separate** container on the same
+  file and reads every field back. Two more pin things the plan did not list but that would have
+  bitten later: a second save updates the single record rather than adding a duplicate the app
+  would then read at random, and an in-memory container keeps nothing — which is what stops a
+  demonstration scenario ever reaching someone's real history.
+  `PreferencesDraft` is the only thing crossing the actor boundary; no live `@Model` object leaves
+  the context that owns it. Enum values persist as raw strings so renaming a Swift case cannot
+  silently change stored data, and an unrecognised stored diet falls back to omnivore rather than
+  narrowing what the user is offered.
+  D29 records the file-protection level chosen.
 - **Next**: WU-19-D.
 - **Commit**: `feat(persistence): add schema V1 with user preferences and persistence actor`
 
