@@ -51,6 +51,12 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D18 | `SWIFT_VERSION` is set to `6.0` on all three targets rather than left at the template's value. | The Xcode 27 multiplatform App template sets `SWIFT_VERSION = 5.0`, which silently forces `SWIFT_STRICT_CONCURRENCY` to `minimal` and disables every Swift 6 upcoming feature. The plan said to keep the language-mode value the template set and never invent `6.4`; `6.0` is the language-mode value that actually satisfies the plan's "Swift 6 language mode" baseline. |
 | D19 | `SUPPORTS_MACCATALYST` is not set. | Xcode 27 rejects it: "Unknown build setting". `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` already excludes macOS and Mac Catalyst. |
 | D20 | `LocalizationPlanner` was called although its documented precondition skill (`xcode-integration:translation-coordinator`) does not exist in this environment. | The user directed that localization must use the Apple/Xcode-native route, and the planner is that route. The missing item is Xcode's own instruction skill, not a capability. No `.xcstrings` file is ever hand-edited. |
+| D21 | Physical-device verification is done with `RunProject` plus the device log, not with the Xcode MCP's device-interaction tools. | Those tools refuse a physical iPhone outright: "The device you are targeting is not supported for Device Interaction. Supported: iOS [Simulator] 27.0+". The probe therefore logs its state labels — never a Health value, never model output — so results can be read back with `GetConsoleOutput`. This also constrains how `arc-verify-ui` can verify on device for the rest of the build. |
+| D22 | `HealthReadTypes` was written in WU-18-D rather than waiting for WU-19-B. | The probe must request exactly the six product types, and having two definitions of that set — one temporary, one real — is how they drift apart. |
+| D23 | Metric preference is resolved as: try active energy; if it cannot supply a usable comparison — too few observations **or** a zero median — try steps on the same rules; if steps also fail, report the **energy** failure, and `insufficientHistory(found:)` carries the count of usable **energy** observations. | The brief says "use steps when energy cannot supply a usable comparison" without saying whether a zero median counts as "cannot". Reading it as "cannot" is what keeps a user whose watch reports zero calories but real steps from losing their pattern entirely. Reporting the preferred metric's reason makes the failure deterministic instead of depending on which metric failed last. Pinned by `aZeroEnergyMedianFallsBackToSteps`. |
+| D24 | `ActivityBaseline.window` is the span from the first to the last day actually used. Calendar-aware cutting of each day at the evaluation's local clock time is `EvidenceWindowPlanner`'s job (WU-19-B), not the calculator's. | The calculator receives only `[DailyActivityObservation]` — no calendar, time zone or cutoff — so it cannot be where the DST rule lives. Splitting it this way keeps the calculator pure and puts the daylight-saving tests where the calendar actually is. Pinned by the window expectations in `aFullFortnightUsesTheMedian`. |
+| D25 | The test target declares a fifth tag, `.domain`, alongside the constitution's `.unit` / `.integration` / `.ui` / `.critical`. | Additive, not a substitution: it separates domain-rule suites from plumbing suites once the Data and Presentation suites arrive. All four constitutional tags remain declared. |
+| D26 | Every Info.plist key and entitlement is verified against the **built** `Foodge.app/Info.plist`, never against `AddInfoPlist`'s return value. | The first `AddInfoPlist(NSHealthShareUsageDescription)` returned `{"result": true}` and persisted nothing — the key was absent from the build settings, from `Foodge-InfoPlist.xcstrings` and from the built plist. HealthKit then terminated the app on the device the moment authorization was requested: *"NSHealthShareUsageDescription must be set in the app's Info.plist in order to request read authorization"*. A second identical call persisted correctly. A tool's success result is not evidence that the project changed. |
 
 ---
 
@@ -121,7 +127,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 - **Next**: WU-18-C.
 - **Commit**: `chore(project): create Foodge Xcode project with strict Swift 6 settings`
 
-### WU-18-C ⬜ Domain skeleton, sample data and first failing tests
+### WU-18-C ✅ Domain skeleton, sample data and first failing tests
 
 - **Objective / scope**: value types, domain protocols, use-case stubs, synthetic scenarios and the
   first three test suites — deliberately red. No Health, no persistence, no UI beyond the root.
@@ -152,12 +158,35 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 - **Acceptance**: build green with zero warnings; `RunSomeTests` shows the three suites compiling
   and **failing** — this red state is intentional and D13 blocks Day 19 from closing until green.
 - **Tests / verifier**: `BuildProject`, `RunSomeTests`, `arc-test-engineer`.
-- **Evidence**:
+- **Evidence**: 2026-09-19. Domain, scenarios and suites build with zero warnings on simulator
+  and device. `RunSomeTests` over the three suites: **25 tests, 3 passed, 22 failed** — the
+  intended red state.
+  `arc-test-engineer` audited all five test files before implementation and returned
+  *"suite clean — 0 tautological tests, all cases pass the Gate"*, having independently
+  recomputed every median, both threshold boundaries and all three sleep unions, and having
+  empirically confirmed that `Duration` and median equality are bit-exact (so a correct
+  implementation will not fail on floating point). Note its warning that
+  `Duration.seconds(27000).description` prints `27000.000000000004` — the failure text looks
+  like a float bug when it is not.
+  Two P1 findings fixed: the `invalidValuesAreDiscarded` title said "not positive" where the
+  brief says **nonnegative**, which would have steered the filter to `> 0` and silently broken
+  the zero-median branch; and no fixture fed sleep intervals out of order, so an implementation
+  that merged without sorting would have passed everything and shipped broken.
+  Also applied: `try result.get()` in place of `try #require(try? …)` so the five refusal paths
+  report which reason fired; a positive assertion in `aMissingTodayIsNotTreatedAsZero`; reason
+  codes asserted in the self-report cases; and three new tests —
+  `recordedEvidenceBeatsASelfReport`, `aZeroEnergyMedianFallsBackToSteps` and
+  `unsortedRecordsAreMerged`. Decisions D23–D25 record the rules those pin.
+  The template `FoodgeTests.swift` was deleted: an empty example with no assertions, which the
+  doctrine's Gate rejects.
+  **For WU-19-A:** the 3 green tests are green only because the stubs return plausible values —
+  `DinnerCategoryRule`'s stub hardcodes exactly the provisional-balanced answer two of them
+  assert. Green here does not mean done.
 - **Next**: WU-18-D.
 - **Commits**: `feat(domain): add evidence, verdict and catalogue value types with synthetic scenarios`
   · `test(domain): add failing category rule, baseline and sleep union tests`
 
-### WU-18-D ⬜ Health and Foundation Models feasibility probe on the iPhone
+### WU-18-D ✅ Health and Foundation Models feasibility probe on the iPhone
 
 - **Objective / scope**: prove on the physical device that Health authorization, a real read and
   on-device generation all work before any feature depends on them. Temporary UI (D14).
@@ -172,8 +201,22 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 - **Acceptance**: `DeviceInteractionStartWorkspaceSession` on the connected iPhone →
   `InstallAndRun` → screenshots of the Health sheet, the `.available` state and a received
   response. Paths recorded below; no Health values anywhere. Session ended.
-- **Tests / verifier**: device session screenshots; `arc-constitution-review` before the day's last commit.
-- **Evidence**:
+- **Tests / verifier**: device log via `GetConsoleOutput`; `arc-constitution-review` before the
+  day's last commit.
+- **Evidence**: 2026-09-19, on the connected iPhone (`iPhone de CR`, iOS 27.0), via
+  `RunProject` rather than a device-interaction session (D21).
+  **First run crashed** on "Connect Health":
+  `NSInvalidArgumentException — NSHealthShareUsageDescription must be set in the app's Info.plist
+  in order to request read authorization for the following types: …`. Cause and fix in D26; the
+  HealthKit entitlement was correct throughout (`com.apple.developer.healthkit => true` in the
+  signed entitlements).
+  After the fix, on device:
+  `PROBE health=noReadableData` · `PROBE lastSevenDaysReadable=true` ·
+  `PROBE availability=available` · `PROBE narration=answered(characterCount: 6)`.
+  So: authorization completes, a real seven-day Health read returns data, an empty window is
+  reported as absence (the run was at 00:43, when today genuinely held nothing) and never as a
+  denial, and on-device generation produced a real response. No Health value and no model output
+  reached the screen or the log — only the state labels above.
 - **Next**: WU-19-A.
 - **Commit**: `chore(debug): add temporary Health and Foundation Models feasibility probe`
 
