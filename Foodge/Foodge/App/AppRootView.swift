@@ -14,11 +14,15 @@ import SwiftUI
 @MainActor
 struct AppRootView: View {
     var body: some View {
+        #if DEBUG
+        FeasibilityProbeView()
+        #else
         ContentUnavailableView(
             "Foodge",
             systemImage: "fork.knife",
             description: Text("The court is not in session yet.")
         )
+        #endif
     }
 }
 

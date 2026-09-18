@@ -12,6 +12,18 @@
           }
         }
       }
+    },
+    "NSHealthShareUsageDescription" : {
+      "comment" : "Privacy - Health Share Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Foodge reads your activity, sleep and dietary energy from Health so it can judge tonight's dinner from real evidence. It only reads; it never writes to Health."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
