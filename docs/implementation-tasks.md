@@ -47,7 +47,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D14 | The feasibility probe is a `#if DEBUG` `FeasibilityProbeView` used as the root of `AppRootView` on Day 18, and deleted in the Day 19 onboarding commit (an acceptance criterion of WU-19-D). | Nothing else exists to host it on Day 18, the Xcode MCP has no scheme-environment tool, and no dead code may survive the day. |
 | D15 | Judge artwork is a placeholder `JudgeBadgeView` wrapping an SF Symbol until Day 24. | The final-artwork swap then touches one file. |
 | D16 | Even-count median is the mean of the middle pair. The sleep window is the previous day 18:00 → evaluation time. | Product rules not specified in the plan; recorded here so they are reviewable. |
-| D17 | `.DS_Store` added to `.gitignore`; the in-repo constitution copy deleted (the original stays at outside the repository). | Hygiene, and licensed material must remain outside the submission repository. |
+| D17 | `.DS_Store` added to `.gitignore`; an in-repo copy of internal studio material deleted (the original stays outside the repository). | Hygiene, and licensed material must remain outside the submission repository. |
 | D18 | `SWIFT_VERSION` is set to `6.0` on all three targets rather than left at the template's value. | The Xcode 27 multiplatform App template sets `SWIFT_VERSION = 5.0`, which silently forces `SWIFT_STRICT_CONCURRENCY` to `minimal` and disables every Swift 6 upcoming feature. The plan said to keep the language-mode value the template set and never invent `6.4`; `6.0` is the language-mode value that actually satisfies the plan's "Swift 6 language mode" baseline. |
 | D19 | `SUPPORTS_MACCATALYST` is not set. | Xcode 27 rejects it: "Unknown build setting". `SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"` already excludes macOS and Mac Catalyst. |
 | D20 | `LocalizationPlanner` was called although its documented precondition skill (`xcode-integration:translation-coordinator`) does not exist in this environment. | The user directed that localization must use the Apple/Xcode-native route, and the planner is that route. The missing item is Xcode's own instruction skill, not a capability. No `.xcstrings` file is ever hand-edited. |
@@ -69,13 +69,13 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 ### WU-18-A ✅ Repo hygiene and handoff documents
 
 - **Objective / scope**: persist the plan, design specification and this ledger. Delete the in-repo
-  constitution copy. No Xcode project work.
+  copy of internal studio material. No Xcode project work.
 - **Inputs / docs**: `docs/foodge-plan.md` §2 and §6.
 - **Acceptance**: `git status` shows only `CLAUDE.md`, `DESIGN.md`, `docs/`, `.gitignore`.
-  No constitution content anywhere in the repo. `CLAUDE.md` ≤ 80 lines.
+  No internal studio material anywhere in the repo. `CLAUDE.md` ≤ 80 lines.
 - **Tests / verifier**: `git status`, manual read-through.
-- **Evidence**: 2026-09-18. In-repo constitution copy verified byte-identical to the original
-  (`diff -rq`, no differences) before deletion; original intact at outside the repository.
+- **Evidence**: 2026-09-18. The in-repo copy of internal studio material verified byte-identical to its original
+  (`diff -rq`, no differences) before deletion; the original remains outside the repository.
   `foodge-plan.md` moved to `docs/`. `.DS_Store` removed and ignored.
   `git status` lists exactly `.gitignore`, `CLAUDE.md`, `DESIGN.md`, `docs/`
   (`.claude/settings.local.json` is covered by the user's global ignore).

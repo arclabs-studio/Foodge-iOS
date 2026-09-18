@@ -27,9 +27,9 @@ Recipes, meal photography analysis, conversational chat, accounts, cloud service
 
 ### Governing standards
 
-The studio’s engineering constitution (kept outside this repository) is the project’s engineering constitution. Foodge-specific decisions in this plan take precedence over conflicting general ARC conventions. Apple’s HIG governs platform interaction and presentation.
+The studio’s engineering constitution, kept outside this repository, governs engineering practice. Foodge-specific decisions in this plan take precedence over conflicting general ARC conventions. Apple’s HIG governs platform interaction and presentation.
 
-Apple Coding Academy materials inform coding patterns; Paul Hudson’s materials inform clarity and testability. Neither substitutes for current Apple documentation. Licensed course materials, books and the constitution must remain outside the submission repository.
+Apple Coding Academy materials inform coding patterns; Paul Hudson’s materials inform clarity and testability. Neither substitutes for current Apple documentation. Licensed course materials and books must remain outside the submission repository.
 
 Use Apple documentation MCPs first, with official documentation and Markdown documentation URLs as fallbacks. Verify unfamiliar APIs before implementation.
 
@@ -274,7 +274,7 @@ Use Clean Architecture with lightweight MVVM coordination:
 
 The dependency relationship is **presentation uses domain contracts; data implements those contracts**. Domain decision logic must not depend on HealthKit queries or Foundation Models.
 
-Persisted `@Model` types are the persisted domain model under the studio SwiftData carve-out. Do not build duplicate entity hierarchies. Small immutable snapshots used across actor boundaries are intentional transport values.
+Persisted `@Model` types are the persisted domain model under the studio’s SwiftData carve-out. Do not build duplicate entity hierarchies. Small immutable snapshots used across actor boundaries are intentional transport values.
 
 ### Internal interfaces
 
@@ -369,7 +369,7 @@ Validate on iOS 26 and 27, including a physical Apple Intelligence-capable iPhon
 
 Synthetic fixtures validate scenarios; they do not replace physical Health integration testing.
 
-Every completed feature requires a zero-warning build, green relevant tests and visual verification. Use the constitution’s testing, concurrency, HIG, accessibility, security and constitution checkpoints. Xcode MCP remains the default for project operations; do not silently substitute prohibited CLI workflows.
+Every completed feature requires a zero-warning build, green relevant tests and visual verification. Use the studio’s testing, concurrency, HIG, accessibility, security and constitution checkpoints. Xcode MCP remains the default for project operations; do not silently substitute prohibited CLI workflows.
 
 The planning review identified and resolved the zero-baseline guard. No implementation, build or test result is being claimed by this plan.
 
