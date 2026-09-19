@@ -58,3 +58,4 @@ enough to be useful cold. A note here links back to its ledger number.
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer
+- [[2026-09-19-wu-19-d-onboarding]] — the day Foodge got a user interface, and what four auditors caught
