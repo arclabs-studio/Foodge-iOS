@@ -340,7 +340,7 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 - **Next**: WU-19-D.
 - **Commit**: `feat(persistence): add schema V1 with user preferences and persistence actor`
 
-### WU-19-D ⬜ Progressive onboarding
+### WU-19-D ✅ Progressive onboarding
 
 - **Objective / scope**: `Presentation/Features/Onboarding/` — `OnboardingFlowView`
   (`NavigationStack(path:)` over `OnboardingRoute`), `WelcomeView`, `HealthConnectionView`,
@@ -427,9 +427,20 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
     `\` line continuations preserved every string literal exactly, confirmed by the catalogue
     reporting **0 new keys**), and it confirmed the `Measurement` formatting by API inspection
     rather than by hearing VoiceOver, which it said plainly.
-- **Owed**: physical-device pass on "iPhone de CR" (device interaction is simulator-only, D21) —
-  Health data is real there, so `.connected` with an actual recorded pattern has not yet been seen
-  on hardware. `arc-audit-hig` and `arc-audit-accessibility` still to run.
+  - **Physical device ("iPhone de CR", iOS 27), the run that closes the unit.** The console is
+    the whole instrument here (D21), so `AppLaunch` gained a `store=unavailable` marker first —
+    without it a store that refuses to open is indistinguishable from an app that logged nothing.
+    It was not needed: the store opened, so **growing V1 did not reject the existing store on
+    the phone**. Whether that is because the device held no prior store or because SwiftData
+    took the new property from its default is not determinable from here, and is not claimed.
+    Sequence, PID 16175:
+    `launch completed=false` → `state=requesting` → `state=connected` → `state=requesting` →
+    `state=connected` → `save=completed`. **`.connected` ran against a real recorded fortnight
+    for the first time anywhere** — every simulator run had ended in `noReadableData` because
+    there was nothing to read. **No Health value appears in any line**, only state labels.
+  - Relaunch proved on a **separate process** (PID 16178): `launch completed=true`. That is the
+    persistent half — `@Query` reading the record back from disk — not the within-session
+    `didFinish` latch, which a same-process transition could not have distinguished.
 - **Next**: Day 20 backlog.
 - **Commits**: `feat(onboarding): add progressive Welcome, Health connection and Preferences flow`
   · `chore(debug): remove feasibility probe`

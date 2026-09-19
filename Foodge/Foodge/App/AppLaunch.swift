@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftData
 
 /// Opens the local store once, and reports honestly when it cannot.
@@ -36,11 +37,17 @@ final class AppLaunch {
     }
 
     /// The enum is what lets the failure path exist without a force unwrap.
+    ///
+    /// The failure is logged under the same `ONBOARDING` marker family as the rest of the launch
+    /// decision, deliberately: on a physical device the console is the only instrument (D21), and
+    /// a store that refuses to open otherwise looks exactly like an app that logged nothing at
+    /// all. The label says what happened and never why — no path, no underlying error.
     private static func open() -> State {
         do {
             let container = try ContainerFactory.makeLive()
             return .ready(container, AppDependencies(container: container))
         } catch {
+            OnboardingLog.logger.error("ONBOARDING launch store=unavailable")
             return .storeUnavailable(.storeUnavailable)
         }
     }
