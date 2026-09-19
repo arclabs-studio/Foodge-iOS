@@ -64,7 +64,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D31 | `IngredientExclusionsView` is deferred from WU-19-D to WU-20-A. WU-19-D ships four onboarding screens; `PreferencesDraft.excludedIngredientIDs` stays in the model and is written as an empty set. | `Ingredient` is declared and never constructed — the catalogue is WU-20-A. A picker over invented identifiers risks exclusions that silently never bite once the real catalogue lands, which the brief forbids ("never silently relax an exclusion"). Keeping the field in the model means no migration is owed when the screen arrives. The alternative — shipping the seam now — costs a screen that has to be localized and audited twice. |
 | D32 | Schema V1 grows `UserPreferences.trackingRepresentative: Bool`, defaulting to `true`. `versionIdentifier` stays `1.0.0`. | `markUnrepresentative(_:)` is in WU-19-D's action list, but the flag lived only on `EvidenceSnapshot`, so the mark would not survive a relaunch. D10 already establishes that growing unreleased V1 is a dev reinstall, not a migration. The default is `true` because unasked means "use my data", which is what a user who skipped the Health step expects. This is the *standing* question — may the recorded fortnight be used as a baseline at all, exactly `ActivityBaselineCalculator`'s parameter — and is distinct from the per-day confirmation the category rule asks for on Day 21. |
 | D33 | The brand colour sets (`AppBurgundy`, `AppGold`, `AppBurgundyMuted`, plus a value for `AccentColor`) are authored in WU-19-D with all four appearances; artwork still lands on Day 24. | The constitution forbids colour literals in code, so anything tinted needs the catalogue the moment `JudgeBadgeView` exists. Day 24 then swaps artwork only, not the palette. The Xcode MCP exposes no asset-catalogue tool, so the `.colorset/Contents.json` files are written into the synchronized root group — filesystem work, not a `project.pbxproj` or `.xcstrings` hand-edit. |
-| D34 | Three protocol seams are introduced — `HealthAuthorizing` and `PreferencesStore` in `Domain/Services/` — and `PreferencesDraft` moves from `Data/Persistence/` to `Domain/Entities/`. Both existing concrete types conform with no API change. A `#Preview` is a composition root: `PreviewDependencies` (`#if DEBUG`) may name `AppDependencies`, which production Presentation code may not. | The ledger named the concrete `HealthAuthorizationService` and `PersistenceActor` as ViewModel dependencies. One presents a system sheet (untestable off-device) and the other's save throws only when `modelContext.save()` does, which an in-memory container never will — so a failed save would be unreachable in tests. `PreferencesStore` names `PreferencesDraft`, so the draft has to be Domain, or `OnboardingViewModel` would import Data and break the one-way dependency direction `arc-constitution-review` checks. |
+| D34 | Three protocol seams are introduced — `HealthAuthorizing` and `PreferencesStore` in `Domain/Services/` — and `PreferencesDraft` moves from `Data/Persistence/` to `Domain/Entities/`. Both existing concrete types conform with no API change. A `#Preview` is a composition root: `PreviewDependencies` (`#if DEBUG`) may name `AppDependencies`, which production Presentation code may not — so the assembly lives in `AppDependencies.makeOnboardingViewModel()` (App layer) and `OnboardingViewModel` has no initializer naming `AppDependencies` at all. | The ledger named the concrete `HealthAuthorizationService` and `PersistenceActor` as ViewModel dependencies. One presents a system sheet (untestable off-device) and the other's save throws only when `modelContext.save()` does, which an in-memory container never will — so a failed save would be unreachable in tests. `PreferencesStore` names `PreferencesDraft`, so the draft has to be Domain, or `OnboardingViewModel` would import Data and break the one-way dependency direction `arc-constitution-review` checks. |
 | D35 | `OnboardingViewModel.HealthState` has a sixth case, `.requestFailed`, beyond the five the ledger named. | The five cannot express "the authorization request itself did not complete". Mapping that to `.noReadableData` would assert an absence the app cannot prove — the same mistake as claiming denial. |
 
 ---
@@ -361,6 +361,55 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   `arc-audit-hig` and `arc-audit-accessibility` with no blockers; `arc-constitution-review`
   before the day's last commit.
 - **Evidence**:
+  - Baseline before starting: build 0 errors / 0 warnings (`GetBuildLog severity: "warning"`, the
+    second call), 41/41 tests.
+  - **Tests written first and proven red**: the suite ran against empty method bodies and
+    **15/15 cases failed**, then passed once implemented. Final: **61/61** (59 `FoodgeTests`
+    + 2 `FoodgeUITests`), of which `OnboardingViewModelTests` contributes **19 test functions /
+    20 cases**. Build 0 errors, 0 warnings at `severity: "warning"`.
+  - Scope changed by the ledger's own count: 4 screens, not 5 (D31), and 20 onboarding cases,
+    not the 13 planned — `arc-test-engineer` found the `evidenceFailure` seam existed with no
+    test using it, leaving the D35 rule (a failed read is not an absence) unproven. It also
+    exposed a real defect: a cancelled read left `.requesting` on screen permanently. Both fixed,
+    plus tests for `toggleFavourite` removal, a nil-snapshot mark, and disjoint energy/step days
+    (the last one is what actually pins D23's rationale).
+  - `arc-constitution-review` returned **2 blockers, both real**: `OnboardingViewModel` had a
+    `convenience init(dependencies: AppDependencies)` — production Presentation naming an App
+    type, flatly contradicting D34's own wording — and **all 16 `View` structs were missing the
+    explicit `@MainActor`** the project requires under `nonisolated` default isolation
+    (`AppRootView` had regressed: the Day 18 version carried it). Both fixed; assembly moved to
+    `AppDependencies.makeOnboardingViewModel()`.
+  - Previews rendered and read, not just invoked: `WelcomeView`, `HealthConnectionView`
+    (connected), `PreferencesView`, `RecordedPatternSection`, at `en`, at `es`, and at AX 5.
+    AX 5 confirmed `LabeledContent` stacks label-over-value rather than truncating — the comment
+    claiming that is now evidence, not assertion.
+  - Localization: 67 keys + 2 Info.plist keys through `LocalizationPlanner` / `StringCatalogEdit`;
+    9 more after the apostrophes were corrected to `’`. Verified in the **built**
+    `Foodge.app/es.lproj/Localizable.strings` and `InfoPlist.strings` (D26), not from the tool's
+    return value.
+  - Simulator session completed Welcome → Health (Apple's sheet, all six types granted) →
+    Preferences → Save, reached the Today/History tabs, and **a force-quit relaunch went straight
+    to the tabs** — onboarding skipped, which is the half only a relaunch can prove. Console via
+    `GetConsoleOutput`: `ONBOARDING launch completed=false` → `state=requesting` →
+    `state=noReadableData`, then `launch completed=true` on the next launch. No Health value
+    appears in any line.
+  - The simulator pass found two defects a preview could not: the dish rows were **completely
+    unresponsive to taps**, and all nine exposed a false "Selected" accessibility element.
+    `LabeledContent` inside a `Button` forms its own accessibility container. Rebuilt as an
+    `HStack` label with `.contentShape(.rect)` — which fixed the taps but **not** the phantom
+    element: a trailing checkmark in a `Form` row becomes the row's native accessory, and an
+    accessory ignores `.accessibilityHidden(true)`, so `.opacity(0)` left all nine announcing
+    themselves as selected. Only building the glyph when selected fixed it. Re-verified on a
+    clean install: nine bare `Button` leaves, the `Selected` trait on the button alone, and
+    **row geometry byte-identical across all four states** — the layout-shift the opacity trick
+    was protecting against does not occur, because the glyph sits in a fixed-height row's
+    trailing space.
+  - `arc-audit-hig`: **0 blockers**, two extractions taken — `DishFamily` filtering moved to
+    `DinnerCategory.families` (domain knowledge had been duplicated in a View) and the dinner
+    routine's footer to `DinnerTime?.footerDescription`.
+- **Owed**: physical-device pass on "iPhone de CR" (device interaction is simulator-only, D21) —
+  Health data is real there, so `.connected` with an actual recorded pattern has not yet been seen
+  on hardware. `arc-audit-hig` and `arc-audit-accessibility` still to run.
 - **Next**: Day 20 backlog.
 - **Commits**: `feat(onboarding): add progressive Welcome, Health connection and Preferences flow`
   · `chore(debug): remove feasibility probe`

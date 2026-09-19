@@ -15,4 +15,12 @@ enum DinnerCategory: String, Codable, CaseIterable, Hashable, Sendable {
     case treat
     case balanced
     case light
+
+    /// The dish families the product brief assigns to this category.
+    ///
+    /// Lives here rather than in the screen that groups them: which family is a treat is a
+    /// domain fact, and a second copy of it in Presentation is a second place to get it wrong.
+    var families: [DishFamily] {
+        DishFamily.allCases.filter { $0.category == self }
+    }
 }

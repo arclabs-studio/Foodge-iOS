@@ -54,6 +54,7 @@ enough to be useful cold. A note here links back to its ledger number.
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
 - [[filter-branch-deletes-the-working-file]] — purging a tracked file takes the file with it
+- [[string-catalog-edit-marks-translations-machine-made]] — the state is the tool's choice, not ours
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer

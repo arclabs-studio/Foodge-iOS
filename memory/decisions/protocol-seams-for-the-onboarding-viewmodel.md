@@ -37,6 +37,17 @@ Data referring to App is backwards for production code. It is allowed here becau
 *is* a composition root — the same role `FoodgeApp` plays — and the file is `#if DEBUG`, so it
 never reaches the shipped binary.
 
+### How the assembly is actually wired
+
+The first attempt gave `OnboardingViewModel` a `convenience init(dependencies: AppDependencies)`.
+`arc-constitution-review` caught it: that initializer is **production Presentation code naming an
+App-layer type**, which is precisely what the paragraph above says must not happen. The ledger
+entry and the code contradicted each other, and the code was the one that was wrong.
+
+The assembly now lives in the composition root — `AppDependencies.makeOnboardingViewModel()` in
+`App/` — and `OnboardingViewModel` has exactly one initializer, taking the four Domain protocols.
+App may name Presentation; Presentation may not name App.
+
 `PreviewDependencies` vends **Domain-typed seams only** (`healthUnavailable()`,
 `connected(_:)`, `savingFails()`), never a ready-made ViewModel. Vending a ViewModel would put
 presentation logic in Data and quietly become a second place where a screen's state is decided.
