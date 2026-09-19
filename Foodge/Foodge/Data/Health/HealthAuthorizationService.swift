@@ -17,7 +17,7 @@ import HealthKit
 /// The `Sendable` conformance is spelled out rather than left implicit — normally redundant on a
 /// struct, but this one stores a class reference, so writing it down turns "someone puts a
 /// non-Sendable type in here" from a silent loss of the guarantee into a compile error.
-struct HealthAuthorizationService: Sendable {
+struct HealthAuthorizationService: HealthAuthorizing, Sendable {
     private let store: HKHealthStore
 
     init(store: HKHealthStore = HKHealthStore()) {

@@ -45,6 +45,11 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[baseline-window-ownership]] — who owns calendar correctness
 - [[claude-md-kept-out-of-the-remote]] — why hiding one file was the wrong fix
 - [[audit-prompts-should-target-evidence]] — ask whether a test *could fail*
+- [[exclusions-screen-waits-for-the-catalogue]] — a picker over identifiers that do not exist yet
+- [[schema-v1-grows-tracking-representative]] — the standing question, not the per-day one
+- [[colour-sets-before-artwork]] — why an `.xcassets` write is not a pbxproj edit
+- [[protocol-seams-for-the-onboarding-viewmodel]] — and why a `#Preview` is a composition root
+- [[a-sixth-health-state-for-a-failed-request]] — a failed request is not an absence
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

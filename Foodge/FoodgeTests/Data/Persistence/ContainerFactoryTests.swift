@@ -32,6 +32,7 @@ struct ContainerFactoryTests {
             excludedIngredientIDs: ["ingredient.mushroom", "ingredient.olive"],
             favouriteFamilies: [.tacos, .riceBowls],
             dinnerRoutine: .quick,
+            trackingRepresentative: false,
             onboardingCompletedAt: completedAt,
             narrationEnabled: false,
             reminderHour: 20,
@@ -51,6 +52,9 @@ struct ContainerFactoryTests {
         #expect(stored.excludedIngredientIDs == ["ingredient.mushroom", "ingredient.olive"])
         #expect(stored.favouriteFamilies == [.tacos, .riceBowls])
         #expect(stored.dinnerRoutine == .quick)
+        // The mark that says "do not use my recorded fortnight" is the one thing here that
+        // silently re-enables itself if it is not persisted: the field defaults to true.
+        #expect(stored.trackingRepresentative == false)
         #expect(stored.onboardingCompletedAt == completedAt)
         #expect(stored.narrationEnabled == false)
         #expect(stored.reminderHour == 20)

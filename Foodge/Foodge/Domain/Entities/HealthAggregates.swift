@@ -63,6 +63,19 @@ struct HealthAggregates: Hashable, Codable, Sendable {
     let workouts: [WorkoutSummary]?
     let dietaryEnergy: EnergyAggregate?
 
+    /// Whether Health returned anything measurable at all.
+    ///
+    /// Workouts are excluded on purpose: an empty workout array is not a reading, and counting
+    /// it would turn "Health has nothing yet" into "connected". A recorded zero *is* a reading
+    /// and counts, because someone genuinely moved nothing.
+    var hasAnyReading: Bool {
+        activeEnergy != nil
+            || restingEnergy != nil
+            || steps != nil
+            || sleep != nil
+            || dietaryEnergy != nil
+    }
+
     static let empty = HealthAggregates(
         activeEnergy: nil,
         restingEnergy: nil,

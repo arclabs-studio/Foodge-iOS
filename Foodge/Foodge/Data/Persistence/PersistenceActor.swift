@@ -14,7 +14,7 @@ import SwiftData
 /// `Sendable` draft and is applied off the main actor. Live model objects never leave this
 /// actor, because they belong to its context alone.
 @ModelActor
-actor PersistenceActor {
+actor PersistenceActor: PreferencesStore {
     /// Saves the user's preferences, creating the single record on first use.
     ///
     /// - Throws: ``FoodgeError/saveFailed`` if the write does not complete. The caller keeps the
@@ -50,6 +50,7 @@ actor PersistenceActor {
             excludedIngredientIDs: Set(stored.excludedIngredientIDs),
             favouriteFamilies: stored.favouriteFamilies,
             dinnerRoutine: stored.dinnerRoutine,
+            trackingRepresentative: stored.trackingRepresentative,
             onboardingCompletedAt: stored.onboardingCompletedAt,
             narrationEnabled: stored.narrationEnabled,
             reminderHour: stored.reminderHour,

@@ -22,6 +22,12 @@ final class UserPreferences {
     var excludedIngredientIDs: [String]
     var favouriteFamilyRawValues: [String]
     var dinnerRoutineRawValue: String?
+    /// Whether the recorded days may be used as a baseline at all (D32).
+    ///
+    /// Stored rather than recomputed because the answer is the user's, and asking again on every
+    /// launch would quietly re-enable a fortnight they have already disowned. `true` by default:
+    /// unasked means "use my data".
+    var trackingRepresentative: Bool = true
     /// When onboarding was completed. `nil` means it has not been, and this is the single source
     /// of that truth — deleted along with the rest of the local data (D9).
     var onboardingCompletedAt: Date?
@@ -35,6 +41,7 @@ final class UserPreferences {
         excludedIngredientIDs: [String] = [],
         favouriteFamilies: [DishFamily] = [],
         dinnerRoutine: DinnerTime? = nil,
+        trackingRepresentative: Bool = true,
         onboardingCompletedAt: Date? = nil,
         narrationEnabled: Bool = true,
         reminderHour: Int? = nil,
@@ -44,6 +51,7 @@ final class UserPreferences {
         self.excludedIngredientIDs = excludedIngredientIDs
         self.favouriteFamilyRawValues = favouriteFamilies.map(\.rawValue)
         self.dinnerRoutineRawValue = dinnerRoutine?.rawValue
+        self.trackingRepresentative = trackingRepresentative
         self.onboardingCompletedAt = onboardingCompletedAt
         self.narrationEnabled = narrationEnabled
         self.reminderHour = reminderHour
@@ -84,6 +92,7 @@ extension UserPreferences {
         excludedIngredientIDs = draft.excludedIngredientIDs.sorted()
         favouriteFamilyRawValues = draft.favouriteFamilies.map(\.rawValue)
         dinnerRoutineRawValue = draft.dinnerRoutine?.rawValue
+        trackingRepresentative = draft.trackingRepresentative
         narrationEnabled = draft.narrationEnabled
         reminderHour = draft.reminderHour
         reminderMinute = draft.reminderMinute
