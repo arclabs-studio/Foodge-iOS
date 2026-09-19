@@ -19,9 +19,13 @@ struct HealthConnectionView: View {
         Form {
             Section {
                 Text("Foodge compares today with the fortnight Health already recorded.")
+                // `.secondary` measures ~3.4:1 against a Form row's white/elevated background in
+                // standard-contrast light appearance — below the 4.5:1 WCAG 1.4.3 needs.
+                // `AppBurgundyMuted` is the brand's dedicated secondary-text color, already
+                // tuned to ≥4.5:1 in every appearance/contrast combination.
                 Text("It reads on this iPhone and writes nothing back. Your figures never leave the device.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
 
             Section {
@@ -97,7 +101,8 @@ extension OnboardingViewModel.HealthState {
 }
 
 #Preview("Not enough recorded days") {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.stepsFallback).makeOnboardingViewModel()
+    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.stepsFallback)
+        .makeOnboardingViewModel()
 
     NavigationStack {
         HealthConnectionView(vm: vm)
@@ -109,7 +114,8 @@ extension OnboardingViewModel.HealthState {
 }
 
 #Preview("No readable data") {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData).makeOnboardingViewModel()
+    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
+        .makeOnboardingViewModel()
 
     NavigationStack {
         HealthConnectionView(vm: vm)

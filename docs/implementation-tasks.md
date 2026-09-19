@@ -407,6 +407,26 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   - `arc-audit-hig`: **0 blockers**, two extractions taken — `DishFamily` filtering moved to
     `DinnerCategory.families` (domain knowledge had been duplicated in a View) and the dinner
     routine's footer to `DinnerTime?.footerDescription`.
+  - `arc-audit-accessibility`: **3 blockers, all real, all fixed**. (1) `.borderedProminent`'s
+    default white label on `AppBurgundy` measured **2.47:1** in dark appearance and **1.74:1**
+    at high contrast — `AppBurgundy` is tuned as a *foreground* colour and inverts lightness
+    between appearances, so it cannot also serve as a button background with a fixed label.
+    Fixed with a paired `AppOnBurgundy` colour set rather than the auditor's `colorScheme`
+    branch, so the pairing lives in the catalogue like every other colour decision.
+    (2) At AX 5 the pinned `safeAreaInset` Continue button overlapped the text above it; it now
+    flows as the last scrolling item at accessibility sizes only. (3) `StoreUnavailableView` is
+    the app's root with nothing around it to scroll, so at AX 5 in Spanish its only action —
+    the sole way out of a fatal error — went off-screen unreachable; wrapped in a `ScrollView`
+    with `containerRelativeFrame(.vertical)` (not a `GeometryReader`).
+  - Also replaced `.foregroundStyle(.secondary)` at five call sites: `secondaryLabel` measures
+    ~3.4:1 on white in standard contrast, under the 4.5:1 floor. **Note this changes the visual
+    register** — secondary text is now brand-tinted rather than grey, which is a deviation from
+    DESIGN.md's "semantic text colours throughout" worth reviewing on Day 24.
+  - Two claims in the accessibility report did not survive checking: it cited a "pre-existing
+    SwiftLint `--strict` gate" (this project has no SwiftLint — the wraps were harmless, and the
+    `\` line continuations preserved every string literal exactly, confirmed by the catalogue
+    reporting **0 new keys**), and it confirmed the `Measurement` formatting by API inspection
+    rather than by hearing VoiceOver, which it said plainly.
 - **Owed**: physical-device pass on "iPhone de CR" (device interaction is simulator-only, D21) —
   Health data is real there, so `.connected` with an actual recorded pattern has not yet been seen
   on hardware. `arc-audit-hig` and `arc-audit-accessibility` still to run.

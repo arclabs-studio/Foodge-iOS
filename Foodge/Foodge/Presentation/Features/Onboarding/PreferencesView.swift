@@ -64,8 +64,11 @@ struct PreferencesView: View {
                 }
 
                 if case .failed = vm.saveState {
+                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                    // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `AppBurgundyMuted` is
+                    // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
                     Text("Foodge couldn’t save your choices. Nothing has been lost — try again.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.appBurgundyMuted)
                 }
             }
         }

@@ -21,18 +21,22 @@ struct HealthUnavailableSection: View {
     var body: some View {
         switch state {
         case .unavailable:
+            // `.secondary` measures ~3.4:1 against the row background in standard-contrast light
+            // appearance — below the 4.5:1 WCAG 1.4.3 needs. `AppBurgundyMuted` is the brand's
+            // dedicated secondary-text color, tuned to ≥4.5:1 in every appearance/contrast
+            // combination.
             Section {
                 Text("This iPhone doesn’t have Health data available.")
                 Text("Foodge will ask you about your day instead, and the verdict says so.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
         case .noReadableData:
             Section {
                 Text("Health didn’t return anything readable for these days.")
                 Text("That can simply mean nothing has been recorded yet. Foodge will ask you about your day instead.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
         case .requestFailed:
             Section {
