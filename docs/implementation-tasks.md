@@ -85,6 +85,14 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D52 | `AppealChoice` is a concrete two-case enum now: `.catalogue(variantID:family:)` or `.freeText(String)`. | Grounded directly in `foodge-plan.md` section 3's own two named appeal outcomes. Appeal *negotiation* (matching a compatible craving, honest no-match) stays WU-22-A's job — this only gives an appeal a place to be recorded. |
 | D53 | `CaseStore` methods take no separate `day`/`calendar` parameter; `PersistenceActor`'s private `localDayKey(for:)` derives `"yyyy-MM-dd"` from the caller's own `EvidenceSnapshot` (`evaluatedAt` + `timeZoneIdentifier`, Gregorian) — the only source of "what day is this." | A second `day` parameter would be a second source of truth that could disagree with the one already inside the evidence it was computed from. Zero-padded by hand rather than `String(format:)`/`DateFormatter` — both forbidden, and this key is internal storage that must never vary with device locale. |
 | D54 | `VerdictRevision.narrationText` is added as a nullable column now, with no write path yet. | Zero-risk under D10 (unreleased app, so growing schema V1 is a dev reinstall) — same class of change as D32. `attachNarration` is WU-23-A's job. |
+| D55 | `TodayViewModel` calls `ActivityBaselineCalculator.baseline(...)`/`DinnerCategoryRule.decide(...)` directly rather than through `VerdictEngine`, which is left with no conformer. | `VerdictEngine.decideCategory(for snapshot:)`'s signature has nowhere to receive `PreferencesDraft.trackingRepresentative`, which the baseline calculator requires as a standing per-user flag distinct from the per-day tracking-confirmation check-in. Reshaping the protocol to fit belongs with whoever next needs it as a real seam (this unit has exactly one caller and one implementation, so the protocol buys nothing yet); until then it stays an honest gap rather than a signature that quietly can't be satisfied. |
+| D56 | The tracking-confirmation "No" answer discards the recorded comparison outright (`pendingComparison = nil`, transition to `.needsSelfReport`) instead of re-entering `DinnerCategoryRule.decide` with `trackingRepresentative: false`. | `decideFromRecording`'s guard (`trackingRepresentative == true`) treats `false` identically to `nil` — replaying the same `today`/`baseline` with `false` would hand back `.needsTrackingConfirmation` again, forever. Pinned by `TodayViewModelTests.decliningTrackingMovesToSelfReport`. |
+| D57 | D45's deferred sleep-driven convenience easing (a caller holding both `EvidenceSnapshot.sleep` and calling `DishSelection.select`) stays deferred past this unit. | Not named in WU-21-B's stated scope; `DESIGN.md` only asks Evidence Details to *display* sleep, which `EvidenceDetailsView`'s "Sleep" section already does. |
+| D58 | `DishSelectionOutcome.noMatch` still reaches a `.verdict` stage: category shown, no dish name, no invented alternative. | Matches the constitution's "never silently relax an exclusion; show an honest no-match" rule directly. Resolving a no-match (suggesting an exclusion to lift, negotiating a craving) is WU-22-A's appeal-negotiation job, not this unit's. |
+| D59 | `JudgeBadgeView` is reused as-is on Today/Verdict — its first cross-feature reuse since D15 made it onboarding's single Day-24 artwork swap point. | Duplicating it into a second Today-local view would create a second place to forget to update on Day 24. |
+| D60 | `DishArtPlaceholderView` is a new, single-file SF-Symbol-per-`DishFamily` placeholder, mirroring `JudgeBadgeView`'s one-file-swap shape. | Same Day-24 reasoning as D15/D59, for dish art instead of judge art. Symbol choices are placeholders only (verified to exist via `UIImage(systemName:)` at runtime, not verified for semantic fit) and are expected to be replaced wholesale by the Day-24 artwork pass, not refined now. |
+| D61 | The Appeal button on `VerdictView` opens a lightweight "coming soon" `ContentUnavailableView` sheet rather than doing nothing or being disabled. | A control must never quietly lie about what it does — the same principle the retired `TodayPlaceholderView` was built on. Appeal negotiation itself is WU-22-A's job; this only gives the button an honest destination in the meantime. |
+| D62 | Four `ReasonCode` cases (`.baselineUnavailable`, `.trackingMarkedUnrepresentative`, `.shortSleep`, `.lowReportedEnergy`) get display text in `ReasonCode+DisplayName.swift` despite being unreachable this unit. | `DinnerCategoryRule` never assigns them yet — same "written ahead, documented as unreachable" idiom as D54's unwritten `narrationText` column, so a future caller finds the sentence already reviewed instead of a missing case. |
 
 ---
 
@@ -718,13 +726,111 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   `grep -c "@Test"` on the new suite) rather than trusting the reported numbers.
 - **Commit**: `feat(data): grow schema V1 with DailyCase/VerdictRevision/Appeal and implement CaseStore`
 
+### WU-21-B ✅ Today flow: evidence, context, verdict, evidence details
+
+- **Objective / scope**: the app's first real screen beyond onboarding — evidence-availability
+  summary, optional context inputs, **Give me a verdict**, the verdict screen, evidence details.
+  Reopening a saved case must return it unregenerated. Explicitly out of scope: appeal
+  *negotiation* (WU-22-A — this unit only needs a working, honest entry point), history/case
+  detail (WU-22-B), AI narration (WU-23-A/B), final artwork (WU-24-A — `DishArtPlaceholderView`
+  is this unit's own placeholder, D60), evening reminder (WU-24-B).
+- **Baseline**: 126/126 tests, 0 warnings, confirmed before starting.
+- **Deliverables**: `Presentation/Features/Today/` — `TodayViewModel.swift` (`Stage`, `Display`/
+  `currentDisplay` for rendering both a saved verdict and a still-unsaved-but-computed one,
+  `onAppear()`/`requestVerdict()`/`confirmTrackingReflectsToday(_:)`/`submitSelfReport(_:)`/
+  `retrySave()`), `TodayRoute.swift`, `TodayLog.swift`, `TodayFlowView.swift`,
+  `TodayBeforeVerdictView.swift`, `VerdictView.swift`, `EvidenceDetailsView.swift`,
+  `Components/{DishArtPlaceholderView,TrackingConfirmationSection,SelfReportCheckInSection,
+  ProvenanceRow,RecordedActivityRow}.swift`. `Presentation/Localization/
+  {ReasonCode,EnergyLevel,SelfReportedActivity,HealthKind}+DisplayName.swift` (new).
+  `Domain/Catalogue/DishCatalogue.swift` gains `entry(id:)`; `Domain/Entities/
+  HealthAggregates.swift` gains `value(for: ActivityMetric)` (both extracted from Presentation
+  during the HIG/constitution passes below, to keep one source of truth for each lookup).
+  `AppDependencies` gains `caseStore`/`makeTodayViewModel()`, sharing one `PersistenceActor` for
+  both `store` and `caseStore`. `AppRootView` retains `dependencies` as a stored property;
+  `MainTabView` takes `dependencies` and holds its `TodayViewModel` in `@State`, built once in a
+  custom `init` (mirrors `AppRootView`'s own `onboarding` pattern). `TodayPlaceholderView.swift`
+  deleted — its stated reason for existing ("until Day 21") is fulfilled.
+  `Data/SampleData/PreviewDependencies.swift` gains `PreviewCaseStore` and
+  `reopeningSavedCase(_:decision:)`; `SyntheticScenarios.swift` gains `quietDayUnconfirmed` and
+  `noCompatibleDish`, purely additive to `all`.
+  `FoodgeTests/Presentation/Today/TodayViewModelTests.swift` (new, 16 test cases: reopen never
+  reads Health; no-saved-case reads once and records once; above-treat rules directly; a low
+  ratio pauses for tracking confirmation; "Yes" records the recorded verdict unchanged; "No"
+  moves to self-report and never loops back (D56); each self-report choice maps to its category,
+  3 parameterized cases; skipping self-report is provisional balanced; a failed evidence read is
+  `.evidenceUnavailable` with nothing recorded; a cancelled read reverts to `.gathering`; a failed
+  save keeps the computed decision visible with a retry; retrying with the same draft can
+  succeed; a no-match dish selection still reaches `.verdict`; an oversized note is dropped
+  safely, never force-unwrapped).
+- **No calorie-arithmetic section exists in `EvidenceDetailsView` this unit** — stating this
+  plainly per `arc-constitution-review`'s finding below, since an earlier design note considered
+  one and it was never built: `CalorieProvenance.compare(_:)` has no caller anywhere under
+  `Today/`. It needs an intake-completeness-confirmation UI this unit doesn't have; deferred
+  rather than wired to an always-`false` constant, which would have been unreachable code.
+- **Full regression**: 126 → **142/142 tests, 0 warnings**.
+- **Real bug caught by preview rendering, fixed before closing**: the first `VerdictView` design
+  read only `vm.currentRevision` (non-`nil` for `.verdict` only), so a failed save left the screen
+  on an infinite `ProgressView` — the "computed decision stays visible with a retry" rule had no
+  screen to show it on. `RenderPreview` on the "Save failed" preview caught this directly (a
+  stuck spinner, not a rendered error state). Fixed by adding `TodayViewModel.Display`/
+  `currentDisplay`, which resolves from either a `SavedRevision` (`.verdict`) or a
+  `NewRevisionDraft` (`.saveFailed`) — `arc-constitution-review` independently re-traced this
+  fix and confirmed it closes the bug rather than moving it.
+- `arc-verify-ui`: build and tests independently re-confirmed green (including through a mid-session
+  device-interaction-tooling hiccup — `DeviceInteractionSynthesize` returned "session not found" on
+  every attempt this session, so live tap-through, the relaunch-no-flash visual, a captured runtime
+  log line and the Appeal sheet's tap-to-dismiss are backed by source review, `RenderPreview` and
+  the unit suite instead of a device recording. The one behavior this unit exists to prove —
+  reopening without regenerating — has a real, falsifiable, currently-passing spy-based test
+  (`reopeningNeverReadsHealth`) behind it. Flagged, not silently accepted as equivalent proof.
+- `arc-audit-hig`: **3 BLOCKER, all fixed.** (1) `AppealComingSoonView`'s Close button used a
+  manually-titled `Button("Close")` in a `.cancellationAction` `ToolbarItem` instead of
+  `Button(role: .close)` — fixed to the role-based form. (2) `VerdictView` resolved a dish name by
+  hand-filtering `DishCatalogue.entries` in a `private func` — moved to `DishCatalogue.entry(id:)`
+  alongside the existing `ingredient(id:)`. (3) `EvidenceDetailsView` duplicated the exact
+  "which `HealthAggregates` field backs this `ActivityMetric`" switch already in
+  `TodayViewModel` — consolidated into `HealthAggregates.value(for:)`, called from both. Also
+  flagged (not counted as a HIG finding, referred to `arc-constitution-review`): `MainTabView`
+  built a fresh `TodayViewModel` inside `body` on every re-render, silently discarding navigation
+  and in-progress stage on any upstream `@Query` refresh — fixed by holding it in `@State`,
+  seeded once in a custom `init` (see Deliverables above).
+- `arc-audit-accessibility`: **4 findings, all fixed, screen AA-compliant.** (1) The three context
+  `Picker`s truncated their value at AX5 (same pre-existing shape as `PreferencesView`'s routine
+  picker, not new to this unit) — fixed with `.pickerStyle(.navigationLink)`. (2) Dish name +
+  family in `VerdictView` read as two separate VoiceOver stops — combined with
+  `.accessibilityElement(children: .combine)`. (3) `ProvenanceRow`'s value and timestamp likewise
+  combined. (4) The note `TextField`'s accessibility hint didn't state the 240-character limit —
+  added (later corrected by `arc-constitution-review` to interpolate `Note.maximumLength` rather
+  than restate `240` as a literal, so the two can't drift). Two items flagged as follow-ups
+  outside this unit's file scope, not fixed here: `PreferencesView`'s matching pickers have the
+  identical AX5 truncation (a future cross-screen consistency pass); and a note typed past the
+  240-character limit is dropped with no user-facing feedback at all (`Note.init?` returns `nil`
+  silently) — real, but a product/Domain decision beyond a presentation-layer accessibility fix,
+  and the current silent-drop behavior is exactly what this unit's own
+  `oversizedNoteIsDroppedSafely` test pins as correct per the plan's "never force-unwrapped" rule.
+- `arc-constitution-review`: **0 blockers, 1 MAJOR (evidence-integrity), 2 MINOR, all addressed.**
+  The MAJOR finding is the calorie-section correction stated above — the review caught that a
+  design note describing an unreachable calorie section as "deliberately left unreachable" was
+  never matched by actual code, and required the ledger say so plainly rather than restate the
+  design note as if it shipped. MINOR: `TodayViewModel.record(_:)` maps every thrown error to one
+  coarse `.saveFailed` — a doc comment now says so explicitly, matching `FoodgeError`'s stated
+  coarseness elsewhere. MINOR: the note's accessibility hint hardcoded `"240"` — now interpolates
+  `Note.maximumLength`. Independently re-verified: the zero-warning build claim (re-ran
+  `GetBuildLog` at both severities), that `Display`/`currentDisplay` genuinely closes the
+  save-failed spinner bug rather than moving it, that every flagged `TodayViewModelTests` case has
+  a real oracle that would fail on a wrong implementation (traced `decliningTrackingMovesToSelfReport`
+  and `oversizedNoteIsDroppedSafely` against `DinnerCategoryRule`/`Note.init?` directly), and that
+  the "16 test cases" count is exact (14 `@Test` declarations, one parameterized ×3).
+- **Commits**: `feat(presentation): add the Today flow — evidence, context, verdict, evidence details`
+  (code + tests), `docs(ledger): record Day 21 WU-21-B (D55-D62), evidence and auditor findings`.
+
 ---
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
-| 21 | WU-21-B | Today flow: evidence summary, context inputs, **Give me a verdict**, verdict screen, evidence details | `arc-verify-ui` ✅ |
 | 22 | WU-22-A | Appeals: compatible craving, compatible variant, cross-category choice, honest no-match | Appeal tests green |
 | 22 | WU-22-B | History list and case detail preserving the evidence and rule version used at the time | `arc-verify-ui` ✅ |
 | 23 | WU-23-A | Foundation Models narration after the deterministic verdict, structured and length-validated | Narration tests green |

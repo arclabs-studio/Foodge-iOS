@@ -56,6 +56,9 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[calorie-references-stand-alone-until-a-meal-picks-one]] — verified references, wired to nothing yet
 - [[recorded-intake-is-an-enum-not-two-fields]] — "replaces, never adds" as a type-level guarantee
 - [[case-store-schema-v1-shape]] — blob evidence, two-case appeals, one day-key source
+- [[today-viewmodel-bypasses-verdict-engine]] — a protocol that fits no caller stays unconformed
+- [[tracking-confirmation-must-discard-not-replay]] — "No" must not replay into the same guard
+- [[no-match-still-reaches-a-verdict]] — the category rules even when the dish pick can't
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
@@ -67,3 +70,4 @@ enough to be useful cold. A note here links back to its ledger number.
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer
 - [[2026-09-19-wu-19-d-onboarding]] — the day Foodge got a user interface, and what four auditors caught
+- [[2026-09-21-wu-21-b-today-flow]] — the day the verdict became a screen, and two bugs no test caught
