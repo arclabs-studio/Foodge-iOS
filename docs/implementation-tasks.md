@@ -81,6 +81,10 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D48 | `intakeConfirmedComplete: Bool` is a parameter on `CalorieComparisonRequest`, not a persisted field. | Same reasoning as D39: no store exists yet to read it from, and the rule about what counts as "confirmed" belongs with the rule, not with a store that has no conformer. |
 | D49 | Manual intake is modelled as `RecordedIntake.manual(kilocalories:window:)`, a case of an enum sibling to `.recordedFromHealth(EnergyAggregate)` — never a second optional field alongside a Health total. | Makes "replaces, never adds" a type-level guarantee: a caller cannot physically supply both a Health total and a manual total to be summed, rather than a runtime precedence rule a call site could get wrong. |
 | D50 | `CalorieReferenceCatalogue` encodes the plan's three verified Spain McDonald's items (Big Mac 544 kcal, hamburger 258 kcal, cheeseburger 306 kcal) as `Domain/Catalogue/` `static let`s, mirroring D36's catalogue-as-constant shape. Zero of the 27 `DishCatalogue+Dishes.swift` variants are wired to `calorieReferenceID` — enforced by a regression test. | These are specific fast-food menu items in one market; none of the catalogue's home-style burger/pizza/etc. variants are the same product, and the brief explicitly forbids applying a reference to a different product. The dataset stands alone until a future flow lets a user attach one to a specific meal. |
+| D51 | `VerdictRevision.decisionData`/`evidenceData` persist `VerdictDecision`/`EvidenceSnapshot` JSON-encoded whole, not decomposed into flat columns. `PersistedDishOutcome`/`AppealChoice`, by contrast, are flattened to columns. | `CategoryBasis`'s associated values don't map to flat SwiftData columns without a second entity hierarchy, which the constitution forbids; a blob also guarantees byte-exact reproducibility for "reopen without regenerating." `PersistedDishOutcome`/`AppealChoice` are small, stable, app-owned enum shapes, unlike `CategoryBasis`'s open-ended associated data. |
+| D52 | `AppealChoice` is a concrete two-case enum now: `.catalogue(variantID:family:)` or `.freeText(String)`. | Grounded directly in `foodge-plan.md` section 3's own two named appeal outcomes. Appeal *negotiation* (matching a compatible craving, honest no-match) stays WU-22-A's job — this only gives an appeal a place to be recorded. |
+| D53 | `CaseStore` methods take no separate `day`/`calendar` parameter; `PersistenceActor`'s private `localDayKey(for:)` derives `"yyyy-MM-dd"` from the caller's own `EvidenceSnapshot` (`evaluatedAt` + `timeZoneIdentifier`, Gregorian) — the only source of "what day is this." | A second `day` parameter would be a second source of truth that could disagree with the one already inside the evidence it was computed from. Zero-padded by hand rather than `String(format:)`/`DateFormatter` — both forbidden, and this key is internal storage that must never vary with device locale. |
+| D54 | `VerdictRevision.narrationText` is added as a nullable column now, with no write path yet. | Zero-risk under D10 (unreleased app, so growing schema V1 is a dev reinstall) — same class of change as D32. `attachNarration` is WU-23-A's job. |
 
 ---
 
@@ -665,11 +669,61 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 
 ---
 
-## Day 20–27 backlog (stubs — expand when the day is taken)
+## Day 21 — case persistence (WU-21-A)
+
+### WU-21-A ✅ Schema V1 grows `DailyCase`/`VerdictRevision`/`Appeal`; `CaseStore` implementation
+
+- **Objective / scope**: grow schema V1 (D10) with `DailyCase`, `VerdictRevision` and `Appeal`,
+  and give `CaseStore` its first real implementation — the saved-case lifecycle from
+  `foodge-plan.md` section 3: one case per local day, reopening returns the saved verdict without
+  regenerating, an explicit "update evidence" appends an immutable new revision, and an appeal
+  attaches to one specific revision. Domain + Data only — no View/ViewModel (WU-21-B), no appeal
+  negotiation logic (WU-22-A), no `AppDependencies` wiring (deferred to the first real consumer).
+- **Baseline**: 118/118 tests, 0 warnings, confirmed before starting.
+- **Deliverables**: `Domain/Entities/PersistedDishOutcome.swift`, `Domain/Entities/CaseRecord.swift`
+  (`AppealChoice`, `AppealDraft`, `SavedAppeal`, `NewRevisionDraft`, `SavedRevision`, `SavedCase`),
+  `Domain/Services/CaseStore.swift` (rewritten: `savedCase(matching:)`, `recordRevision(_:)`,
+  `recordAppeal(_:to:)`), two new `FoodgeError` cases (`revisionNotFound`, `caseCorrupted`);
+  `Data/Persistence/Models/{DailyCase,VerdictRevision,Appeal}.swift` (D51); `FoodgeSchemaV1.models`
+  grows to `[UserPreferences, DailyCase, VerdictRevision, Appeal]`, `versionIdentifier` unchanged,
+  `FoodgeMigrationPlan.stages` stays `[]`; `extension PersistenceActor: CaseStore` (D53).
+  `CaseStoreTests` (8 tests: reopen-without-regenerating, an unrecorded day returns `nil`, a second
+  explicit save preserves the first revision, two local days never collide, an appeal attaches to
+  one specific revision, an unknown revision id throws `revisionNotFound` honestly, a real on-disk
+  container reopen, and a genuine save failure reported as `FoodgeError.saveFailed`).
+- **Full regression**: 118 → **126/126 tests, 0 warnings**.
+- **Plan assumption disproven mid-unit**: the original test plan for "a failed save is reported
+  honestly" assumed a raw `ModelContext` inserting a second `DailyCase` with a duplicate
+  `localDayKey` would throw a genuine `@Attribute(.unique)` violation, mirroring a SQL `UNIQUE`
+  constraint. It does not — SwiftData's unique constraint merges/upserts silently instead of
+  throwing, confirmed by writing the test and watching it fail with "an error was expected but
+  none was thrown." Replaced with a real, reachable failure instead: record a revision through a
+  real on-disk container, `chmod` the store file to `0o444`, then open a **fresh**
+  `PersistenceActor`/`ModelContainer` at the same URL and call `recordRevision` again — this
+  throws because POSIX permission is checked at `open()` time, not on every write, so the already-
+  open first container would have kept succeeding. Confirmed the throw is specifically
+  `FoodgeError.saveFailed` (PersistenceActor's own catch around `modelContext.save()`), not a raw
+  error from container-open time, by tightening the assertion from `any Error` to
+  `FoodgeError.saveFailed` and re-running. See `memory/troubleshooting/swiftdata-unique-does-not-throw-on-save.md`.
+- `arc-constitution-review`: **0 blockers, 2 MINOR, both fixed.** (1) `Appeal.asSavedAppeal()`
+  silently drops a corrupted appeal via `compactMap`, unlike `decodedDecision()`/`decodedEvidence()`,
+  which throw `caseCorrupted` on the same class of failure — doc comment corrected to state the
+  asymmetry is deliberate (losing one appeal is a smaller footprint than failing the whole
+  revision) rather than leaving it unexplained. (2) `PersistenceActor.zeroPadded` assumes a
+  non-negative value; doc comment corrected to say so explicitly (true for every Gregorian
+  `year`/`month`/`day` component in this app's lifetime, but worth stating before the helper is
+  ever reused elsewhere). One informational note (this ledger entry) closes the loop the auditor
+  flagged: the `.unique` discovery now has its D-numbered decision (see above) and this entry.
+  Independently re-verified the build/test claims (re-ran `GetBuildLog` at both severities and
+  `grep -c "@Test"` on the new suite) rather than trusting the reported numbers.
+- **Commit**: `feat(data): grow schema V1 with DailyCase/VerdictRevision/Appeal and implement CaseStore`
+
+---
+
+## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
-| 21 | WU-21-A | Schema V1 grows `DailyCase`, `VerdictRevision`, `Appeal` (D10); `CaseStore` implementation | Reopen + revision tests green |
 | 21 | WU-21-B | Today flow: evidence summary, context inputs, **Give me a verdict**, verdict screen, evidence details | `arc-verify-ui` ✅ |
 | 22 | WU-22-A | Appeals: compatible craving, compatible variant, cross-category choice, honest no-match | Appeal tests green |
 | 22 | WU-22-B | History list and case detail preserving the evidence and rule version used at the time | `arc-verify-ui` ✅ |

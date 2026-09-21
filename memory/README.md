@@ -55,12 +55,14 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[rotation-is-a-continuous-day-index]] — never day-of-year, never the candidate count
 - [[calorie-references-stand-alone-until-a-meal-picks-one]] — verified references, wired to nothing yet
 - [[recorded-intake-is-an-enum-not-two-fields]] — "replaces, never adds" as a type-level guarantee
+- [[case-store-schema-v1-shape]] — blob evidence, two-case appeals, one day-key source
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
 - [[filter-branch-deletes-the-working-file]] — purging a tracked file takes the file with it
 - [[string-catalog-edit-marks-translations-machine-made]] — the state is the tool's choice, not ours
 - [[sf-symbol-checkmark-hijacks-voiceover-selection]] — a symbol *name* the OS itself recognizes, no modifier stops it
+- [[swiftdata-unique-does-not-throw-on-save]] — `@Attribute(.unique)` merges silently, it never throws
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer
