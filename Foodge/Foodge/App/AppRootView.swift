@@ -21,10 +21,12 @@ import SwiftUI
 struct AppRootView: View {
     @Query private var preferences: [UserPreferences]
     @State private var onboarding: OnboardingViewModel
+    private let dependencies: AppDependencies
 
     /// A custom `init` because the view model needs the composition root's dependencies —
     /// the real-input-transformation case, and Apple's documented injection pattern.
     init(dependencies: AppDependencies) {
+        self.dependencies = dependencies
         _onboarding = State(wrappedValue: dependencies.makeOnboardingViewModel())
     }
 
@@ -35,7 +37,7 @@ struct AppRootView: View {
     var body: some View {
         Group {
             if hasCompletedOnboarding {
-                MainTabView()
+                MainTabView(dependencies: dependencies)
             } else {
                 OnboardingFlowView(vm: onboarding)
             }

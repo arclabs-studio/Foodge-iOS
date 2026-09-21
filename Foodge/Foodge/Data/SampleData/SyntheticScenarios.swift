@@ -100,7 +100,7 @@ enum SyntheticScenarios {
             today: HealthAggregates(
                 activeEnergy: energy(520),
                 restingEnergy: energy(1450),
-                steps: steps(11_200),
+                steps: steps(11200),
                 sleep: sleep(hours: 7, minutes: 40),
                 workouts: [
                     WorkoutSummary(
@@ -110,7 +110,7 @@ enum SyntheticScenarios {
                             start: date(year: 2026, month: 9, day: 18, hour: 8, minute: 0),
                             end: date(year: 2026, month: 9, day: 18, hour: 8, minute: 45)
                         )
-                    )
+                    ),
                 ],
                 dietaryEnergy: nil
             ),
@@ -272,6 +272,55 @@ enum SyntheticScenarios {
         )
     )
 
+    /// 180 kcal against 400 kcal, with the per-day check-in not yet asked — unlike ``restDay``
+    /// (confirmed representative) and ``partialTracking`` (marked unrepresentative), this is the
+    /// one low-ratio scenario that reaches `.needsTrackingConfirmation` on first evaluation.
+    static let quietDayUnconfirmed = SyntheticScenario(
+        id: "quietDayUnconfirmed",
+        clock: clock,
+        snapshot: EvidenceSnapshot(
+            evaluatedAt: evaluationDate,
+            timeZoneIdentifier: timeZoneIdentifier,
+            today: HealthAggregates(
+                activeEnergy: energy(180),
+                restingEnergy: energy(1430),
+                steps: steps(3100),
+                sleep: sleep(hours: 8, minutes: 5),
+                workouts: [],
+                dietaryEnergy: nil
+            ),
+            history: fullyTrackedHistory,
+            availability: .readable(missing: [.dietaryEnergy]),
+            isSynthetic: true
+        )
+    )
+
+    /// A balanced-band day whose constraints — vegan, with rice and pasta excluded — leave every
+    /// balanced-family variant blocked, so the dish pick honestly reports no match (D58).
+    static let noCompatibleDish = SyntheticScenario(
+        id: "noCompatibleDish",
+        clock: clock,
+        snapshot: EvidenceSnapshot(
+            evaluatedAt: evaluationDate,
+            timeZoneIdentifier: timeZoneIdentifier,
+            today: HealthAggregates(
+                activeEnergy: energy(410),
+                restingEnergy: energy(1440),
+                steps: steps(8400),
+                sleep: sleep(hours: 7, minutes: 15),
+                workouts: [],
+                dietaryEnergy: nil
+            ),
+            history: fullyTrackedHistory,
+            availability: .readable(missing: [.dietaryEnergy]),
+            constraints: DietaryConstraints(
+                profile: .vegan,
+                excludedIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id]
+            ),
+            isSynthetic: true
+        )
+    )
+
     /// Every scenario, in the order demonstration mode offers them.
     static let all: [SyntheticScenario] = [
         activeDay,
@@ -281,6 +330,8 @@ enum SyntheticScenarios {
         partialTracking,
         stepsFallback,
         shortSleep,
-        dstSpringForward
+        dstSpringForward,
+        quietDayUnconfirmed,
+        noCompatibleDish,
     ]
 }

@@ -16,17 +16,20 @@ struct AppDependencies: Sendable {
     let authorization: any HealthAuthorizing
     let evidence: any HealthEvidenceProvider
     let store: any PreferencesStore
+    let caseStore: any CaseStore
     let clock: any EvaluationClock
 
     init(
         authorization: any HealthAuthorizing,
         evidence: any HealthEvidenceProvider,
         store: any PreferencesStore,
+        caseStore: any CaseStore,
         clock: any EvaluationClock
     ) {
         self.authorization = authorization
         self.evidence = evidence
         self.store = store
+        self.caseStore = caseStore
         self.clock = clock
     }
 
@@ -45,12 +48,24 @@ struct AppDependencies: Sendable {
         )
     }
 
+    /// Builds the Today view model from these dependencies.
+    @MainActor
+    func makeTodayViewModel() -> TodayViewModel {
+        TodayViewModel(evidence: evidence, preferences: store, caseStore: caseStore, clock: clock)
+    }
+
     /// The real thing: HealthKit, the on-disk store, and the device's own clock.
+    ///
+    /// `store` and `caseStore` share one `PersistenceActor` over the container — it already
+    /// conforms to both protocols, and two separate actors over the same `ModelContainer` would
+    /// race needlessly.
     init(container: ModelContainer) {
+        let persistence = PersistenceActor(modelContainer: container)
         self.init(
             authorization: HealthAuthorizationService(),
             evidence: HealthEvidenceReader(source: HealthKitSampleSource()),
-            store: PersistenceActor(modelContainer: container),
+            store: persistence,
+            caseStore: persistence,
             clock: SystemClock()
         )
     }

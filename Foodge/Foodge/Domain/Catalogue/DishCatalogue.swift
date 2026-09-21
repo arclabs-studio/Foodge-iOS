@@ -19,7 +19,7 @@ enum DishCatalogue {
 
     /// The nine dishes, in `DishFamily.allCases` order.
     static let dishes: [Dish] = [
-        burgers, pizza, tacos, riceBowls, tortilla, pasta, lentilSalad, vegetableSoup, vegetableWraps
+        burgers, pizza, tacos, riceBowls, tortilla, pasta, lentilSalad, vegetableSoup, vegetableWraps,
     ]
 
     /// Every variant flattened to its family, in family order and then variant order.
@@ -43,6 +43,13 @@ enum DishCatalogue {
     static func ingredient(id: String) -> Ingredient? {
         ingredients.first { $0.id == id }
     }
+
+    /// The entry for one variant id, or `nil` when a catalogue version has since renamed or
+    /// removed it — the same "stored ids outlive the live catalogue" reasoning
+    /// ``RecentDishSelection``/``PersistedDishOutcome`` already establish.
+    static func entry(id: String) -> CatalogueEntry? {
+        entries.first { $0.id == id }
+    }
 }
 
 /// One variant together with the family it belongs to — `DishVariant` alone cannot answer
@@ -53,6 +60,11 @@ enum DishCatalogue {
 struct CatalogueEntry: Hashable, Sendable, Identifiable {
     let family: DishFamily
     let variant: DishVariant
-    var id: String { variant.id }
-    var category: DinnerCategory { family.category }
+    var id: String {
+        variant.id
+    }
+
+    var category: DinnerCategory {
+        family.category
+    }
 }
