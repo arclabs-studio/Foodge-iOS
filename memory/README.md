@@ -1,7 +1,7 @@
 ---
 title: Foodge memory
 tags: [foodge, memory, index]
-updated: 2026-09-20
+updated: 2026-09-21
 ---
 
 # Foodge memory
@@ -53,6 +53,8 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[the-catalogue-is-a-domain-constant-not-a-seam]] — 27 compile-time values need no protocol
 - [[dynamic-name-keys-need-a-shipped-strings-oracle]] — seed-and-delete, and a locale API that lies in tests
 - [[rotation-is-a-continuous-day-index]] — never day-of-year, never the candidate count
+- [[calorie-references-stand-alone-until-a-meal-picks-one]] — verified references, wired to nothing yet
+- [[recorded-intake-is-an-enum-not-two-fields]] — "replaces, never adds" as a type-level guarantee
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

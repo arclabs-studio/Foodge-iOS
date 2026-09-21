@@ -77,6 +77,10 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D44 | `VerdictEngine` is not grown with a `selectDish` method; its doc comment (which claimed dish selection "joins this protocol on Day 20") is corrected instead. | The claim was false since D13 put the category rule outside `VerdictEngine`, and the protocol has no conformer anywhere. Adding a method would create a second declaration of a contract with no implementation to hold it — the exact "doc claims more than the code does" defect the audit prompts here hunt for. |
 | D45 | Convenience scores the intersection size between a variant's tags and a preference set derived from `DailyContext` (`dinnerTime == .quick` → `{quick, onePan, noCook}`; `energyLevel == .low` → adds `{onePan, noCook}`). Sleep-driven easing is deferred to Day 21. | Counting rather than testing membership lets a hurried *and* tired user's no-cook one-pan dish outrank a merely-quick one, with no extra rule. Sleep lives on `EvidenceSnapshot`, not `DailyContext`, so wiring it now would need a Health-shaped parameter no caller can fill yet. |
 | D46 | Craving strictly outranks convenience in `DishSelection`'s ranking tuple — `(craving, convenience, recency, favourite, rotation)`, in that order. | The brief only says "craving and convenience" together, without ordering them against each other; the two existing tests each held the *other* factor tied by construction, so neither pinned this specific precedence. Craving is what the user explicitly asked for tonight; convenience is a standing preference inferred from context. Pinned by `convenienceNeverBeatsCraving` — flagged by `arc-constitution-review` as an ambiguous-rule resolution that should carry its own decision, like every other tie-break choice in this ranking. |
+| D47 | "Share a cutoff" in `CalorieProvenance.compare(_:)` means identical `DateInterval`s across active, resting and intake — not merely a matching end instant. | Kcal sums are duration-dependent, so aligning only the cutoff instant while allowing different window starts would let two differently-sized periods be subtracted as if comparable. `HealthEvidenceReader` already produces one identical shared window for all three energy kinds today, so the stricter check costs nothing now. |
+| D48 | `intakeConfirmedComplete: Bool` is a parameter on `CalorieComparisonRequest`, not a persisted field. | Same reasoning as D39: no store exists yet to read it from, and the rule about what counts as "confirmed" belongs with the rule, not with a store that has no conformer. |
+| D49 | Manual intake is modelled as `RecordedIntake.manual(kilocalories:window:)`, a case of an enum sibling to `.recordedFromHealth(EnergyAggregate)` — never a second optional field alongside a Health total. | Makes "replaces, never adds" a type-level guarantee: a caller cannot physically supply both a Health total and a manual total to be summed, rather than a runtime precedence rule a call site could get wrong. |
+| D50 | `CalorieReferenceCatalogue` encodes the plan's three verified Spain McDonald's items (Big Mac 544 kcal, hamburger 258 kcal, cheeseburger 306 kcal) as `Domain/Catalogue/` `static let`s, mirroring D36's catalogue-as-constant shape. Zero of the 27 `DishCatalogue+Dishes.swift` variants are wired to `calorieReferenceID` — enforced by a regression test. | These are specific fast-food menu items in one market; none of the catalogue's home-style burger/pizza/etc. variants are the same product, and the brief explicitly forbids applying a reference to a different product. The dataset stands alone until a future flow lets a user attach one to a specific meal. |
 
 ---
 
@@ -458,11 +462,12 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 
 ---
 
-## Day 20 — dish catalogue and deterministic selection (WU-20-A / WU-20-B)
+## Day 20 — dish catalogue, deterministic selection and calorie provenance (WU-20-A / WU-20-B / WU-20-C)
 
 - **Objective**: a curated 27-variant, 44-ingredient catalogue (D36–D38, D44) and a deterministic
-  selector over it (D39–D43, D45), unblocking `IngredientExclusionsView` (deferred by D31).
-  WU-20-C (calorie provenance) is untouched.
+  selector over it (D39–D43, D45), unblocking `IngredientExclusionsView` (deferred by D31); plus
+  calorie provenance keeping active/resting/dietary energy separate with a verified-reference
+  dish display (D47–D50).
 - **Baseline**: 61/61 tests, 0 warnings, confirmed before starting.
 - **Phase 0 — tooling gate**. Proved with one real key ("Cooked lentils" → "Lentejas cocidas"):
   (a) `StringCatalogEdit` **cannot** create a key that was never extracted from a source literal
@@ -618,13 +623,52 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   (Phases 0–3), `feat(domain): add deterministic dish selection with a date-rotated tie-break`
   (Phase 4).
 
+### WU-20-C ✅ Calorie provenance
+
+- **Objective / scope**: keep active, resting and dietary energy as three separate recorded
+  facts; a numerical comparison only when their windows share a cutoff and intake is confirmed
+  complete; manual intake replaces the Health total rather than adding to it; a dish shows
+  calories only against a verified portion reference (D47–D50). Domain-only, matching the WU-19-A/
+  WU-20-B pattern — no ViewModel or View; the Today-flow UI that will consume this is WU-21-B.
+- **Baseline**: 104/104 tests, 0 warnings, confirmed before starting.
+- **Deliverables**: `Domain/UseCases/CalorieProvenance.swift` (`RecordedIntake`,
+  `CalorieComparisonRequest`, `CalorieComparison`, `CalorieComparisonUnavailableReason`,
+  `CalorieComparisonOutcome`, `DishCalorieOutcome`, `CalorieProvenance.compare(_:)` and
+  `.calories(for:references:)`); `Domain/Catalogue/CalorieReferenceCatalogue.swift` (the plan's
+  three verified Spain McDonald's items, mirroring D36's catalogue-as-constant shape).
+  `CalorieProvenanceTests` (12 tests: all 6 required scenarios from `docs/foodge-plan.md:348` —
+  missing resting energy, unconfirmed intake, manual replacement, negative differences, unknown
+  portions, verified references — plus symmetric/defensive coverage: missing active energy,
+  mismatched cutoffs, Health-intake-used-when-no-manual, the exact net arithmetic, and a dangling
+  reference id) and `CalorieReferenceCatalogueTests` (2 tests: the three references' country,
+  product, portion, URL, kilocalorie figure and verification date re-typed by hand from the brief;
+  and that zero catalogue variants claim one of these ids). **14/14 green, one iteration.**
+- **Full regression**: 104 → **118/118 tests, 0 warnings**.
+- **User decisions taken up front**: wire zero catalogue variants to the three references (none of
+  the 27 existing variants are the same product — wiring any would violate the brief's "do not
+  apply them to other burgers"), and keep the defensive/symmetric tests beyond the six named
+  scenarios.
+- `arc-constitution-review`: **0 blockers, 3 MINOR, all fixed.** (1) `CalorieComparisonRequest`'s
+  doc comment cited "the constitution's parameter-count ceiling" — no such rule exists in either
+  `CLAUDE.md`; corrected to not cite a rule that isn't there, the exact "claims more than the code
+  does" pattern this project's audits watch for. (2) `CalorieReferenceCatalogueTests` asserted
+  region and kilocalories but not `productName`, `portionDescription` or `source` — a typo in a
+  URL or portion string would have compiled and passed; all three now asserted for every
+  reference. (3) Noted but not required to fix: `DishCalorieOutcome`/`calories(for:references:)`
+  is a looser fit for D27's one-concept-per-file carve-out than the rest of the file, since it
+  shares no name-relationship with `CalorieComparison*` — acceptable for now (precedent:
+  `DishSelection.swift` is similarly loose), split out if the file grows further. Everything else
+  checked clean: no force-unwraps, correct `Sendable`/value-type shape, no throwing path (D43
+  precedent correctly followed), and `RecordedIntake`'s enum design confirmed to make
+  "manual replaces Health, never adds" a structural guarantee rather than a caller convention.
+- **Commit**: `feat(domain): add calorie provenance with separated energy facts and verified portion references`
+
 ---
 
 ## Day 20–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
-| 20 | WU-20-C | Calorie provenance: three separated quantities, comparison only when components share a cutoff, verified Spanish portion references | Calorie tests green |
 | 21 | WU-21-A | Schema V1 grows `DailyCase`, `VerdictRevision`, `Appeal` (D10); `CaseStore` implementation | Reopen + revision tests green |
 | 21 | WU-21-B | Today flow: evidence summary, context inputs, **Give me a verdict**, verdict screen, evidence details | `arc-verify-ui` ✅ |
 | 22 | WU-22-A | Appeals: compatible craving, compatible variant, cross-category choice, honest no-match | Appeal tests green |

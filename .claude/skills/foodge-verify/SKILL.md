@@ -36,12 +36,14 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
   {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DishCatalogueTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CatalogueNameLocalizationTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"}
+  {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CalorieProvenanceTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CalorieReferenceCatalogueTests"}
 ]
 ```
 
-104 tests as of Day 20 (`OnboardingViewModelTests` was already present at Day 19 but missing from
-this list — added along with the three Day 20 suites). Prefer this over `RunAllTests`, which
+118 tests as of Day 20 (`OnboardingViewModelTests` was already present at Day 19 but missing from
+this list — added along with the Day 20 suites). Prefer this over `RunAllTests`, which
 also runs the XCTest UI bundle. Add new suites here as they land.
 
 ## Destination
