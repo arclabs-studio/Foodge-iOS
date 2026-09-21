@@ -37,6 +37,18 @@
         }
       }
     },
+    "Avocado" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aguacate"
+          }
+        }
+      }
+    },
     "Balanced" : {
       "comment" : "Dinner category for an ordinary dinner",
       "localizations" : {
@@ -48,6 +60,126 @@
         }
       }
     },
+    "Basil" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Albahaca"
+          }
+        }
+      }
+    },
+    "Beef burger" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Hamburguesa de ternera"
+          }
+        }
+      }
+    },
+    "Beef patty" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Carne de hamburguesa"
+          }
+        }
+      }
+    },
+    "Beef tacos" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tacos de ternera"
+          }
+        }
+      }
+    },
+    "Bell pepper" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pimiento"
+          }
+        }
+      }
+    },
+    "Black bean burger" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Hamburguesa de frijoles negros"
+          }
+        }
+      }
+    },
+    "Black bean tacos" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tacos de frijoles negros"
+          }
+        }
+      }
+    },
+    "Black beans" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Frijoles negros"
+          }
+        }
+      }
+    },
+    "Bread" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pan"
+          }
+        }
+      }
+    },
+    "Burger bun" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pan de hamburguesa"
+          }
+        }
+      }
+    },
     "Burgers" : {
       "comment" : "Dish family, a treat",
       "localizations" : {
@@ -55,6 +187,90 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Hamburguesas"
+          }
+        }
+      }
+    },
+    "Carrot" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Zanahoria"
+          }
+        }
+      }
+    },
+    "Chicken breast" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pechuga de pollo"
+          }
+        }
+      }
+    },
+    "Chicken rice bowl" : {
+      "comment" : "Dish variant, balanced",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Bol de arroz con pollo"
+          }
+        }
+      }
+    },
+    "Chickpea and spinach soup" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sopa de garbanzos y espinacas"
+          }
+        }
+      }
+    },
+    "Chickpeas" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Garbanzos"
+          }
+        }
+      }
+    },
+    "Chorizo" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Chorizo"
+          }
+        }
+      }
+    },
+    "Chorizo tortilla" : {
+      "comment" : "Dish variant, balanced. The Spanish potato omelette",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tortilla de chorizo"
           }
         }
       }
@@ -95,6 +311,54 @@
         }
       }
     },
+    "Cooked lentils" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Lentejas cocidas"
+          }
+        }
+      }
+    },
+    "Coriander" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cilantro"
+          }
+        }
+      }
+    },
+    "Corn tortilla" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tortilla de maíz"
+          }
+        }
+      }
+    },
+    "Cucumber" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pepino"
+          }
+        }
+      }
+    },
     "Days recorded" : {
       "comment" : "A label for the number of days a user has recorded.",
       "isCommentAutoGenerated" : true,
@@ -127,6 +391,76 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Rutina de cena"
+          }
+        }
+      }
+    },
+    "Egg" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Huevo"
+          }
+        }
+      }
+    },
+    "Exclude ingredients" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Excluir ingredientes"
+          }
+        }
+      }
+    },
+    "Falafel" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Falafel"
+          }
+        }
+      }
+    },
+    "Falafel wrap" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Wrap de falafel"
+          }
+        }
+      }
+    },
+    "Feta" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Queso feta"
+          }
+        }
+      }
+    },
+    "Feta and roasted pepper wrap" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Wrap de queso feta y pimiento asado"
           }
         }
       }
@@ -281,6 +615,54 @@
         }
       }
     },
+    "Garden vegetable soup with toast" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sopa de verduras con tostada"
+          }
+        }
+      }
+    },
+    "Garlic" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ajo"
+          }
+        }
+      }
+    },
+    "Halloumi" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Halloumi"
+          }
+        }
+      }
+    },
+    "Halloumi burger" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Hamburguesa de halloumi"
+          }
+        }
+      }
+    },
     "Health didn't return anything readable for these days." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -332,6 +714,42 @@
         }
       }
     },
+    "Hummus" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Hummus"
+          }
+        }
+      }
+    },
+    "Hummus and vegetable wrap" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Wrap de hummus y verduras"
+          }
+        }
+      }
+    },
+    "Ingredients to exclude" : {
+      "comment" : "A heading for the ingredients that the user has excluded.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ingredientes a excluir"
+          }
+        }
+      }
+    },
     "It reads on this iPhone and writes nothing back. Your figures never leave the device." : {
       "comment" : "A description of how the app uses your health data.",
       "isCommentAutoGenerated" : true,
@@ -340,6 +758,42 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Lee en este iPhone y no escribe nada. Tus cifras no salen del dispositivo."
+          }
+        }
+      }
+    },
+    "Lentil and feta salad" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ensalada de lentejas y queso feta"
+          }
+        }
+      }
+    },
+    "Lentil and tomato salad" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ensalada de lentejas y tomate"
+          }
+        }
+      }
+    },
+    "Lentil and tuna salad" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ensalada de lentejas y atún"
           }
         }
       }
@@ -355,6 +809,18 @@
         }
       }
     },
+    "Lettuce" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Lechuga"
+          }
+        }
+      }
+    },
     "Light" : {
       "comment" : "Dinner category for a lighter dinner",
       "localizations" : {
@@ -362,6 +828,42 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Ligero"
+          }
+        }
+      }
+    },
+    "Lime" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Lima"
+          }
+        }
+      }
+    },
+    "Margherita pizza" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pizza margarita"
+          }
+        }
+      }
+    },
+    "Mayonnaise" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mayonesa"
           }
         }
       }
@@ -378,6 +880,18 @@
         }
       }
     },
+    "Minced beef" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Carne picada de ternera"
+          }
+        }
+      }
+    },
     "Most evenings" : {
       "comment" : "A label for the user to select their preferred time for dinner.",
       "isCommentAutoGenerated" : true,
@@ -386,6 +900,30 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "La mayoría de las noches"
+          }
+        }
+      }
+    },
+    "Mozzarella" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mozzarella"
+          }
+        }
+      }
+    },
+    "Mushroom" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Champiñón"
           }
         }
       }
@@ -426,6 +964,30 @@
         }
       }
     },
+    "Olive" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aceituna"
+          }
+        }
+      }
+    },
+    "Olive oil" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aceite de oliva"
+          }
+        }
+      }
+    },
     "Omnivore" : {
       "comment" : "Diet choice: eats everything",
       "localizations" : {
@@ -449,6 +1011,30 @@
         }
       }
     },
+    "Onion" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cebolla"
+          }
+        }
+      }
+    },
+    "Parmesan" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Parmesano"
+          }
+        }
+      }
+    },
     "Pasta" : {
       "comment" : "Dish family, balanced",
       "localizations" : {
@@ -456,6 +1042,42 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Pasta"
+          }
+        }
+      }
+    },
+    "Pasta arrabbiata" : {
+      "comment" : "Dish variant, balanced",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pasta arrabbiata"
+          }
+        }
+      }
+    },
+    "Pasta bolognese" : {
+      "comment" : "Dish variant, balanced",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pasta a la boloñesa"
+          }
+        }
+      }
+    },
+    "Pasta with pesto" : {
+      "comment" : "Dish variant, balanced",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pasta con pesto"
           }
         }
       }
@@ -478,6 +1100,66 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Pizza"
+          }
+        }
+      }
+    },
+    "Pizza base" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Base de pizza"
+          }
+        }
+      }
+    },
+    "Potato" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Patata"
+          }
+        }
+      }
+    },
+    "Potato tortilla" : {
+      "comment" : "Dish variant, balanced. The Spanish potato omelette",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tortilla de patatas"
+          }
+        }
+      }
+    },
+    "Prawn tacos" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tacos de gambas"
+          }
+        }
+      }
+    },
+    "Prawns" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gambas"
           }
         }
       }
@@ -528,6 +1210,18 @@
         }
       }
     },
+    "Rice" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Arroz"
+          }
+        }
+      }
+    },
     "Rice bowls" : {
       "comment" : "Dish family, balanced",
       "localizations" : {
@@ -539,12 +1233,72 @@
         }
       }
     },
+    "Salmon" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Salmón"
+          }
+        }
+      }
+    },
+    "Salmon rice bowl" : {
+      "comment" : "Dish variant, balanced",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Bol de arroz con salmón"
+          }
+        }
+      }
+    },
     "Save and finish" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Guardar y finalizar"
+          }
+        }
+      }
+    },
+    "Soy sauce" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Salsa de soja"
+          }
+        }
+      }
+    },
+    "Spinach" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Espinacas"
+          }
+        }
+      }
+    },
+    "Spinach tortilla" : {
+      "comment" : "Dish variant, balanced. The Spanish potato omelette",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tortilla de espinacas"
           }
         }
       }
@@ -683,6 +1437,66 @@
         }
       }
     },
+    "Tofu" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tofu"
+          }
+        }
+      }
+    },
+    "Tofu rice bowl" : {
+      "comment" : "Dish variant, balanced",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Bol de arroz con tofu"
+          }
+        }
+      }
+    },
+    "Tomato" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tomate"
+          }
+        }
+      }
+    },
+    "Tomato sauce" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Salsa de tomate"
+          }
+        }
+      }
+    },
+    "Tomato soup with toast" : {
+      "comment" : "Dish variant, light",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sopa de tomate con tostada"
+          }
+        }
+      }
+    },
     "Tortilla" : {
       "comment" : "Dish family, balanced. The Spanish potato omelette, not a wrap",
       "localizations" : {
@@ -717,6 +1531,30 @@
         }
       }
     },
+    "Tuna" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Atún"
+          }
+        }
+      }
+    },
+    "Tuna and onion pizza" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pizza de atún y cebolla"
+          }
+        }
+      }
+    },
     "Use these days after all" : {
       "comment" : "A button that lets the user use days that are marked as not representative.",
       "isCommentAutoGenerated" : true,
@@ -736,6 +1574,18 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Vegana"
+          }
+        }
+      }
+    },
+    "Vegetable pizza" : {
+      "comment" : "Dish variant, treat",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pizza de verduras"
           }
         }
       }
@@ -793,6 +1643,18 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Bienvenida"
+          }
+        }
+      }
+    },
+    "Wheat wrap" : {
+      "comment" : "Ingredient",
+      "extractionState" : "stale",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tortilla de trigo"
           }
         }
       }
