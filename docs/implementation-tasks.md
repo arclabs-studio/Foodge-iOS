@@ -66,6 +66,17 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D33 | The brand colour sets (`AppBurgundy`, `AppGold`, `AppBurgundyMuted`, plus a value for `AccentColor`) are authored in WU-19-D with all four appearances; artwork still lands on Day 24. | The constitution forbids colour literals in code, so anything tinted needs the catalogue the moment `JudgeBadgeView` exists. Day 24 then swaps artwork only, not the palette. The Xcode MCP exposes no asset-catalogue tool, so the `.colorset/Contents.json` files are written into the synchronized root group — filesystem work, not a `project.pbxproj` or `.xcstrings` hand-edit. |
 | D34 | Three protocol seams are introduced — `HealthAuthorizing` and `PreferencesStore` in `Domain/Services/` — and `PreferencesDraft` moves from `Data/Persistence/` to `Domain/Entities/`. Both existing concrete types conform with no API change. A `#Preview` is a composition root: `PreviewDependencies` (`#if DEBUG`) may name `AppDependencies`, which production Presentation code may not — so the assembly lives in `AppDependencies.makeOnboardingViewModel()` (App layer) and `OnboardingViewModel` has no initializer naming `AppDependencies` at all. | The ledger named the concrete `HealthAuthorizationService` and `PersistenceActor` as ViewModel dependencies. One presents a system sheet (untestable off-device) and the other's save throws only when `modelContext.save()` does, which an in-memory container never will — so a failed save would be unreachable in tests. `PreferencesStore` names `PreferencesDraft`, so the draft has to be Domain, or `OnboardingViewModel` would import Data and break the one-way dependency direction `arc-constitution-review` checks. |
 | D35 | `OnboardingViewModel.HealthState` has a sixth case, `.requestFailed`, beyond the five the ledger named. | The five cannot express "the authorization request itself did not complete". Mapping that to `.noReadableData` would assert an absence the app cannot prove — the same mistake as claiming denial. |
+| D36 | The catalogue is a pure `Domain/Catalogue/` namespace (`enum DishCatalogue`, `static let`s, `version = "1.0.0"`). No protocol, no `Data/` implementation, no `AppDependencies` field. | A seam here has no I/O and no failure mode to drive in a test (D34's own reasoning). A JSON resource would convert compile-time guarantees about diet sets into a runtime decode path days before submission. |
+| D37 | `nameKey` is English display text, resolved with `LocalizedStringResource(String.LocalizationValue(stringLiteral:))`, not a dotted identifier. | Forced by a finding: the built app ships **no `en.lproj`** — English is the source language, so a String Catalog key *is* the English string. A dotted key would render the raw identifier on screen in English. The rejected literal `switch` over 71 cases would buy compile-time extraction at the cost of a second copy of the catalogue nothing keeps in step (the exact duplication D27 and `DinnerCategory.families` both exist to prevent). |
+| D38 | `IngredientExclusionsView` is pushed from `PreferencesView`, not a fourth linear onboarding step. `OnboardingRoute` gains `.ingredientExclusions`. | Exclusions are optional and secondary; a fourth required step puts a Continue gate in front of an optional choice and still needs a Settings entry later. |
+| D39 | Repeat-avoidance history is a parameter (`recentSelections: [RecentDishSelection]`) on `DishSelection.select`, not a `CaseStore` method. Callers pass `[]` until Day 21. | `DailyCase` is D10-deferred to WU-21-A, so there is no history to read yet — but the rule about *which* history counts belongs with the selection rule, not with a store that has no conformer. |
+| D40 | Rotation is a continuous local-day index since the reference date (1 Jan 2001), mod the **full catalogue count** — never the candidate count. | Day-of-year mod N jumps backwards 364 days each New Year (pinned by `newYearRotatesByOne`, which fails against that implementation). Modding by the candidate count would shift one user's rotation the moment they excluded an ingredient. |
+| D41 | Repeat avoidance is two-level (same variant = penalty 2, same family = penalty 1, else 0) and is a ranking preference, not a hard filter. | Variant-only avoidance would still serve beef, halloumi and black-bean burgers on three consecutive nights — the same dinner, as the user experiences it. Keeping it a preference (not a filter) is what stops a small candidate set producing an honest no-match it doesn't need to. |
+| D42 | A distinct alternative prefers a different family; falls back to a different variant in the same family; `nil` when only one candidate survives. | A "second-ranked candidate" is cheaper to write but produces "Beef burger — or try the Halloumi burger": the same recommendation again with different cheese. |
+| D43 | No-match is a returned value (`.noMatch(blockingIngredientIDs:)`), never a thrown `FoodgeError.noCompatibleDish`. Nothing throws that error in WU-20-B. | An empty candidate set is a correct consequence of the user's own exclusions, not a failure. Throwing would force every call site into `do/catch` to render a normal screen and would discard *which* ingredient is blocking — the screen needs that to say which exclusion to revisit. |
+| D44 | `VerdictEngine` is not grown with a `selectDish` method; its doc comment (which claimed dish selection "joins this protocol on Day 20") is corrected instead. | The claim was false since D13 put the category rule outside `VerdictEngine`, and the protocol has no conformer anywhere. Adding a method would create a second declaration of a contract with no implementation to hold it — the exact "doc claims more than the code does" defect the audit prompts here hunt for. |
+| D45 | Convenience scores the intersection size between a variant's tags and a preference set derived from `DailyContext` (`dinnerTime == .quick` → `{quick, onePan, noCook}`; `energyLevel == .low` → adds `{onePan, noCook}`). Sleep-driven easing is deferred to Day 21. | Counting rather than testing membership lets a hurried *and* tired user's no-cook one-pan dish outrank a merely-quick one, with no extra rule. Sleep lives on `EvidenceSnapshot`, not `DailyContext`, so wiring it now would need a Health-shaped parameter no caller can fill yet. |
+| D46 | Craving strictly outranks convenience in `DishSelection`'s ranking tuple — `(craving, convenience, recency, favourite, rotation)`, in that order. | The brief only says "craving and convenience" together, without ordering them against each other; the two existing tests each held the *other* factor tied by construction, so neither pinned this specific precedence. Craving is what the user explicitly asked for tonight; convenience is a standing preference inferred from context. Pinned by `convenienceNeverBeatsCraving` — flagged by `arc-constitution-review` as an ambiguous-rule resolution that should carry its own decision, like every other tie-break choice in this ranking. |
 
 ---
 
@@ -447,12 +458,172 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
 
 ---
 
+## Day 20 — dish catalogue and deterministic selection (WU-20-A / WU-20-B)
+
+- **Objective**: a curated 27-variant, 44-ingredient catalogue (D36–D38, D44) and a deterministic
+  selector over it (D39–D43, D45), unblocking `IngredientExclusionsView` (deferred by D31).
+  WU-20-C (calorie provenance) is untouched.
+- **Baseline**: 61/61 tests, 0 warnings, confirmed before starting.
+- **Phase 0 — tooling gate**. Proved with one real key ("Cooked lentils" → "Lentejas cocidas"):
+  (a) `StringCatalogEdit` **cannot** create a key that was never extracted from a source literal
+  — it fails outright ("String key ... not found"). (b) A key whose source literal is later
+  deleted **does** survive, translated, in the built `es.lproj` — confirmed by reading
+  `Foodge.app/es.lproj/Localizable.strings` directly after removing the literal and rebuilding.
+  Resolved as **seed-and-delete**: a temporary file lists every new English name as a
+  `LocalizedStringResource` literal, purely so the build's extractor adds the key; translate;
+  delete the file. Keeps D37's dynamic lookup intact, at the cost of repeating the seed step for
+  any future catalogue addition — the localization coverage test (below) is what catches a
+  forgotten one.
+- **Phase 1 — catalogue data**: `DishCatalogue`, `DishCatalogue+Dishes` (9 `Dish` constants),
+  `Ingredient+Catalogue` (44 statics). `DishCatalogueTests` — 11 tests, including an independent
+  animal-product oracle (hand-lists meat/fish/egg-dairy separately from the catalogue's own
+  `diets` field) and the vegan-per-category guarantee (treat 3, balanced 2, light 6). `CLAUDE.md`
+  Layout block updated the same commit. **11/11 green, 0 warnings.**
+- **Phase 2 — localization**: `Ingredient+DisplayName`, `DishVariant+DisplayName`.
+  `CatalogueNameLocalizationTests` — 3 tests against the **built** `es.lproj`. 69 new keys
+  seeded and translated (71 names − 2 that already existed: "Cooked lentils" from the Phase 0
+  probe, "Pasta" already a key from the family name), plus 2 screen keys ("Exclude ingredients",
+  "Ingredients to exclude"). **14/14 green, 0 warnings.**
+  - **Real defect caught and fixed here, not by an auditor**: `localizedName(in:)` first used
+    `String(localized: String.LocalizationValue(stringLiteral:), locale:)`. It returned the
+    **English** source string for every key, for every ingredient and variant, when called from
+    the hosted test target — deterministic, not a race (confirmed by rerunning the identical
+    failing test twice, same 37 keys both times) — even though the built `es.lproj` file on disk
+    was correct throughout (confirmed with `plutil`). `String(localized:locale:)`'s bundle
+    resolution does not follow the same `TEST_HOST` chain as `Bundle.main.url(forResource:)`
+    inside a hosted unit test. Fixed by resolving directly against `Bundle(url:)` for the
+    requested locale's `.lproj`, falling back to `nameKey` when none exists (the English case,
+    since there is no `en.lproj`). Isolated with `RunCodeSnippet` before touching the fix.
+- **Phase 3 — exclusions screen**: `IngredientExclusionsView` (searchable, `SelectableRow`
+  reused unchanged in code — see the accessibility finding below), `OnboardingViewModel` gained
+  `toggleExclusion(_:)` and `excludableIngredients(matching:locale:)`, `OnboardingRoute`/
+  `OnboardingFlowView` wired, `PreferencesView` gained the row. `OnboardingViewModelTests` gained
+  4 tests plus one existing test (`finishingWritesTheCompletedDraftExactlyOnce`) updated to
+  exercise a real exclusion instead of asserting it stays empty. `memory/decisions/exclusions-
+  screen-waits-for-the-catalogue.md` gained a "Resolved in WU-20-A" note. Previews rendered and
+  read at light, dark, `en`, `es` (device default) and AX 5 — alphabetical sort correct in both
+  languages, no truncation at AX 5. **24/24 green, 0 warnings.**
+  - `arc-verify-ui` drove the real flow on simulator (`iPhone 17 Pro`, iOS 27.0): Welcome → skip
+    Health → Preferences → search "mushroom" → select → back (count persisted: 0 → 1) → Save →
+    landed on the main tabs. **Pass.**
+  - **`arc-audit-hig` found a real BLOCKER**, and it was in this ledger, not just the code: the
+    row was first written as a hand-built `HStack` (label + trailing count), justified here as
+    "per the D-device lesson" — but that lesson (WU-19-D, `LabeledContent` breaking tap response
+    *inside a custom `Button`*) does not generalize to a `NavigationLink`, where `LabeledContent`
+    is Apple's own documented pattern for exactly this label-plus-trailing-value case, and is
+    already this project's own working pattern one file over (`RecordedPatternSection`). Fixed:
+    the row is now `LabeledContent("Ingredients to exclude", value: …, format: .number)` inside
+    the `NavigationLink`. Preview re-rendered, visually unchanged from the `HStack` version.
+  - `arc-verify-ui`'s VoiceOver pass found a **real, reproducible defect**, not new to this
+    screen: `SelectableRow`'s selected-state checkmark broke a row into **three** accessibility
+    elements (`Button …Selected` + a duplicate `StaticText` + an `Image label:'Selected'`)
+    instead of one, reproducing identically on the pre-existing `FavouriteFamiliesSection` rows —
+    a shared-component regression the file's own comment claimed was already fixed and "verified
+    on device, twice". Took **five attempts** to actually close, four of them disproved on
+    device before the fifth held:
+    (1) `.accessibilityHidden(true)` on the checkmark alone — did not suppress it.
+    (2) `.accessibilityElement(children: .ignore)` + `.accessibilityLabel` on the label `HStack`
+    *inside* the `Button`'s closure — not absorbed into the `Button`'s own element; unchanged.
+    (3) The same modifiers moved onto the `Button` itself, after `.buttonStyle(.plain)` —
+    unchanged again.
+    (4) `.accessibilityElement(children: .combine)` (Apple's own first-recommended behavior)
+    plus `.accessibilityHidden(true)` on the leaf `Image` directly — **the decisive diagnostic**:
+    hiding the leaf itself still didn't work, ruling out modifier placement entirely and pointing
+    at iOS recognizing an SF Symbol literally named `"checkmark"` inside a `Form`/`List` row as a
+    system-level selection accessory, reinjected regardless of the declared view hierarchy.
+    (5) Replaced `Image(systemName: "checkmark")` with a hand-drawn `Shape` (`CheckmarkMark`,
+    a stroked `Path`) carrying no SF Symbol identity — a fifth on-device pass confirmed the
+    hierarchy no longer contains any element labelled "Selected" other than the row's own trait,
+    on both `FavouriteFamiliesSection` and `IngredientExclusionsView`, with the glyph still
+    visually present (screenshot-confirmed, not a visual regression). **Caveat, stated plainly
+    rather than rounded up**: the device-interaction tooling used here has no VoiceOver-navigation
+    command, so this is a structural hierarchy-dump confirmation, not a literal recorded VoiceOver
+    swipe-through — the same evidence standard the four failures were caught with, applied
+    consistently to the pass. Each intermediate attempt's "verified on device" language was
+    corrected to not overclaim once the next pass disproved it.
+- **Phase 4 — selection**: `DishSelection.select(from:category:constraints:context:
+  favouriteFamilies:recentSelections:on:calendar:)`, `RecentDishSelection`,
+  `DishSelectionOutcome`. `VerdictEngine`'s doc comment corrected (D44). `DishSelectionTests` — 23
+  tests against a hand-written five-entry miniature catalogue (filters, all 5 ranking criteria
+  individually isolated, the "never beats" comparator-priority pins, all 3 alternative branches,
+  a shuffle-safety test) plus 6 rotation tests and a real-catalogue "no diet alone ever produces
+  no-match" sweep across all 3 categories × 4 diets. One test bug caught in review before commit
+  (a diet-filter test had over-excluded down to zero candidates, producing a false `.noMatch`
+  the test itself didn't expect — fixed by relying on the diet filter alone). **23/23 green,
+  0 warnings**, one iteration.
+- **Full regression**: 61 → **102 tests**, 0 warnings, confirmed with `RunAllTests` after every
+  phase and again after both fixes above. Re-confirmed once more after a machine reboot mid-
+  session (see below) and once more after the accessibility audit's own edit: **102/102, 0
+  warnings**, each time.
+- **Environment note**: this session hit genuine OS-level process exhaustion (`unable to spawn
+  process 'clang-stat-cache' (Resource temporarily unavailable)`, and even a plain shell `echo`
+  failed) after a very long idle period with a stalled background test run. A reboot cleared it;
+  not a code or tooling defect, but worth recording since it cost real session time. Also: after
+  reboot, the active run destination had reset to the generic **"Any iOS Device (arm64)"** build
+  destination, which builds but silently returns "No result" for every test — `RunAllTests`
+  reported `99 tests: 0 passed, 0 failed, 99 not run` with no error. Fixed by explicitly switching
+  back to `iPhone 17 Pro (27.0)` before re-running. Worth checking the active destination first
+  the next time a fresh session's test run comes back suspiciously all-"No result".
+- `arc-audit-hig`: **1 blocker, real** — the new `PreferencesView` row was first written as a
+  hand-built `HStack`, justified in this very ledger as "per the D-device lesson." The auditor
+  traced that lesson to WU-19-D's actual incident (`LabeledContent` breaking tap response *inside
+  a custom `Button`*) and showed it doesn't generalize to a `NavigationLink`, where `LabeledContent`
+  is Apple's own documented pattern for a label-plus-trailing-value row — and is already this
+  project's own working pattern one file over (`RecordedPatternSection`). Fixed: see the Phase 3
+  entry above.
+- `arc-audit-accessibility`: **0 blockers.** Verified AX5/X-Small/dark on the 44-row list (no
+  truncation, no horizontal scroll), confirmed the `LabeledContent` row reflows correctly at AX5
+  (unchanged from before the HIG fix), computed contrast on the hand-drawn checkmark shape
+  (~10:1 light, ~8.5:1 dark — both clear 1.4.11's 3:1 floor for a meaningful shape), confirmed hit
+  targets and reduce-motion (no `.animation`/`.transition` anywhere in these files). Reached and
+  verified the previously-untested `ContentUnavailableView.search` empty state by adding a
+  source-compatible `init(vm:initialSearchText:)` (default `""`, no existing call site affected)
+  and a `"No matches"` preview — Apple's own component, confirmed correct, no code fix needed
+  there. Caught and flagged (not a code defect): `RenderPreview`'s `previewCanvasControlOverrides`
+  parameter does **not** control Dynamic Type/Color Scheme — that's `previewVariantOverrides`; an
+  initial pass using the wrong one silently rendered identical screenshots regardless of the
+  requested size, caught by comparing "AX 5" and "X Small" output byte-for-byte before correcting.
+  Confirmed no comment or ledger entry here repeats the earlier "verified on device, twice"
+  overclaim pattern.
+- `arc-constitution-review`: **0 blockers, 1 MAJOR (fixed), 2 MINOR (both fixed).**
+  - **MAJOR**: `DishSelectionOutcome.noMatch(blockingIngredientIDs:)` was over-inclusive and its
+    doc comment overclaimed what it guaranteed — the auditor found a case (a candidate blocked by
+    *two* excluded ingredients at once) where a named id would **not** actually unblock anything
+    if removed alone, contradicting the comment's per-id claim. `exclusionNeverRelaxes` couldn't
+    catch it — every candidate there shares one blocking ingredient. Fixed: `blockingIngredientIDs`
+    now names only ids **individually** sufficient to unblock a candidate (`soleBlockers`), with
+    the doc comment corrected to say so explicitly. Pinned by the auditor's own counterexample,
+    `blockingIDsExcludeJointlyNeededIngredients`.
+  - **MINOR (SwiftLint, caught fixing the above)**: `select` had grown to 8 parameters and
+    `rankKey` returned a bare 5-tuple — both against this project's lint gate. Fixed by
+    introducing `DishSelectionRequest` (bundles everything about the user's own state) and a
+    named, `Comparable` `RankKey` struct in place of the tuple; both are call-site-only changes,
+    no ranking behavior moved.
+  - **MINOR**: the checkmark shape's size wasn't `@ScaledMetric`. Fixed (`@ScaledMetric(relativeTo:
+    .body)` for both the frame size and the stroke width).
+  - **MINOR**: craving outranking convenience in the ranking tuple had no decision number or test
+    proving the precedence when the two conflict (the existing tests each held one factor tied by
+    construction). Recorded as D46; pinned by `convenienceNeverBeatsCraving`.
+  - Everything else the auditor checked came back clean: no non-negotiable violations, correct
+    architecture/dependency direction, `@MainActor` throughout, Swift Testing conventions
+    followed, D27's one-concept-per-file carve-out correctly applied to `CatalogueEntry`/
+    `RecentDishSelection`/`DishSelectionOutcome`, and — checked independently, not assumed —
+    `TEST_HOST`/`BUNDLE_LOADER` really are set on the `FoodgeTests` target in `project.pbxproj`,
+    so the `Bundle.main`-resolves-to-`Foodge.app`-under-test claim this whole localization gate
+    depends on is genuine.
+  - Full regression after all four fixes: **104/104, 0 warnings** (the two new tests —
+    `blockingIDsExcludeJointlyNeededIngredients` and `convenienceNeverBeatsCraving` — take the
+    count from 102 to 104).
+- **Commits**: `feat(catalogue): add the nine-family dish catalogue and ingredient exclusions`
+  (Phases 0–3), `feat(domain): add deterministic dish selection with a date-rotated tie-break`
+  (Phase 4).
+
+---
+
 ## Day 20–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
-| 20 | WU-20-A | Curated nine-family dish catalogue with variants, diets, ingredients, convenience tags | Catalogue tests green |
-| 20 | WU-20-B | Deterministic selection (exclusions → category → craving → repeat avoidance → favourites → rotated tie-break), distinct alternative, explicit no-match | Selection tests green |
 | 20 | WU-20-C | Calorie provenance: three separated quantities, comparison only when components share a cutoff, verified Spanish portion references | Calorie tests green |
 | 21 | WU-21-A | Schema V1 grows `DailyCase`, `VerdictRevision`, `Appeal` (D10); `CaseStore` implementation | Reopen + revision tests green |
 | 21 | WU-21-B | Today flow: evidence summary, context inputs, **Give me a verdict**, verdict screen, evidence details | `arc-verify-ui` ✅ |

@@ -1,7 +1,7 @@
 ---
 title: Foodge memory
 tags: [foodge, memory, index]
-updated: 2026-09-19
+updated: 2026-09-20
 ---
 
 # Foodge memory
@@ -50,11 +50,15 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[colour-sets-before-artwork]] — why an `.xcassets` write is not a pbxproj edit
 - [[protocol-seams-for-the-onboarding-viewmodel]] — and why a `#Preview` is a composition root
 - [[a-sixth-health-state-for-a-failed-request]] — a failed request is not an absence
+- [[the-catalogue-is-a-domain-constant-not-a-seam]] — 27 compile-time values need no protocol
+- [[dynamic-name-keys-need-a-shipped-strings-oracle]] — seed-and-delete, and a locale API that lies in tests
+- [[rotation-is-a-continuous-day-index]] — never day-of-year, never the candidate count
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
 - [[filter-branch-deletes-the-working-file]] — purging a tracked file takes the file with it
 - [[string-catalog-edit-marks-translations-machine-made]] — the state is the tool's choice, not ours
+- [[sf-symbol-checkmark-hijacks-voiceover-selection]] — a symbol *name* the OS itself recognizes, no modifier stops it
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer

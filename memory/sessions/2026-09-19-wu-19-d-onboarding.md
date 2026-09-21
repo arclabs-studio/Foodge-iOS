@@ -64,9 +64,10 @@ justification was invented. Check the *incidental* claims too, not just the find
 
 ## Still owed
 
-The physical-device pass. The simulator has no Health data, so every run ended in
-`noReadableData` — **the `.connected` path with a real recorded pattern has never executed on
-hardware.** Delete Foodge from the phone first: D32 grew schema V1.
+Nothing from this list — corrected after the fact. The physical-device pass this note originally
+flagged as outstanding actually landed at the end of the same session: `.connected` ran against a
+real recorded fortnight on "iPhone de CR" (PID 16175), and a separate-process relaunch (PID
+16178) proved the persisted half. See the Day 19 evidence in `docs/implementation-tasks.md`.
 
 ## See also
 
