@@ -81,7 +81,6 @@ final class OnboardingViewModel {
         self.clock = clock
     }
 
-
     // MARK: - Health
 
     /// Asks for Health access and, if that completes, reads one snapshot.
@@ -191,6 +190,31 @@ final class OnboardingViewModel {
             draft.favouriteFamilies.remove(at: index)
         } else {
             draft.favouriteFamilies.append(family)
+        }
+    }
+
+    /// Adds or removes an ingredient exclusion.
+    func toggleExclusion(_ ingredientID: String) {
+        if draft.excludedIngredientIDs.contains(ingredientID) {
+            draft.excludedIngredientIDs.remove(ingredientID)
+        } else {
+            draft.excludedIngredientIDs.insert(ingredientID)
+        }
+    }
+
+    /// The catalogue's ingredients, alphabetically ordered in `locale` and filtered by
+    /// `searchText`, diacritic- and case-insensitively.
+    ///
+    /// Only Presentation knows display names, so only Presentation can sort or search by them —
+    /// the Domain catalogue orders ingredients by first appearance, not alphabetically.
+    func excludableIngredients(matching searchText: String, locale: Locale) -> [Ingredient] {
+        let candidates = searchText.isEmpty
+            ? DishCatalogue.ingredients
+            : DishCatalogue.ingredients.filter {
+                $0.localizedName(in: locale).localizedStandardContains(searchText)
+            }
+        return candidates.sorted {
+            $0.localizedName(in: locale).localizedStandardCompare($1.localizedName(in: locale)) == .orderedAscending
         }
     }
 

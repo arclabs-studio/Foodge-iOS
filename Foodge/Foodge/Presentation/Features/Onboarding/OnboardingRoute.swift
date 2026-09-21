@@ -14,4 +14,5 @@ import Foundation
 enum OnboardingRoute: Hashable, Sendable {
     case healthConnection
     case preferences
+    case ingredientExclusions
 }

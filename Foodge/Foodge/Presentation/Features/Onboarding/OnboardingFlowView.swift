@@ -25,6 +25,8 @@ struct OnboardingFlowView: View {
                         HealthConnectionView(vm: vm)
                     case .preferences:
                         PreferencesView(vm: vm)
+                    case .ingredientExclusions:
+                        IngredientExclusionsView(vm: vm)
                     }
                 }
         }

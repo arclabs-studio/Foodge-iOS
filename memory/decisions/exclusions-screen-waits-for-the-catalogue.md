@@ -35,6 +35,12 @@ rewritten on Day 20 — two passes of the expensive work for one screen's worth 
 
 No schema change is involved. The field was already in V1.
 
+## Resolved in WU-20-A
+
+The catalogue landed (D36–D45) and `IngredientExclusionsView` was built against its real
+`ingredient.*` ids, pushed from `PreferencesView`. This note stays as the record of why it was
+deferred, not a claim about the screen's current state — it does not exist "waiting" any more.
+
 ## See also
 
 - [[schema-v1-grows-tracking-representative]] — the one model change WU-19-D *did* make

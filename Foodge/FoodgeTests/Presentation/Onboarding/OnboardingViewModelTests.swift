@@ -5,9 +5,9 @@
 //  Created by ARC Labs Studio on 19/09/2026.
 //
 
+@testable import Foodge
 import Foundation
 import Testing
-@testable import Foodge
 
 /// Onboarding is where Foodge decides what it is allowed to say about someone's Health data.
 ///
@@ -16,7 +16,6 @@ import Testing
 @Suite("Onboarding view model", .tags(.unit, .critical))
 @MainActor
 struct OnboardingViewModelTests {
-
     private struct SUT {
         let viewModel: OnboardingViewModel
         let authorization: FixtureHealthAuthorization
@@ -70,7 +69,7 @@ struct OnboardingViewModelTests {
     // MARK: - Connecting to Health
 
     @Test("A device without Health is told so, and is asked for nothing")
-    func anUnavailableDeviceIsNeverQueried() async throws {
+    func anUnavailableDeviceIsNeverQueried() async {
         // Given a device that has no Health data at all
         let sut = makeSUT(isHealthDataAvailable: false)
 
@@ -100,7 +99,7 @@ struct OnboardingViewModelTests {
     func authorizationFailuresAreMappedHonestly(
         failure: any Error,
         expected: OnboardingViewModel.HealthState
-    ) async throws {
+    ) async {
         // Given an authorization request that will not complete
         let sut = makeSUT(authorizationFailure: failure)
 
@@ -115,7 +114,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("A read that fails is a failed read, not an empty Health store")
-    func anEvidenceReadFailureIsReportedAsAFailedRequest() async throws {
+    func anEvidenceReadFailureIsReportedAsAFailedRequest() async {
         // Given authorization that completes, and a read that then fails
         let sut = makeSUT(evidenceFailure: FixtureFailure("the read did not complete"))
 
@@ -130,7 +129,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("A cancelled read puts back the state the user last saw")
-    func aCancelledReadDoesNotLeaveASpinnerOnScreen() async throws {
+    func aCancelledReadDoesNotLeaveASpinnerOnScreen() async {
         // Given a read that is cancelled rather than failing
         let sut = makeSUT(evidenceFailure: CancellationError())
 
@@ -203,7 +202,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("Health with nothing in it says so, and does not pretend to be connected")
-    func anEmptyHealthStoreIsReportedAsNoReadableData() async throws {
+    func anEmptyHealthStoreIsReportedAsNoReadableData() async {
         // Given a Health store that returns nothing for any kind
         let sut = makeSUT(snapshot: SyntheticScenarios.noHealthData.snapshot)
 
@@ -215,7 +214,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("An empty workout list is not a reading")
-    func anEmptyWorkoutListDoesNotCountAsData() async throws {
+    func anEmptyWorkoutListDoesNotCountAsData() async {
         // Given today's readings that are all missing, with an empty — not absent — workout list
         let snapshot = makeSnapshot(
             today: HealthAggregates(
@@ -243,11 +242,11 @@ struct OnboardingViewModelTests {
     func daysRecordedCountsEitherMetric() async throws {
         // Given three days recorded only in energy and five more recorded only in steps
         let days = SyntheticScenarios.historyDays
-        let history = (0..<days.count).map { index in
+        let history = (0 ..< days.count).map { index in
             DailyActivityObservation(
                 day: days[index],
                 activeEnergyAtCutoff: index < 3 ? 410 : nil,
-                stepsAtCutoff: (3..<8).contains(index) ? 8200 : nil
+                stepsAtCutoff: (3 ..< 8).contains(index) ? 8200 : nil
             )
         }
         let sut = makeSUT(
@@ -304,7 +303,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("Disowning the days before connecting just records the choice")
-    func markingUnrepresentativeWithoutASnapshotRecordsTheChoiceOnly() async throws {
+    func markingUnrepresentativeWithoutASnapshotRecordsTheChoiceOnly() {
         // Given a user who has not connected Health at all
         let sut = makeSUT()
 
@@ -317,7 +316,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("Continuing without Health clears a failed attempt and moves on")
-    func skippingHealthClearsTheFailureAndAdvances() async throws {
+    func skippingHealthClearsTheFailureAndAdvances() async {
         // Given an authorization attempt that failed
         let sut = makeSUT(authorizationFailure: FixtureFailure())
         await sut.viewModel.connectHealth()
@@ -334,7 +333,7 @@ struct OnboardingViewModelTests {
     // MARK: - The injected clock
 
     @Test("Health is read at the injected instant, in the injected time zone")
-    func theEvidenceReaderIsHandedTheInjectedClock() async throws {
+    func theEvidenceReaderIsHandedTheInjectedClock() async {
         // Given a clock frozen at 19:30 on 18 September 2026 in Europe/Madrid, and a user who
         // has already chosen a diet
         let sut = makeSUT()
@@ -363,6 +362,7 @@ struct OnboardingViewModelTests {
         sut.viewModel.toggleFavourite(.tacos)
         sut.viewModel.toggleFavourite(.pasta)
         sut.viewModel.markUnrepresentative(true)
+        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
 
         // When they save and finish
         await sut.viewModel.finish()
@@ -374,7 +374,7 @@ struct OnboardingViewModelTests {
         #expect(saved.dinnerRoutine == .relaxed)
         #expect(saved.favouriteFamilies == [.tacos, .pasta])
         #expect(saved.trackingRepresentative == false)
-        #expect(saved.excludedIngredientIDs.isEmpty)
+        #expect(saved.excludedIngredientIDs == [Ingredient.mushroom.id])
         // Stamped from the injected clock, not from `Date()`
         #expect(saved.onboardingCompletedAt == SyntheticScenarios.evaluationDate)
         #expect(sut.viewModel.draft.onboardingCompletedAt == SyntheticScenarios.evaluationDate)
@@ -398,8 +398,72 @@ struct OnboardingViewModelTests {
         #expect(saved.favouriteFamilies == [.pasta])
     }
 
+    // MARK: - Ingredient exclusions
+
+    @Test("Toggling an ingredient excludes it")
+    func togglingAnIngredientExcludesIt() {
+        // Given a user with nothing excluded
+        let sut = makeSUT()
+
+        // When they exclude mushroom
+        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
+
+        // Then it is recorded as excluded
+        #expect(sut.viewModel.draft.excludedIngredientIDs == [Ingredient.mushroom.id])
+    }
+
+    @Test("Toggling the same ingredient twice removes the exclusion, not appends it again")
+    func togglingTwiceRemovesTheExclusion() {
+        // Given an ingredient already excluded
+        let sut = makeSUT()
+        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
+
+        // When it is toggled a second time
+        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
+
+        // Then nothing is excluded — a Set already prevents a literal duplicate, so this proves
+        // the toggle actually removes rather than merely failing to add a second time
+        #expect(sut.viewModel.draft.excludedIngredientIDs.isEmpty)
+    }
+
+    @Test("Finishing saves the excluded ingredient ids that were chosen")
+    func finishingSavesExcludedIngredients() async throws {
+        // Given two ingredients excluded
+        let sut = makeSUT()
+        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
+        sut.viewModel.toggleExclusion(Ingredient.olive.id)
+
+        // When the user saves and finishes
+        await sut.viewModel.finish()
+
+        // Then both are written
+        let saved = try #require(await sut.store.savedDrafts.first)
+        #expect(saved.excludedIngredientIDs == [Ingredient.mushroom.id, Ingredient.olive.id])
+    }
+
+    @Test("Excludable ingredients are sorted alphabetically in the requested locale, and search is accent-insensitive")
+    func excludableIngredientsAreSortedAndSearchIsAccentInsensitive() {
+        // Given the view model with the compiled-in catalogue
+        let sut = makeSUT()
+        let spanish = Locale(identifier: "es")
+
+        // When listing with no search text
+        let all = sut.viewModel.excludableIngredients(matching: "", locale: spanish)
+
+        // Then the list holds every catalogue ingredient, alphabetically ordered in Spanish
+        #expect(all.count == DishCatalogue.ingredients.count)
+        let names = all.map { $0.localizedName(in: spanish) }
+        #expect(names == names.sorted { $0.localizedStandardCompare($1) == .orderedAscending })
+
+        // When searching without the accent Spanish actually uses on "Salmón"
+        let matches = sut.viewModel.excludableIngredients(matching: "salmon", locale: spanish)
+
+        // Then the accented ingredient is still found
+        #expect(matches.contains(Ingredient.salmon))
+    }
+
     @Test("A failed save is never reported as a save")
-    func aFailedSaveLeavesNothingClaimingOnboardingHappened() async throws {
+    func aFailedSaveLeavesNothingClaimingOnboardingHappened() async {
         // Given a store that will refuse the write
         let sut = makeSUT(storeFailure: FoodgeError.saveFailed)
 
@@ -414,7 +478,7 @@ struct OnboardingViewModelTests {
     }
 
     @Test("Retrying after a failed save completes, and writes only once")
-    func retryingAfterAFailedSaveWritesOnce() async throws {
+    func retryingAfterAFailedSaveWritesOnce() async {
         // Given a save that failed
         let sut = makeSUT(storeFailure: FoodgeError.saveFailed)
         await sut.viewModel.finish()

@@ -13,9 +13,9 @@ import SwiftUI
 /// save happens here. A failed save keeps the whole form visible with a retry — it is never
 /// reported as a save.
 ///
-/// Ingredient exclusions are deliberately absent. The catalogue they would be chosen from
-/// arrives on Day 20, and a picker over identifiers that do not exist yet would produce
-/// exclusions that silently never bite (D31).
+/// Ingredient exclusions push to their own screen rather than living inline here (D31, resolved
+/// in WU-20-A): the catalogue now exists, so a picker over its real identifiers can no longer
+/// produce an exclusion that silently never bites.
 @MainActor
 struct PreferencesView: View {
     @Bindable var vm: OnboardingViewModel
@@ -30,6 +30,16 @@ struct PreferencesView: View {
                 }
             } footer: {
                 Text("Foodge never infers this from Health, and never relaxes it to find a match.")
+            }
+
+            Section {
+                NavigationLink(value: OnboardingRoute.ingredientExclusions) {
+                    LabeledContent(
+                        "Ingredients to exclude",
+                        value: vm.draft.excludedIngredientIDs.count,
+                        format: .number
+                    )
+                }
             }
 
             ForEach(DinnerCategory.allCases, id: \.self) { category in
