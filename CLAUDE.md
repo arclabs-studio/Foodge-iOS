@@ -127,7 +127,7 @@ These are prototype product heuristics, not nutritional advice, and the explanat
 
 ```
 Foodge/Foodge/App/          composition root, app entry, root view
-Foodge/Foodge/Domain/       Entities, Services (protocols), UseCases, Errors — Foundation only
+Foodge/Foodge/Domain/       Entities, Services (protocols), UseCases, Errors, Catalogue — Foundation only
 Foodge/Foodge/Data/         Health, Persistence, Narration, SampleData — implements domain protocols
 Foodge/Foodge/Presentation/ Features/<Screen>/{View, ViewModel, Components}
 Foodge/Foodge/Resources/    Assets.xcassets, Localizable.xcstrings
