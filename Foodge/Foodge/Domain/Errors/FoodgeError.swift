@@ -25,4 +25,9 @@ enum FoodgeError: Error, Hashable, Sendable {
     case saveFailed
     /// No catalogue dish satisfies the user's constraints. Exclusions are never relaxed to avoid this.
     case noCompatibleDish
+    /// An appeal was addressed to a revision id that does not exist.
+    case revisionNotFound
+    /// A stored blob failed to decode. Real corruption, not a foreseeable rename with a safe
+    /// fallback, so this throws rather than silently defaulting.
+    case caseCorrupted
 }

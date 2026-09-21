@@ -17,7 +17,7 @@ enum FoodgeSchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
-        [UserPreferences.self]
+        [UserPreferences.self, DailyCase.self, VerdictRevision.self, Appeal.self]
     }
 }
 
