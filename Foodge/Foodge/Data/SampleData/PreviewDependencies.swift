@@ -51,12 +51,15 @@
         /// A day already ruled on: reopening returns the saved revision without regenerating it.
         static func reopeningSavedCase(
             _ scenario: SyntheticScenario = SyntheticScenarios.typicalDay,
+            preferencesDraft: PreferencesDraft? = nil,
+            appealFailure: FoodgeError? = nil,
             decision: VerdictDecision
         ) -> AppDependencies {
             let evidence = scenario.snapshot
             let dependencies = make(
                 authorization: PreviewAuthorization(isHealthDataAvailable: true),
-                snapshot: evidence
+                snapshot: evidence,
+                seededPreferences: preferencesDraft
             )
             let seeded = SavedRevision(
                 id: UUID(),
@@ -78,7 +81,7 @@
                 authorization: dependencies.authorization,
                 evidence: dependencies.evidence,
                 store: dependencies.store,
-                caseStore: PreviewCaseStore(seeded: seeded, matching: evidence),
+                caseStore: PreviewCaseStore(seeded: seeded, matching: evidence, appealFailure: appealFailure),
                 clock: dependencies.clock
             )
         }
@@ -86,12 +89,13 @@
         private static func make(
             authorization: PreviewAuthorization,
             snapshot: EvidenceSnapshot,
-            storeFailure: FoodgeError? = nil
+            storeFailure: FoodgeError? = nil,
+            seededPreferences: PreferencesDraft? = nil
         ) -> AppDependencies {
             AppDependencies(
                 authorization: authorization,
                 evidence: PreviewEvidence(scripted: snapshot),
-                store: PreviewStore(failure: storeFailure),
+                store: PreviewStore(failure: storeFailure, seeded: seededPreferences),
                 caseStore: PreviewCaseStore(failure: storeFailure),
                 clock: SyntheticScenarios.clock
             )
@@ -126,10 +130,11 @@
     /// Accepts writes and keeps them for the life of the preview, or refuses them all.
     private actor PreviewStore: PreferencesStore {
         private let failure: FoodgeError?
-        private var drafts: [PreferencesDraft] = []
+        private var drafts: [PreferencesDraft]
 
-        init(failure: FoodgeError?) {
+        init(failure: FoodgeError?, seeded: PreferencesDraft? = nil) {
             self.failure = failure
+            drafts = seeded.map { [$0] } ?? []
         }
 
         func savePreferences(_ draft: PreferencesDraft) async throws {
@@ -148,15 +153,21 @@
     /// or refuses them all — mirroring `PreviewStore`'s shape for `CaseStore`.
     private actor PreviewCaseStore: CaseStore {
         private let failure: FoodgeError?
+        /// Scripted separately from `failure`: an appeal preview reopens a case that already
+        /// saved successfully, then fails only the appeal itself.
+        private let appealFailure: FoodgeError?
         private var seeded: SavedCase?
+        private(set) var recordedAppeals: [(draft: AppealDraft, revisionID: UUID)] = []
 
         init(failure: FoodgeError? = nil) {
             self.failure = failure
+            appealFailure = nil
             seeded = nil
         }
 
-        init(seeded revision: SavedRevision, matching evidence: EvidenceSnapshot) {
+        init(seeded revision: SavedRevision, matching evidence: EvidenceSnapshot, appealFailure: FoodgeError? = nil) {
             failure = nil
+            self.appealFailure = appealFailure
             seeded = SavedCase(localDayKey: Self.localDayKey(for: evidence), revisions: [revision])
         }
 
@@ -189,10 +200,11 @@
             return revision
         }
 
-        func recordAppeal(_: AppealDraft, to _: UUID) async throws {
-            if let failure {
-                throw failure
+        func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws {
+            if let appealFailure {
+                throw appealFailure
             }
+            recordedAppeals.append((draft, revisionID))
         }
 
         private static func localDayKey(for evidence: EvidenceSnapshot) -> String {

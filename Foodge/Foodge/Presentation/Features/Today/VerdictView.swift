@@ -7,27 +7,6 @@
 
 import SwiftUI
 
-/// A lightweight, honest stand-in for appeal negotiation (WU-22-A). Tapping Appeal opens this
-/// rather than doing nothing or being disabled — a control must never quietly lie about what it
-/// does (D61), matching `TodayPlaceholderView`'s own retired principle.
-@MainActor
-private struct AppealComingSoonView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "Appeals are coming soon",
-                systemImage: "bubble.left.and.bubble.right.fill",
-                description: Text("Craving something else? Soon you’ll be able to make your case.")
-            )
-            .toolbar {
-                Button(role: .close) { dismiss() }
-            }
-        }
-    }
-}
-
 /// Tonight's dinner, the category it landed in, and why.
 @MainActor
 struct VerdictView: View {
@@ -46,7 +25,7 @@ struct VerdictView: View {
         .navigationTitle("Tonight’s verdict")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingAppeal) {
-            AppealComingSoonView()
+            AppealSheetView(vm: vm)
         }
     }
 
@@ -94,9 +73,9 @@ struct VerdictView: View {
                 }
             }
 
-            Section {
-                Button("Appeal") { showingAppeal = true }
-                if vm.currentRevision != nil {
+            if vm.currentRevision != nil {
+                Section {
+                    Button("Appeal") { showingAppeal = true }
                     NavigationLink(value: TodayRoute.evidenceDetails) {
                         Text("Evidence details")
                     }
@@ -113,8 +92,8 @@ struct VerdictView: View {
                 HStack(spacing: 16) {
                     DishArtPlaceholderView(family: showingAlternative ? (alternativeFamily ?? family) : family)
                     VStack(alignment: .leading) {
-                        Text(variantDisplayName(
-                            id: showingAlternative ? alternativeVariantID ?? variantID : variantID
+                        Text(DishCatalogue.displayName(
+                            forVariantID: showingAlternative ? alternativeVariantID ?? variantID : variantID
                         ))
                         .font(.headline)
                         Text((showingAlternative ? alternativeFamily ?? family : family).displayName)
@@ -136,10 +115,6 @@ struct VerdictView: View {
                     .foregroundStyle(.secondary)
             }
         }
-    }
-
-    private func variantDisplayName(id: String) -> LocalizedStringResource {
-        DishCatalogue.entry(id: id)?.variant.displayName ?? LocalizedStringResource(stringLiteral: id)
     }
 }
 

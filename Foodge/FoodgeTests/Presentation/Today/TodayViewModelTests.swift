@@ -190,7 +190,7 @@ struct TodayViewModelTests {
         arguments: [
             (SelfReportedActivity.more, DinnerCategory.treat),
             (SelfReportedActivity.usual, DinnerCategory.balanced),
-            (SelfReportedActivity.less, DinnerCategory.light),
+            (SelfReportedActivity.less, DinnerCategory.light)
         ]
     )
     func selfReportMapsToCategory(report: SelfReportedActivity, expected: DinnerCategory) async throws {
@@ -433,6 +433,6 @@ private actor TodayFixtureCaseStore: CaseStore {
     }
 
     func recordAppeal(_: AppealDraft, to _: UUID) async throws {
-        // Not exercised this unit — appeal negotiation is WU-22-A's job.
+        // Not exercised this suite — see `TodayAppealViewModelTests`.
     }
 }

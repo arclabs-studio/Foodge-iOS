@@ -46,6 +46,31 @@ struct DishSelectionRequest: Sendable {
     }
 }
 
+/// Everything an appeal's craving negotiation needs, bundled for the same reason
+/// ``DishSelectionRequest`` bundles tonight's own pick: keeping
+/// `negotiateAppeal(from:request:on:calendar:)` under the constitution's parameter-count ceiling.
+struct AppealNegotiationRequest: Sendable {
+    let craving: DishFamily
+    let constraints: DietaryConstraints
+    let context: DailyContext
+    let favouriteFamilies: [DishFamily]
+    let recentSelections: [RecentDishSelection]
+
+    init(
+        craving: DishFamily,
+        constraints: DietaryConstraints,
+        context: DailyContext,
+        favouriteFamilies: [DishFamily] = [],
+        recentSelections: [RecentDishSelection] = []
+    ) {
+        self.craving = craving
+        self.constraints = constraints
+        self.context = context
+        self.favouriteFamilies = favouriteFamilies
+        self.recentSelections = recentSelections
+    }
+}
+
 /// What ``DishSelection`` decided.
 enum DishSelectionOutcome: Hashable, Sendable {
     /// A dish to recommend, and — when a second family or variant survived filtering — a
@@ -104,21 +129,88 @@ enum DishSelection {
         on date: Date,
         calendar: Calendar
     ) -> DishSelectionOutcome {
-        let indexed = Array(entries.enumerated())
-        let catalogueCount = entries.count
+        rank(
+            entries: entries,
+            initialCandidates: Array(entries.enumerated()).filter { $0.element.category == request.category },
+            preferences: RankingPreferences(request),
+            on: date,
+            calendar: calendar
+        )
+    }
 
-        let inCategory = indexed.filter { $0.element.category == request.category }
-        let onDiet = inCategory.filter { $0.element.variant.diets.contains(request.constraints.profile) }
+    /// Negotiates one specific craving for an appeal: searches every family, not just one category
+    /// (an appeal may accept a dish from a different category than the ruled one — `foodge-plan.md`
+    /// §3), sharing every filtering and ranking rule `select(from:request:on:calendar:)` uses for
+    /// tonight's own pick via `rank(entries:initialCandidates:constraints:context:favouriteFamilies:recentSelections:on:calendar:)`
+    /// — the only difference is the first-stage filter (family, not category).
+    ///
+    /// Since every candidate shares `family`, `alternative(to:among:)`'s "different family" branch
+    /// always falls through to its "different variant, same family" branch — which is exactly "a
+    /// known compatible variant" from the plan's second bullet.
+    static func negotiateAppeal(
+        from entries: [CatalogueEntry],
+        request: AppealNegotiationRequest,
+        on date: Date,
+        calendar: Calendar
+    ) -> DishSelectionOutcome {
+        rank(
+            entries: entries,
+            initialCandidates: Array(entries.enumerated()).filter { $0.element.family == request.craving },
+            preferences: RankingPreferences(request),
+            on: date,
+            calendar: calendar
+        )
+    }
+
+    /// The fields `select` and `negotiateAppeal` both hand to `rank(entries:initialCandidates:preferences:on:calendar:)`
+    /// unchanged — everything about `DishSelectionRequest`/`AppealNegotiationRequest` except the
+    /// category/craving each uses for its own first-stage filter.
+    private struct RankingPreferences {
+        let constraints: DietaryConstraints
+        let context: DailyContext
+        let favouriteFamilies: [DishFamily]
+        let recentSelections: [RecentDishSelection]
+
+        init(_ request: DishSelectionRequest) {
+            constraints = request.constraints
+            context = request.context
+            favouriteFamilies = request.favouriteFamilies
+            recentSelections = request.recentSelections
+        }
+
+        init(_ request: AppealNegotiationRequest) {
+            constraints = request.constraints
+            context = request.context
+            favouriteFamilies = request.favouriteFamilies
+            recentSelections = request.recentSelections
+        }
+    }
+
+    /// The diet/exclusion filtering and five-key ranking shared by `select` and `negotiateAppeal` —
+    /// the only thing that differs between "tonight's own pick" and "an appeal's craving
+    /// negotiation" is which entries reach `initialCandidates`, never how they are filtered further
+    /// or ranked.
+    private static func rank(
+        entries: [CatalogueEntry],
+        initialCandidates: [(offset: Int, element: CatalogueEntry)],
+        preferences: RankingPreferences,
+        on date: Date,
+        calendar: Calendar
+    ) -> DishSelectionOutcome {
+        let catalogueCount = entries.count
+        let constraints = preferences.constraints
+
+        let onDiet = initialCandidates.filter { $0.element.variant.diets.contains(constraints.profile) }
         let candidates = onDiet.filter { pair in
-            request.constraints.excludedIngredientIDs.isDisjoint(with: pair.element.variant.ingredients.map(\.id))
+            constraints.excludedIngredientIDs.isDisjoint(with: pair.element.variant.ingredients.map(\.id))
         }
 
         guard !candidates.isEmpty else {
-            return .noMatch(blockingIngredientIDs: soleBlockers(among: onDiet, excluding: request.constraints))
+            return .noMatch(blockingIngredientIDs: soleBlockers(among: onDiet, excluding: constraints))
         }
 
-        let preferred = preferredConvenience(for: request.context)
-        let recentWindow = request.recentSelections.filter { selection in
+        let preferred = preferredConvenience(for: preferences.context)
+        let recentWindow = preferences.recentSelections.filter { selection in
             let daysAgo = daysBetween(selection.date, date, calendar: calendar)
             return daysAgo >= 1 && daysAgo <= 3
         }
@@ -133,10 +225,10 @@ enum DishSelection {
                 0
             }
             return RankKey(
-                craving: request.context.craving == entry.family ? 0 : 1,
+                craving: preferences.context.craving == entry.family ? 0 : 1,
                 convenience: -entry.variant.convenience.intersection(preferred).count,
                 recency: recency,
-                favourite: request.favouriteFamilies.contains(entry.family) ? 0 : 1,
+                favourite: preferences.favouriteFamilies.contains(entry.family) ? 0 : 1,
                 rotation: rotatedIndex(
                     catalogueIndex: pair.offset,
                     catalogueCount: catalogueCount,
