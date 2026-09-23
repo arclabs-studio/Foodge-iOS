@@ -42,14 +42,21 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
   {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayAppealViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"}
+  {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationValidatorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationTemplateLocalizationTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "ValidatingNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DeadlineNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationPromptTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "FoundationModelsNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"}
 ]
 ```
 
-157 tests as of Day 22 (`HistoryViewModelTests` added with WU-22-B; `TodayViewModelTests` and
-`TodayAppealViewModelTests` were already part of the full regression count but missing from this
-curated list — added now, closing that gap). Prefer this over `RunAllTests`, which also runs the
-XCTest UI bundle. Add new suites here as they land.
+`RunAllTests` reports **240 passed as of Day 23** (WU-23 added the seven narration suites above;
+the Day 22 figure was 157). Note the count expands every argument of a parameterized `@Test`, so
+it grows faster than the number of test functions. Prefer the curated list over `RunAllTests` for
+a quick loop — `RunAllTests` also runs the XCTest UI bundle. Add new suites here as they land.
 
 ## Destination
 
