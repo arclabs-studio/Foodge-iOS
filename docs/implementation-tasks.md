@@ -943,9 +943,34 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   of Done still requires a green external signal for UI — not obtained this session — before the
   unit can be called done in the fullest sense; recorded transparently above rather than closed
   silently.
+- **Follow-up device verification (closes the gap above), 2026-09-23**: `DeviceInteractionSynthesize`
+  remained broken across two more sessions on two more simulators — one died mid-walkthrough with
+  `"Session not found..."` again, a second died with a new symptom, `"Target device has invalid
+  screen scale..."`, after ~15 successful interactions. Neither is a code defect: both are the
+  interaction-capture tool itself failing mid-session regardless of device or session freshness.
+  Separately, both simulator attempts also hit a genuine dead end reaching the Verdict screen at
+  all: `TodayViewModel.requestVerdict()` (`TodayViewModel.swift:168-195`) sends a thrown
+  `evidence.snapshot()` straight to the terminal `.evidenceUnavailable` stage with no self-report
+  offered, so a simulator with HealthKit access declined at onboarding can never reach a verdict —
+  this looks like WU-21's intended distinction between "no Health access at all" (hard stop) and
+  "authorized but insufficient data" (self-report offered), not an WU-22-A bug, and is flagged here
+  rather than fixed, being out of this unit's scope.
+  Switched to the physical device instead (`iPhone de CR`, D21's already-known simulator-only path
+  for `DeviceInteraction*`, verified via `RunProject` + `GetConsoleOutput`): real HealthKit data
+  resolved a verdict immediately (`TODAY stage=evaluating` → `TODAY stage=verdict` in console,
+  no error). `AppealStage` transitions are not logged (only the top-level `Stage` is, at
+  `TodayViewModel.swift:429`), so the console gave no signal for the appeal flow itself — the user
+  drove the device by hand and reported directly: picking a craving produced a result (compatible
+  variant or honest no-match) that **stayed** shown, not a bounce back to the craving list; the
+  free-text ("Something else") path also completed and stayed on its recorded state. This is a
+  user-observed confirmation on real hardware, not an agent-captured screenshot/hierarchy — stated
+  plainly since Device Interaction still cannot drive or capture a physical device (D21) — but it
+  is the specific bounce-back regression this unit's automated attempts were trying to rule out,
+  and it did not reproduce.
 - **Commits**: `feat(presentation): negotiate appeals — compatible craving, compatible variant,
   cross-category choice, honest no-match` (code + tests), `docs(ledger): record Day 22 WU-22-A
-  (D63-D65), evidence and auditor findings`.
+  (D63-D65), evidence and auditor findings`, `docs(ledger): record WU-22-A physical-device
+  verification closing the live-verification gap`.
 
 ---
 
