@@ -47,7 +47,8 @@ struct TodayAppealViewModelTests {
                 evidence: evidence,
                 preferences: preferences,
                 caseStore: caseStore,
-                clock: clock
+                clock: clock,
+                narrator: AppealSilentNarrator()
             ),
             preferences: preferences,
             caseStore: caseStore
@@ -291,6 +292,14 @@ private actor TodayAppealFixturePreferencesStore: PreferencesStore {
     }
 }
 
+/// Produces nothing at all — narration is not this suite's subject. See
+/// `TodayNarrationViewModelTests` for the narration contract.
+private struct AppealSilentNarrator: VerdictNarrator {
+    func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+        nil
+    }
+}
+
 /// A scripted `CaseStore` that separates an appeal failure from a revision-save failure — an
 /// appeal preview or test reopens a case that already saved successfully, then fails only the
 /// appeal itself.
@@ -340,6 +349,12 @@ private actor TodayAppealFixtureCaseStore: CaseStore {
             throw appealFailure
         }
         recordedAppeals.append((draft, revisionID))
+    }
+
+    @discardableResult
+    func attachNarration(_ text: String, to revisionID: UUID) async throws -> SavedRevision {
+        // Not exercised this suite — see `TodayNarrationViewModelTests`.
+        throw FoodgeError.revisionNotFound
     }
 
     func allCases() async throws -> [SavedCase] {

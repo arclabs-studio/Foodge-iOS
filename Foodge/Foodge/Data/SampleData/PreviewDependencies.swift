@@ -82,7 +82,8 @@
                 evidence: dependencies.evidence,
                 store: dependencies.store,
                 caseStore: PreviewCaseStore(seeded: seeded, matching: evidence, appealFailure: appealFailure),
-                clock: dependencies.clock
+                clock: dependencies.clock,
+                narrator: dependencies.narrator
             )
         }
 
@@ -99,7 +100,8 @@
                 evidence: base.evidence,
                 store: base.store,
                 caseStore: PreviewHistoryCaseStore(cases: HistorySeedCases.all),
-                clock: base.clock
+                clock: base.clock,
+                narrator: base.narrator
             )
         }
 
@@ -114,7 +116,8 @@
                 evidence: PreviewEvidence(scripted: snapshot),
                 store: PreviewStore(failure: storeFailure, seeded: seededPreferences),
                 caseStore: PreviewCaseStore(failure: storeFailure),
-                clock: SyntheticScenarios.clock
+                clock: SyntheticScenarios.clock,
+                narrator: PreviewNarrator()
             )
         }
     }
@@ -127,6 +130,16 @@
             guard isHealthDataAvailable else {
                 throw FoodgeError.healthUnavailable
             }
+        }
+    }
+
+    /// Answers with one fixed, in-voice flourish so previews show the narrated state without a
+    /// model — previews run on a simulator, which has no Apple Intelligence at all. Returning
+    /// `nil` here instead would show the reviewed template, which every template preview already
+    /// covers.
+    private struct PreviewNarrator: VerdictNarrator {
+        func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+            "The defence pleaded tiredness; the court finds pasta a proportionate remedy."
         }
     }
 
@@ -224,6 +237,24 @@
             recordedAppeals.append((draft, revisionID))
         }
 
+        @discardableResult
+        func attachNarration(_ text: String, to revisionID: UUID) async throws -> SavedRevision {
+            guard
+                let seeded,
+                let existing = seeded.revisions.first(where: { $0.id == revisionID })
+            else {
+                throw FoodgeError.revisionNotFound
+            }
+            guard existing.narrationText == nil else { return existing }
+
+            let updated = existing.attachingNarration(text)
+            self.seeded = SavedCase(
+                localDayKey: seeded.localDayKey,
+                revisions: seeded.revisions.map { $0.id == revisionID ? updated : $0 }
+            )
+            return updated
+        }
+
         func allCases() async throws -> [SavedCase] {
             guard let seeded else { return [] }
             return [seeded]
@@ -267,6 +298,13 @@
         }
 
         func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws {}
+
+        @discardableResult
+        func attachNarration(_ text: String, to revisionID: UUID) async throws -> SavedRevision {
+            // Unreachable from the History screens this store backs — they only ever read, and
+            // narration runs on Today. Reported honestly rather than inventing a revision.
+            throw FoodgeError.revisionNotFound
+        }
 
         func allCases() async throws -> [SavedCase] {
             cases.sorted { $0.localDayKey > $1.localDayKey }

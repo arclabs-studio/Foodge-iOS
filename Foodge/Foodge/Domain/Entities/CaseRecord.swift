@@ -47,9 +47,29 @@ struct SavedRevision: Hashable, Sendable, Identifiable {
     let evidence: EvidenceSnapshot
     let catalogueVersion: String
     let dishOutcome: PersistedDishOutcome
-    /// `nil` until WU-23-A adds narration.
+    /// A validated on-device model line, or `nil` when none was ever produced — which is the
+    /// ordinary case. The reviewed template is never persisted here; it renders at display time.
     let narrationText: String?
     let appeals: [SavedAppeal]
+
+    /// This revision with `narrationText` replaced — every other field carried over unchanged.
+    ///
+    /// A `SavedRevision` is let-only on purpose, so a caller holding one replaces it rather than
+    /// mutating it. This is the single place that copy is written, so no call site can quietly
+    /// drop a field while rebuilding one by hand.
+    func attachingNarration(_ text: String) -> SavedRevision {
+        SavedRevision(
+            id: id,
+            sequence: sequence,
+            createdAt: createdAt,
+            decision: decision,
+            evidence: evidence,
+            catalogueVersion: catalogueVersion,
+            dishOutcome: dishOutcome,
+            narrationText: text,
+            appeals: appeals
+        )
+    }
 }
 
 /// The one case for a local day, in the form that can cross the persistence actor's boundary.

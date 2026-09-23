@@ -24,6 +24,11 @@ struct VerdictView: View {
         }
         .navigationTitle("Tonight’s verdict")
         .navigationBarTitleDisplayMode(.inline)
+        // Identity is the revision, so SwiftUI restarts narration on a new verdict and cancels it
+        // on disappear — navigation away is handled by the framework, with no stored `Task` here.
+        .task(id: vm.currentRevision?.id) {
+            await vm.narrateIfNeeded()
+        }
         .sheet(isPresented: $showingAppeal) {
             AppealSheetView(vm: vm)
         }
@@ -45,6 +50,14 @@ struct VerdictView: View {
                 Text("These are prototype product heuristics, not nutritional advice.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            if vm.currentRevision != nil {
+                // Gated on a saved revision for the same reason the Appeal section below is: a
+                // decorative flourish over a verdict that has not actually been recorded reads as
+                // if everything went fine. `arc-audit-hig` caught this — `.saveFailed` still has a
+                // `display`, so an ungated section showed the template over an unsaved verdict.
+                NarrationSection(text: vm.narrationStage.text, category: display.decision.category)
             }
 
             if case .saveFailed = vm.stage {

@@ -93,6 +93,46 @@ final class TodayViewModel {
 
     private(set) var appealStage: AppealStage = .choosingCraving
 
+    /// Where the optional flourish currently stands.
+    ///
+    /// Its own property, never a ``Stage`` case, for three reasons. `transition(to:)` appends
+    /// `.verdict` to the navigation path, so a narration case would need a navigation carve-out —
+    /// the exact wall appeals hit (D65). `Stage` is the save-integrity machine, where
+    /// `.saveFailed` means "not saved, here is a retry" — the opposite of a narration failure,
+    /// which must stay silent, and folding them together puts "narration failed" one refactor away
+    /// from the user's eyes. And the verdict must stay visible and unchanged while narration runs.
+    ///
+    /// `.idle`, `.narrating` and `.template` all render as "no model text", which is why the view
+    /// needs neither a spinner nor a pending flag.
+    enum NarrationStage: Hashable, Sendable {
+        case idle
+        case narrating
+        /// A validated model line, showing now.
+        case narrated(String)
+        /// Nothing usable was produced. The reviewed template shows, silently.
+        case template
+
+        var text: String? {
+            if case let .narrated(text) = self {
+                text
+            } else {
+                nil
+            }
+        }
+
+        /// A label that is safe to log: the case name alone, never the narration itself.
+        var logLabel: String {
+            switch self {
+            case .idle: "idle"
+            case .narrating: "narrating"
+            case .narrated: "narrated"
+            case .template: "template"
+            }
+        }
+    }
+
+    private(set) var narrationStage: NarrationStage = .idle
+
     // MARK: - Context inputs, gathered before a verdict is requested
 
     var dinnerTime: DinnerTime?
@@ -106,6 +146,7 @@ final class TodayViewModel {
     @ObservationIgnored private let preferences: any PreferencesStore
     @ObservationIgnored private let caseStore: any CaseStore
     @ObservationIgnored private let clock: any EvaluationClock
+    @ObservationIgnored private let narrator: any VerdictNarrator
 
     /// Retained across the tracking-confirmation and self-report pauses, so answering either one
     /// never reads Health a second time.
@@ -123,12 +164,14 @@ final class TodayViewModel {
         evidence: any HealthEvidenceProvider,
         preferences: any PreferencesStore,
         caseStore: any CaseStore,
-        clock: any EvaluationClock
+        clock: any EvaluationClock,
+        narrator: any VerdictNarrator
     ) {
         self.evidence = evidence
         self.preferences = preferences
         self.caseStore = caseStore
         self.clock = clock
+        self.narrator = narrator
     }
 
     // MARK: - Reopening
@@ -325,6 +368,72 @@ final class TodayViewModel {
         guard case let .saveFailed(draft, _) = stage else { return }
         transition(to: .evaluating)
         await record(draft)
+    }
+
+    // MARK: - Narration
+
+    /// Asks for the optional flourish, once per verdict.
+    ///
+    /// A plain `async` method with no detached `Task` and no stored handle: `VerdictView` drives
+    /// it from `.task(id:)`, so SwiftUI cancels it on disappear and restarts it on a new revision,
+    /// and cancellation propagates straight through `DeadlineNarrator`'s task group into the model
+    /// call. Nothing here can fail visibly — every unhappy path ends in `.template`, which renders
+    /// exactly like never having tried.
+    ///
+    /// Opens on `.idle` because `.task` re-fires on every tab revisit (D69), and transitions to
+    /// `.narrating` **before the first await**, so a second entry during that await is refused too.
+    func narrateIfNeeded() async {
+        guard case .idle = narrationStage, let revision = currentRevision else { return }
+
+        // A `.noMatch` night has no dish to be playful about, and inventing one would be the
+        // opposite of the honest no-match the product rule requires.
+        guard case let .selected(variantID, _, _, _) = revision.dishOutcome else {
+            transitionNarration(to: .template)
+            return
+        }
+
+        let capturedID = revision.id
+        transitionNarration(to: .narrating)
+
+        let draft = (try? await preferences.preferences()) ?? PreferencesDraft()
+        guard !Task.isCancelled else { return }
+        guard draft.narrationEnabled else {
+            transitionNarration(to: .template)
+            return
+        }
+
+        let flourish = await narrator.flourish(
+            for: revision.decision,
+            dishName: DishCatalogue.displayName(forVariantID: variantID),
+            note: revision.evidence.context.note
+        )
+
+        // Cancellation and staleness, checked before any mutation: `.task(id:)` already tears this
+        // down on a new revision, and this second check is the unit-testable half of that.
+        guard !Task.isCancelled, currentRevision?.id == capturedID else { return }
+
+        guard let flourish else {
+            transitionNarration(to: .template)
+            return
+        }
+
+        transitionNarration(to: .narrated(flourish))
+
+        // The text is genuine and validated, so it stays on screen this session whether or not the
+        // write lands. A failed narration save is silent — `stage` never becomes `.saveFailed`.
+        guard let updated = try? await caseStore.attachNarration(flourish, to: capturedID) else {
+            TodayLog.logger.info("TODAY narration=attachFailed")
+            return
+        }
+        guard !Task.isCancelled, currentRevision?.id == capturedID else { return }
+        transition(to: .verdict(updated))
+    }
+
+    /// The single place ``narrationStage`` changes, so every transition is logged the same way —
+    /// and only ever by its label. The narration text itself never reaches a `Logger`.
+    private func transitionNarration(to newStage: NarrationStage) {
+        narrationStage = newStage
+        TodayLog.logger.info("TODAY narration=\(newStage.logLabel, privacy: .public)")
     }
 
     // MARK: - Appeals

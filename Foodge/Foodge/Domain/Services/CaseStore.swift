@@ -27,6 +27,18 @@ protocol CaseStore: Sendable {
     /// - Throws: ``FoodgeError/revisionNotFound`` if no revision with that id exists.
     func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws
 
+    /// Attaches validated narration to one specific revision, **once**.
+    ///
+    /// A revision that already carries narration is returned unchanged — reopening a case must be
+    /// stable, so a second narration can never overwrite the first. Only genuine, validated model
+    /// output is ever passed here; the reviewed template is never persisted.
+    ///
+    /// Returns the updated revision because ``SavedRevision`` is a let-only value that callers
+    /// must replace rather than mutate.
+    /// - Throws: ``FoodgeError/revisionNotFound`` if no revision with that id exists.
+    @discardableResult
+    func attachNarration(_ text: String, to revisionID: UUID) async throws -> SavedRevision
+
     /// Every saved case, most recently recorded local day first.
     ///
     /// A day whose stored revisions fail to decode is skipped rather than failing the whole list —

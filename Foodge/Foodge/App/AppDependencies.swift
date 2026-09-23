@@ -18,19 +18,22 @@ struct AppDependencies: Sendable {
     let store: any PreferencesStore
     let caseStore: any CaseStore
     let clock: any EvaluationClock
+    let narrator: any VerdictNarrator
 
     init(
         authorization: any HealthAuthorizing,
         evidence: any HealthEvidenceProvider,
         store: any PreferencesStore,
         caseStore: any CaseStore,
-        clock: any EvaluationClock
+        clock: any EvaluationClock,
+        narrator: any VerdictNarrator
     ) {
         self.authorization = authorization
         self.evidence = evidence
         self.store = store
         self.caseStore = caseStore
         self.clock = clock
+        self.narrator = narrator
     }
 
     /// Builds the onboarding view model from these dependencies.
@@ -51,7 +54,13 @@ struct AppDependencies: Sendable {
     /// Builds the Today view model from these dependencies.
     @MainActor
     func makeTodayViewModel() -> TodayViewModel {
-        TodayViewModel(evidence: evidence, preferences: store, caseStore: caseStore, clock: clock)
+        TodayViewModel(
+            evidence: evidence,
+            preferences: store,
+            caseStore: caseStore,
+            clock: clock,
+            narrator: narrator
+        )
     }
 
     /// Builds the History view model from these dependencies.
@@ -72,7 +81,15 @@ struct AppDependencies: Sendable {
             evidence: HealthEvidenceReader(source: HealthKitSampleSource()),
             store: persistence,
             caseStore: persistence,
-            clock: SystemClock()
+            clock: SystemClock(),
+            // Read outside in: the budget is enforced first, so a slow generation is cancelled
+            // rather than validated late; validation then stands between the model and everything
+            // above it. Splitting the chain this way is what makes the timeout, malformed output,
+            // invented numbers and note-echo paths testable off-device.
+            narrator: DeadlineNarrator(
+                budget: .seconds(8),
+                wrapped: ValidatingNarrator(wrapped: FoundationModelsNarrator())
+            )
         )
     }
 }

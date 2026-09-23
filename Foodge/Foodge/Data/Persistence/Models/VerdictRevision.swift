@@ -34,7 +34,9 @@ final class VerdictRevision {
     var alternativeFamilyRawValue: String?
     var blockingIngredientIDs: [String]
 
-    /// `nil` until WU-23-A adds narration.
+    /// A validated on-device model line, written once by `attachNarration(_:to:)` and never
+    /// overwritten. Stays `nil` whenever no model line was produced — the reviewed template is
+    /// never persisted.
     var narrationText: String?
 
     @Relationship(deleteRule: .cascade, inverse: \Appeal.revision)

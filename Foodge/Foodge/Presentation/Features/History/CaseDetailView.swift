@@ -54,11 +54,10 @@ struct CaseDetailView: View {
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
 
-            if let narrationText = revision.narrationText {
-                Section("Narration") {
-                    Text(narrationText)
-                }
-            }
+            // Unconditional: `narrationText` is nil for every case recorded before narration
+            // existed, and stays nil whenever the model did not produce a validated line. The
+            // reviewed template covers all of it, so History never shows a case with no flourish.
+            NarrationSection(text: revision.narrationText, category: revision.decision.category)
 
             ForEach(revision.appeals) { appeal in
                 AppealRecordedSection(choice: appeal.choice)

@@ -43,7 +43,8 @@ struct TodayViewModelTests {
                 evidence: evidence,
                 preferences: preferences,
                 caseStore: caseStore,
-                clock: clock
+                clock: clock,
+                narrator: SilentNarrator()
             ),
             evidence: evidence,
             preferences: preferences,
@@ -345,6 +346,15 @@ struct TodayViewModelTests {
 
 // MARK: - Fixtures
 
+/// Produces nothing at all — narration is not this suite's subject, and a narrator that never
+/// answers leaves every assertion here about the verdict itself. See
+/// `TodayNarrationViewModelTests` for the narration contract.
+private struct SilentNarrator: VerdictNarrator {
+    func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+        nil
+    }
+}
+
 /// Returns a scripted snapshot and remembers exactly what it was asked for — duplicated from
 /// `OnboardingViewModelTests`' fixture of the same shape rather than shared, per this suite's own
 /// scope.
@@ -434,6 +444,12 @@ private actor TodayFixtureCaseStore: CaseStore {
 
     func recordAppeal(_: AppealDraft, to _: UUID) async throws {
         // Not exercised this suite — see `TodayAppealViewModelTests`.
+    }
+
+    @discardableResult
+    func attachNarration(_: String, to _: UUID) async throws -> SavedRevision {
+        // Not exercised this suite — see `TodayNarrationViewModelTests`.
+        throw FoodgeError.revisionNotFound
     }
 
     func allCases() async throws -> [SavedCase] {

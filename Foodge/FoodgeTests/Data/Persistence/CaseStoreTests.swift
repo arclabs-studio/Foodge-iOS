@@ -194,6 +194,60 @@ struct CaseStoreTests {
         #expect(reloaded.appeals.isEmpty)
     }
 
+    // MARK: - Narration
+
+    @Test("Attached narration survives a round trip")
+    func attachedNarrationSurvivesARoundTrip() async throws {
+        // Given a recorded revision with no narration
+        let sut = try makeSUT()
+        let evidence = makeEvidence(day: 5)
+        let revision = try await sut.recordRevision(makeDraft(evidence: evidence))
+        #expect(revision.narrationText == nil)
+
+        // When a validated line is attached to it
+        let updated = try await sut.attachNarration("The court is amused.", to: revision.id)
+
+        // Then the returned revision carries it, and so does the one read back from the store
+        #expect(updated.narrationText == "The court is amused.")
+        let saved = try #require(try await sut.savedCase(matching: evidence))
+        #expect(saved.latestRevision?.narrationText == "The court is amused.")
+    }
+
+    @Test("Narration addressed to an unknown revision fails honestly")
+    func narrationForAnUnknownRevisionFailsHonestly() async throws {
+        // Given a case with one recorded revision
+        let sut = try makeSUT()
+        let evidence = makeEvidence(day: 5)
+        let revision = try await sut.recordRevision(makeDraft(evidence: evidence))
+
+        // When narration is addressed to a revision id that does not exist
+        await #expect(throws: FoodgeError.revisionNotFound) {
+            try await sut.attachNarration("The court is amused.", to: UUID())
+        }
+
+        // Then nothing was written to the real revision either
+        let saved = try #require(try await sut.savedCase(matching: evidence))
+        #expect(saved.revisions.first { $0.id == revision.id }?.narrationText == nil)
+    }
+
+    @Test("Narration is write-once — the first line stands")
+    func narrationIsWriteOnce() async throws {
+        // Given a revision that already carries narration
+        let sut = try makeSUT()
+        let evidence = makeEvidence(day: 5)
+        let revision = try await sut.recordRevision(makeDraft(evidence: evidence))
+        try await sut.attachNarration("The first remark.", to: revision.id)
+
+        // When a second line is attached to the same revision
+        let returned = try await sut.attachNarration("A different remark.", to: revision.id)
+
+        // Then the first one stands, in the return value and in the store — reopening a case must
+        // be stable, so narration can never be overwritten
+        #expect(returned.narrationText == "The first remark.")
+        let saved = try #require(try await sut.savedCase(matching: evidence))
+        #expect(saved.latestRevision?.narrationText == "The first remark.")
+    }
+
     // MARK: - Real store reopening
 
     @Test("A revision written to a real store is still there when it is reopened")

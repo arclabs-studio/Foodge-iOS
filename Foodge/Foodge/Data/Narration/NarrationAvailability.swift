@@ -14,9 +14,8 @@ import FoundationModels
 /// app works identically with Apple Intelligence off, unsupported or still downloading. The
 /// distinction exists only so Settings can explain the situation honestly.
 ///
-/// **No caller until WU-23-A**, which is its named consumer. The feasibility probe that
-/// exercised it on device was removed in WU-19-D; this type is a deliberate stub, not dead code
-/// left behind. It was device-proven on Day 18.
+/// Read by ``FoundationModelsNarrator`` before every request, through an injected closure so the
+/// unavailable branch stays testable where no model exists. Device-proven on Day 18.
 enum NarrationAvailability: Hashable, Sendable {
     case available
     case deviceNotEligible
@@ -42,4 +41,15 @@ enum NarrationAvailability: Hashable, Sendable {
     }
 
     var canNarrate: Bool { self == .available }
+
+    /// A label that is safe to log: the case name alone.
+    var logLabel: String {
+        switch self {
+        case .available: "available"
+        case .deviceNotEligible: "deviceNotEligible"
+        case .appleIntelligenceNotEnabled: "appleIntelligenceNotEnabled"
+        case .modelNotReady: "modelNotReady"
+        case .unavailableForAnotherReason: "unavailableForAnotherReason"
+        }
+    }
 }

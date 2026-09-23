@@ -148,6 +148,35 @@ extension PersistenceActor: CaseStore {
         }
     }
 
+    /// Attaches validated narration to one specific revision, once.
+    ///
+    /// Write-once: a revision that already carries narration is returned unchanged rather than
+    /// overwritten, so reopening a case is stable no matter how many times narration runs.
+    ///
+    /// - Throws: ``FoodgeError/revisionNotFound`` if no revision with that id exists;
+    ///   ``FoodgeError/saveFailed`` if the write does not complete.
+    @discardableResult
+    func attachNarration(_ text: String, to revisionID: UUID) throws -> SavedRevision {
+        let descriptor = FetchDescriptor<VerdictRevision>(predicate: #Predicate { $0.id == revisionID })
+        guard let revision = try modelContext.fetch(descriptor).first else {
+            throw FoodgeError.revisionNotFound
+        }
+
+        guard revision.narrationText == nil else {
+            return try revision.asSavedRevision()
+        }
+
+        revision.narrationText = text
+
+        do {
+            try modelContext.save()
+        } catch {
+            throw FoodgeError.saveFailed
+        }
+
+        return try revision.asSavedRevision()
+    }
+
     /// Every saved case, most recently recorded local day first.
     ///
     /// A day whose stored revisions fail to decode is skipped rather than failing the whole

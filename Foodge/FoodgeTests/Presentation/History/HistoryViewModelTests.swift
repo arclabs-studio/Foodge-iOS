@@ -175,6 +175,12 @@ private actor HistoryFixtureCaseStore: CaseStore {
         throw FoodgeError.saveFailed
     }
 
+    @discardableResult
+    func attachNarration(_: String, to _: UUID) async throws -> SavedRevision {
+        // Not exercised this suite — History only ever reads.
+        throw FoodgeError.revisionNotFound
+    }
+
     func allCases() async throws -> [SavedCase] {
         try result.get()
     }
