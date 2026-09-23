@@ -96,6 +96,12 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D63 | `DishSelection.negotiateAppeal` shares `select`'s entire filter/rank/sort body through one private `rank(entries:initialCandidates:preferences:on:calendar:)`, differing only in which entries reach `initialCandidates` (family vs. category). | First written as a second, independently-maintained copy of the ranking body — flagged by `arc-constitution-review` as a MAJOR finding: `select`'s ranking has 24 dedicated `DishSelectionTests`, and the duplicate had none, so a future change to the priority order applied to one copy would silently not apply to the other. Sharing the body means both callers are provably covered by the same 24 tests. |
 | D64 | The appeal flow is a modal sheet extending `VerdictView`'s existing Appeal-button sheet in place (`AppealSheetView`), not a pushed `NavigationStack` screen. | Minimum change over `DESIGN.md`'s screen-table framing, consistent with D61's placeholder sheet already occupying that slot. User-settled before implementation. |
 | D65 | Accepting an appeal never mutates `TodayViewModel.stage` — appeal state lives in a separate `appealStage` property. | Direct requirement from `foodge-plan.md` §3: "Keep the original category and evidence visible. The appeal records the user's chosen dinner rather than rewriting the day's facts." A shared enum with `Stage` would risk an appeal transition accidentally changing what `VerdictView` renders for the verdict itself. |
+| D66 | `PersistenceActor.allCases()` skips a day whose stored revisions fail to decode instead of throwing and failing the whole list; the skip is logged (`PERSISTENCE case=corrupted`), never surfaced as an error to History. | User-settled before the plan was written. History exists to show every day Foodge has ruled on — one corrupted `VerdictRevision` blob (a real, if rare, possibility per D51's byte-exact JSON blob storage) must never hide every other day's honest history behind it. |
+| D67 | `Data/Persistence/PersistenceLog.swift` is a new file, the first Data-layer logging convention in this codebase (`TodayLog`/`OnboardingLog` were both Presentation-only). | `allCases()` needs to log the corrupted-day skip from D66, and nothing in `Data/` had a logger yet. Same idiom as its Presentation siblings: bare state labels only, `privacy: .public`, never a day key or payload. |
+| D68 | `HistoryRoute.caseDetail(SavedCase)` carries the case value directly, rather than reading it back off `HistoryViewModel` at the navigation destination the way `TodayRoute.evidenceDetails` reads `vm.currentRevision`. | `SavedCase` is already documented as "the form built to cross a boundary." `TodayRoute.evidenceDetails` needs the indirection because `TodayViewModel.currentRevision` is itself stage-derived state; `HistoryViewModel` has no equivalent per-row state to derive from, so routing the value straight through avoids a redundant optional unwrap at the destination for no benefit. |
+| D69 | `HistoryViewModel.load()` never guards on the current `stage` — unlike `TodayViewModel.onAppear()`'s `guard case .gathering = stage else { return }`. | History exists purely to reflect whatever Today most recently saved; every tab revisit must re-fetch, not just the first one. A stage guard here would let History go stale the moment a second case is saved in the same session. Pinned by `HistoryViewModelTests.reloadingReflectsTheNewResult`, the one test that would still pass if a guard crept back in everywhere else and fail only here. |
+| D70 | `EvidenceDetailsView`'s "Sources" / "Recorded activity" / "Sleep" sections are extracted into a new shared `EvidenceSectionsView`, which `CaseDetailView` also renders from. | `CaseDetailView` needs byte-identical Health-evidence formatting to `EvidenceDetailsView` — copying the block would repeat the exact class of problem `arc-constitution-review` flagged as a MAJOR in WU-22-A (D63): two independently-maintained copies of the same logic with only one under test. Sharing the view means both screens are provably identical in how they present evidence. |
+| D71 | `VerdictView`'s category-header block (judge badge + category name + provisional caption) and its `.selected`-dish-outcome row are extracted into new shared `CategoryHeaderSection`/`DishSummaryRow` components (`Presentation/Features/Today/Components/`), used by both `VerdictView` and `CaseDetailView`. | `arc-audit-hig` flagged both as MAJOR: byte-for-byte duplication of platform rule 7 ("any UI atom used in two places … extracts to its own `struct`"), the same class of drift `JudgeBadgeView`/`DishArtPlaceholderView` were already extracted to prevent (D15/D59/D60). `VerdictView` resolves which variant/family to show (its `showingAlternative` toggle) before calling `DishSummaryRow`; `CaseDetailView`, read-only, calls it directly. The fix also carried two accessibility corrections for free once shared (`arc-audit-accessibility`): an AX5 layout branch on `DishSummaryRow` that fixed a real dish-title/icon overlap on **both** screens, and `.accessibilityAddTraits(.isHeader)` on the category name so VoiceOver's rotor has a heading on both. |
 
 ---
 
@@ -972,13 +978,128 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   (D63-D65), evidence and auditor findings`, `docs(ledger): record WU-22-A physical-device
   verification closing the live-verification gap`.
 
+### WU-22-B ✅ History list and case detail preserving the evidence and rule version used at the time
+
+- **Objective / scope**: replace the `HistoryPlaceholderView` History tab with the real feature —
+  a list of every day Foodge has ruled on, most recent first, and a read-only detail screen per
+  day showing exactly the evidence, rule version, dish and appeals that day actually used, never
+  recomputed against today's rules or catalogue. Persistence support already existed in full from
+  WU-21-A; only a new read method was needed. Two design points confirmed with the user before
+  the plan: a case whose stored revisions fail to decode is skipped from the list rather than
+  failing the whole list (logged, not thrown); case detail shows only the latest revision (no UI
+  trigger for a second revision exists yet). Explicitly out of scope: AI narration (WU-23-A/B),
+  final artwork (WU-24-A).
+- **Baseline**: 148/148 tests, 0 warnings — per WU-22-A's own closing regression above; not
+  independently re-confirmed before starting this unit, since no code changed in between.
+- **Deliverables**: `Domain/Services/CaseStore.swift` gains `allCases() async throws ->
+  [SavedCase]` (D66). `Data/Persistence/PersistenceActor.swift` implements it: fetches every
+  `DailyCase` sorted by `localDayKey` descending, `compactMap`s each into a `SavedCase`, skipping
+  (and logging) a day whose stored revisions fail to decode rather than failing the whole list
+  (D66); the outer `fetch` itself is not wrapped — a failure there is a genuine store problem, not
+  a per-case decode issue. New `Data/Persistence/PersistenceLog.swift`, the first Data-layer
+  `Logger` (D67). New `Presentation/Features/History/` folder: `HistoryRoute.swift` (carries
+  `SavedCase` directly, D68), `HistoryLog.swift`, `HistoryViewModel.swift` (`Stage` enum
+  `.loading`/`.loaded([SavedCase])`/`.error(FoodgeError)`, `load()` with **no** stage guard, D69),
+  `HistoryFlowView.swift` (owns its own `NavigationStack`), `HistoryListView.swift` (the stack
+  root: loading/loaded/error states, `ContentUnavailableView` for empty — reusing the retired
+  placeholder's exact copy so its `Localizable.xcstrings` entry stays alive — and for error with a
+  "Try again" retry, a `List` of `NavigationLink`s to case detail, private `HistoryCaseRow`),
+  `CaseDetailView.swift` (renders `savedCase.latestRevision` only: demonstration-data footnote,
+  category header, dish section, "Why" reasons, shared evidence sections, optional narration slot,
+  one `AppealRecordedSection` per appeal, closing "Recorded" section with rule/catalogue version —
+  the on-screen proof of this unit's own exit condition). New shared
+  `Presentation/Features/Today/Components/EvidenceSectionsView.swift` (D70), extracted from
+  `EvidenceDetailsView.swift`'s "Sources"/"Recorded activity"/"Sleep" sections (that file
+  refactored to call it instead of inlining them) — `CaseDetailView` renders Health evidence from
+  the same place. `AppDependencies.makeHistoryViewModel()`. `MainTabView.swift`'s History tab now
+  shows `HistoryFlowView(vm: history)`; `HistoryPlaceholderView.swift` deleted.
+  `PreviewDependencies.swift`: `PreviewCaseStore.allCases()`; new `historyPopulated` dependency
+  set backed by a private `PreviewHistoryCaseStore` actor and `HistorySeedCases` enum seeding four
+  days (dish match, treat/no-appeal, no-match, appealed), each shifted back 0–3 days from
+  `SyntheticScenarios.evaluationDate`. Two existing test fixtures
+  (`TodayFixtureCaseStore`/`TodayAppealFixtureCaseStore`) got a trivial `allCases()` stub to keep
+  conforming to the widened protocol. Mid-unit, `arc-audit-hig` caught two duplicated UI atoms
+  between `VerdictView` and `CaseDetailView` (byte-identical category header, byte-identical
+  `.selected`-dish row) — extracted into new shared `CategoryHeaderSection`/`DishSummaryRow`
+  (`Presentation/Features/Today/Components/`, D71), both screens refactored to call them.
+  `arc-audit-accessibility` then fixed an AX5 dish-title/icon overlap in `DishSummaryRow` (fixing
+  the same pre-existing bug in `VerdictView` for free) and added `.accessibilityAddTraits(.isHeader)`
+  to `CategoryHeaderSection`'s category text so VoiceOver's rotor has a heading on both screens;
+  also corrected a `JudgeBadgeView` doc comment that no longer matched all four of its call sites.
+- **Tests**: 4 new cases in `CaseStoreTests.swift` under `// MARK: - allCases` (empty store;
+  out-of-order recording returns most-recent-day-first — exact order asserted, not just count;
+  a two-revision day stays ascending by sequence with `.latestRevision` the second recorded; a
+  corrupted day — a second `DailyCase`/`VerdictRevision` inserted directly through a raw
+  `ModelContext`, bypassing the actor, with genuinely invalid `decisionData` — is silently
+  excluded while a valid day survives). New suite `HistoryViewModelTests.swift` (5 tests: initial
+  `.loading`; a populated fixture loads to `.loaded` with full value equality, not just a count;
+  an empty fixture loads to `.loaded([])`; a throwing fixture maps to the one coarse
+  `.storeUnavailable`; reloading after the fixture's scripted result changes reflects the **new**
+  result — the one test that would catch an accidental stage guard creeping back into `load()`).
+  `HistoryViewModelTests` added to `.claude/skills/foodge-verify/SKILL.md`'s suite list, alongside
+  `TodayViewModelTests`/`TodayAppealViewModelTests` (already part of the full regression count but
+  missing from that curated list — a pre-existing gap, closed now per `arc-constitution-review`).
+- **Full regression**: 148 → **157/157 tests, 0 warnings** (confirmed three times: after the
+  initial implementation, after the HIG-driven `CategoryHeaderSection`/`DishSummaryRow` extraction,
+  and after the accessibility fixes — green every time).
+- **Live device verification**: simulator `iPhone 17 Pro`, real tap-through (not previews alone).
+  Tapped the History tab — rendered the empty state correctly, wired to `HistoryFlowView`, not a
+  crash or blank screen. Switched Today → History → Today → History and read
+  `GetConsoleOutput(pattern: "HISTORY")`: exactly two `HISTORY stage=loaded(0)` lines
+  (`12:58:26.248`, `12:58:37.114`), proving `.task { await vm.load() }` re-fires on every tab
+  revisit, not just the first mount — the live half of D69's no-stage-guard claim that a unit test
+  alone cannot observe (`arc-constitution-review` caught this evidence gap — see below — and it is
+  now also recorded in `memory/decisions/history-load-must-never-guard-on-stage.md`).
+  `DeviceInteractionSynthesize` worked cleanly this run; the "Session not found" outage documented
+  in `memory/troubleshooting/` did not recur.
+- **Auditor findings**:
+  - `arc-verify-ui`: **full pass.** Independently reproduced zero-warning build and 157/157 (plus
+    the 9 new tests individually). Confirmed each new test has a real, distinguishing oracle —
+    none would pass against a no-op implementation. Rendered every new/changed preview (default,
+    dark, AX5) with no errors. Confirmed no doc/comment overclaims.
+  - `arc-audit-hig`: **2 MAJOR, 1 MINOR — all fixed.** MAJOR ×2 (platform rule 7, duplicated UI
+    atoms): `CaseDetailView`'s category header and `.selected`-dish row were byte-for-byte copies
+    of `VerdictView`'s — fixed by D71's `CategoryHeaderSection`/`DishSummaryRow` extraction, the
+    same remedy pattern `JudgeBadgeView`/`DishArtPlaceholderView` already established. MINOR:
+    `CaseDetailView`'s doc comment claimed an `else` branch exists where the code has none (an
+    absent branch renders nothing, not "a documented-unreachable else") — reworded to match.
+    Everything else (toolbar rules, native components, semantic colors, empty-state copy parity
+    with the retired placeholder) verified compliant.
+  - `arc-audit-accessibility`: **2 findings, both fixed, screen AA-compliant.** 1.4.4/1.4.10:
+    `DishSummaryRow` didn't branch at accessibility sizes, overlapping the dish title and icon at
+    AX5 on both `CaseDetailView` and `VerdictView` — fixed with a `dynamicTypeSize.
+    isAccessibilitySize` branch. 4.1.2: neither screen's category name carried a heading trait, so
+    VoiceOver's rotor had no heading on either — fixed with `.accessibilityAddTraits(.isHeader)`
+    on `CategoryHeaderSection`. Also corrected `JudgeBadgeView`'s doc comment, which justified its
+    `.accessibilityHidden(true)` by claiming a sentence always sits beside it — no longer true once
+    `CategoryHeaderSection` reused the badge paired only with a one-word category name. One
+    evidence gap noted, not fixed (out of presentation-only scope): `HistoryListView`'s `.error`
+    stage has no `#Preview`, because `PreviewCaseStore.allCases()` ignores its `failure` param —
+    the "Try again" button and error state are correct by inspection of fully native controls, but
+    unverified visually; flagged for a future decision, not blocking.
+  - `arc-constitution-review`: **2 MAJOR, both resolved.** MAJOR #1: the "every tab revisit
+    re-fetches" claim (D69) had no test observing real SwiftUI `.task` re-fire behavior —
+    `HistoryViewModelTests.reloadingReflectsTheNewResult` only proves `load()` itself has no
+    guard. The live device trace above (two `HISTORY stage=loaded(0)` lines) already covered this
+    but existed only in the session transcript; the auditor downgraded to MINOR once shown it, on
+    condition the evidence be folded into the memory note and this ledger entry — done, both
+    above. MAJOR #2: `foodge-verify/SKILL.md`'s curated suite list omitted the two fixture files
+    this unit touched (`TodayViewModelTests`/`TodayAppealViewModelTests`), so "157/157" read as
+    full coverage while structurally excluding them — resolved by adding both to the list (already
+    reflected in Deliverables/Tests above) and independently confirming, by grepping the raw
+    `RunAllTests` results file rather than trusting the aggregate number, that both suites' 22
+    tests were already included and passing. Everything else (non-negotiables, test-quality gate,
+    doc accuracy) verified clean.
+- **Commits**: `feat(presentation): show History — list and case detail preserving the evidence
+  and rule version used at the time` (code + tests), `docs(ledger): record Day 22 WU-22-B
+  (D66-D71), evidence and auditor findings`.
+
 ---
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
-| 22 | WU-22-B | History list and case detail preserving the evidence and rule version used at the time | `arc-verify-ui` ✅ |
 | 23 | WU-23-A | Foundation Models narration after the deterministic verdict, structured and length-validated | Narration tests green |
 | 23 | WU-23-B | Reviewed ES/EN fallback templates, 8-second budget, cancellation, stale-result discard, adversarial-note tests | Adversarial tests green |
 | 24 | WU-24-A | Final artwork: app icon, three judge poses, nine dish illustrations; `JudgeBadgeView` swapped (D15) | Visual review |

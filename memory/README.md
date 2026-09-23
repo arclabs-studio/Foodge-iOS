@@ -59,6 +59,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[today-viewmodel-bypasses-verdict-engine]] — a protocol that fits no caller stays unconformed
 - [[tracking-confirmation-must-discard-not-replay]] — "No" must not replay into the same guard
 - [[no-match-still-reaches-a-verdict]] — the category rules even when the dish pick can't
+- [[history-load-must-never-guard-on-stage]] — a stage guard that's correct on Today and wrong on History
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

@@ -39,12 +39,17 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
   {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CalorieProvenanceTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CalorieReferenceCatalogueTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"}
+  {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayAppealViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"}
 ]
 ```
 
-126 tests as of Day 21 (`CaseStoreTests` added with WU-21-A). Prefer this over `RunAllTests`,
-which also runs the XCTest UI bundle. Add new suites here as they land.
+157 tests as of Day 22 (`HistoryViewModelTests` added with WU-22-B; `TodayViewModelTests` and
+`TodayAppealViewModelTests` were already part of the full regression count but missing from this
+curated list — added now, closing that gap). Prefer this over `RunAllTests`, which also runs the
+XCTest UI bundle. Add new suites here as they land.
 
 ## Destination
 
