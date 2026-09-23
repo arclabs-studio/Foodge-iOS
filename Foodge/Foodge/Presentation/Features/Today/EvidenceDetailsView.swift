@@ -16,10 +16,6 @@ import SwiftUI
 struct EvidenceDetailsView: View {
     let revision: SavedRevision
 
-    private var today: HealthAggregates {
-        revision.evidence.today
-    }
-
     var body: some View {
         Form {
             Section {
@@ -28,56 +24,10 @@ struct EvidenceDetailsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Sources") {
-                ProvenanceRow(
-                    title: HealthKind.activeEnergy.displayName,
-                    valueText: today.activeEnergy.map { "\(Int($0.kilocalories)) kcal" },
-                    readAt: today.activeEnergy?.provenance.readAt
-                )
-                ProvenanceRow(
-                    title: HealthKind.restingEnergy.displayName,
-                    valueText: today.restingEnergy.map { "\(Int($0.kilocalories)) kcal" },
-                    readAt: today.restingEnergy?.provenance.readAt
-                )
-                ProvenanceRow(
-                    title: HealthKind.steps.displayName,
-                    valueText: today.steps.map { "\(Int($0.count))" },
-                    readAt: today.steps?.provenance.readAt
-                )
-                ProvenanceRow(
-                    title: HealthKind.dietaryEnergy.displayName,
-                    valueText: today.dietaryEnergy.map { "\(Int($0.kilocalories)) kcal" },
-                    readAt: today.dietaryEnergy?.provenance.readAt
-                )
-            }
-
-            Section("Recorded activity") {
-                RecordedActivityRow(
-                    basis: revision.decision.basis,
-                    todayValue: recordedMetricValue
-                )
-            }
-
-            Section("Sleep") {
-                if let sleep = today.sleep {
-                    LabeledContent(
-                        "Asleep",
-                        value: sleep.asleepDuration.formatted(.units(allowed: [.hours, .minutes], width: .narrow))
-                    )
-                    LabeledContent("Intervals", value: sleep.intervalCount, format: .number)
-                } else {
-                    Text("No readable data")
-                        .foregroundStyle(.secondary)
-                }
-            }
+            EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
         }
         .navigationTitle("Evidence details")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var recordedMetricValue: Double? {
-        guard case let .recorded(_, baseline) = revision.decision.basis else { return nil }
-        return today.value(for: baseline.metric)
     }
 }
 

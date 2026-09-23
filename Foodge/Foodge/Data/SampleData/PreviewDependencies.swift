@@ -86,6 +86,23 @@
             )
         }
 
+        /// Four days of History: a dish match, a treat day with no appeal, a no-match day, and a
+        /// day with a recorded appeal — enough variety for `HistoryListView` and every
+        /// `CaseDetailView` outcome to preview from one dependency set.
+        static var historyPopulated: AppDependencies {
+            let base = make(
+                authorization: PreviewAuthorization(isHealthDataAvailable: true),
+                snapshot: SyntheticScenarios.typicalDay.snapshot
+            )
+            return AppDependencies(
+                authorization: base.authorization,
+                evidence: base.evidence,
+                store: base.store,
+                caseStore: PreviewHistoryCaseStore(cases: HistorySeedCases.all),
+                clock: base.clock
+            )
+        }
+
         private static func make(
             authorization: PreviewAuthorization,
             snapshot: EvidenceSnapshot,
@@ -206,6 +223,213 @@
             }
             recordedAppeals.append((draft, revisionID))
         }
+
+        func allCases() async throws -> [SavedCase] {
+            guard let seeded else { return [] }
+            return [seeded]
+        }
+
+        private static func localDayKey(for evidence: EvidenceSnapshot) -> String {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = TimeZone(identifier: evidence.timeZoneIdentifier) ?? .gmt
+            let components = calendar.dateComponents([.year, .month, .day], from: evidence.evaluatedAt)
+            return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+        }
+    }
+
+    /// A fixed set of saved cases for `PreviewDependencies.historyPopulated`, read-only for the
+    /// life of the preview — History never writes.
+    private actor PreviewHistoryCaseStore: CaseStore {
+        private let cases: [SavedCase]
+
+        init(cases: [SavedCase]) {
+            self.cases = cases
+        }
+
+        func savedCase(matching evidence: EvidenceSnapshot) async throws -> SavedCase? {
+            cases.first { $0.localDayKey == Self.localDayKey(for: evidence) }
+        }
+
+        @discardableResult
+        func recordRevision(_ draft: NewRevisionDraft) async throws -> SavedRevision {
+            // Unreachable from the History screens this store backs — they only ever read.
+            SavedRevision(
+                id: UUID(),
+                sequence: 0,
+                createdAt: draft.evidence.evaluatedAt,
+                decision: draft.decision,
+                evidence: draft.evidence,
+                catalogueVersion: draft.catalogueVersion,
+                dishOutcome: draft.dishOutcome,
+                narrationText: nil,
+                appeals: []
+            )
+        }
+
+        func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws {}
+
+        func allCases() async throws -> [SavedCase] {
+            cases.sorted { $0.localDayKey > $1.localDayKey }
+        }
+
+        private static func localDayKey(for evidence: EvidenceSnapshot) -> String {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = TimeZone(identifier: evidence.timeZoneIdentifier) ?? .gmt
+            let components = calendar.dateComponents([.year, .month, .day], from: evidence.evaluatedAt)
+            return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+        }
+    }
+
+    /// The four days ``PreviewDependencies/historyPopulated`` seeds, each shifted back from
+    /// `SyntheticScenarios.evaluationDate` so every case gets its own local day.
+    private enum HistorySeedCases {
+        /// Shifts `date` back by `days`, falling back to the unshifted date on the
+        /// documented-unreachable failure path — same idiom `SyntheticScenarios.date` uses.
+        static func shifted(_ date: Date, byDays days: Int) -> Date {
+            SyntheticScenarios.calendar.date(byAdding: .day, value: -days, to: date) ?? date
+        }
+
+        static func evidence(_ scenario: SyntheticScenario, shiftedByDays days: Int) -> EvidenceSnapshot {
+            let original = scenario.snapshot
+            return EvidenceSnapshot(
+                evaluatedAt: shifted(original.evaluatedAt, byDays: days),
+                timeZoneIdentifier: original.timeZoneIdentifier,
+                today: original.today,
+                history: original.history,
+                availability: original.availability,
+                context: original.context,
+                constraints: original.constraints,
+                trackingRepresentative: original.trackingRepresentative,
+                isSynthetic: original.isSynthetic
+            )
+        }
+
+        static func decision(
+            category: DinnerCategory,
+            ratio: Double,
+            reasonCode: ReasonCode,
+            evidence: EvidenceSnapshot
+        ) -> VerdictDecision {
+            VerdictDecision(
+                category: category,
+                basis: .recorded(
+                    ratio: ratio,
+                    baseline: ActivityBaseline(
+                        metric: .activeEnergy,
+                        median: 400,
+                        observationCount: 14,
+                        window: SyntheticScenarios.windowSinceMidnight(endingAt: evidence.evaluatedAt)
+                    )
+                ),
+                reasonCodes: [reasonCode],
+                isProvisional: false,
+                ruleVersion: DinnerCategoryRule.ruleVersion
+            )
+        }
+
+        static func revision(
+            sequence: Int = 0,
+            evidence: EvidenceSnapshot,
+            decision: VerdictDecision,
+            dishOutcome: PersistedDishOutcome,
+            appeals: [SavedAppeal] = []
+        ) -> SavedRevision {
+            SavedRevision(
+                id: UUID(),
+                sequence: sequence,
+                createdAt: evidence.evaluatedAt,
+                decision: decision,
+                evidence: evidence,
+                catalogueVersion: DishCatalogue.version,
+                dishOutcome: dishOutcome,
+                narrationText: nil,
+                appeals: appeals
+            )
+        }
+
+        /// A dish match: balanced, today.
+        static let dishMatch: SavedCase = {
+            let day = evidence(SyntheticScenarios.typicalDay, shiftedByDays: 0)
+            return SavedCase(
+                localDayKey: localDayKey(for: day),
+                revisions: [
+                    revision(
+                        evidence: day,
+                        decision: decision(category: .balanced, ratio: 1.02, reasonCode: .withinRecordedPattern, evidence: day),
+                        dishOutcome: .selected(
+                            variantID: "dish.pasta.pesto",
+                            family: .pasta,
+                            alternativeVariantID: nil,
+                            alternativeFamily: nil
+                        )
+                    ),
+                ]
+            )
+        }()
+
+        /// A treat day, no appeal.
+        static let treatDay: SavedCase = {
+            let day = evidence(SyntheticScenarios.activeDay, shiftedByDays: 1)
+            return SavedCase(
+                localDayKey: localDayKey(for: day),
+                revisions: [
+                    revision(
+                        evidence: day,
+                        decision: decision(category: .treat, ratio: 1.4, reasonCode: .aboveRecordedPattern, evidence: day),
+                        dishOutcome: .selected(
+                            variantID: "dish.burgers.blackBean",
+                            family: .burgers,
+                            alternativeVariantID: nil,
+                            alternativeFamily: nil
+                        )
+                    ),
+                ]
+            )
+        }()
+
+        /// A no-match day: constraints left every balanced-family variant blocked.
+        static let noMatchDay: SavedCase = {
+            let day = evidence(SyntheticScenarios.noCompatibleDish, shiftedByDays: 2)
+            return SavedCase(
+                localDayKey: localDayKey(for: day),
+                revisions: [
+                    revision(
+                        evidence: day,
+                        decision: decision(category: .balanced, ratio: 1.0, reasonCode: .withinRecordedPattern, evidence: day),
+                        dishOutcome: .noMatch(blockingIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id])
+                    ),
+                ]
+            )
+        }()
+
+        /// A light day with a recorded appeal.
+        static let appealedDay: SavedCase = {
+            let day = evidence(SyntheticScenarios.restDay, shiftedByDays: 3)
+            return SavedCase(
+                localDayKey: localDayKey(for: day),
+                revisions: [
+                    revision(
+                        evidence: day,
+                        decision: decision(category: .light, ratio: 0.45, reasonCode: .belowRecordedPattern, evidence: day),
+                        dishOutcome: .selected(
+                            variantID: "dish.lentilSalad.tomato",
+                            family: .lentilSalad,
+                            alternativeVariantID: nil,
+                            alternativeFamily: nil
+                        ),
+                        appeals: [
+                            SavedAppeal(
+                                id: UUID(),
+                                createdAt: day.evaluatedAt,
+                                choice: .catalogue(variantID: "dish.tacos.beef", family: .tacos)
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        }()
+
+        static var all: [SavedCase] { [dishMatch, treatDay, noMatchDay, appealedDay] }
 
         private static func localDayKey(for evidence: EvidenceSnapshot) -> String {
             var calendar = Calendar(identifier: .gregorian)

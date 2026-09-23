@@ -435,4 +435,9 @@ private actor TodayFixtureCaseStore: CaseStore {
     func recordAppeal(_: AppealDraft, to _: UUID) async throws {
         // Not exercised this suite — see `TodayAppealViewModelTests`.
     }
+
+    func allCases() async throws -> [SavedCase] {
+        // Not exercised this suite — see `HistoryViewModelTests`.
+        []
+    }
 }

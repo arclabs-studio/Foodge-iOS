@@ -341,4 +341,9 @@ private actor TodayAppealFixtureCaseStore: CaseStore {
         }
         recordedAppeals.append((draft, revisionID))
     }
+
+    func allCases() async throws -> [SavedCase] {
+        // Not exercised this suite — see `HistoryViewModelTests`.
+        []
+    }
 }

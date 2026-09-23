@@ -26,4 +26,10 @@ protocol CaseStore: Sendable {
     /// Attaches an appeal to one specific revision.
     /// - Throws: ``FoodgeError/revisionNotFound`` if no revision with that id exists.
     func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws
+
+    /// Every saved case, most recently recorded local day first.
+    ///
+    /// A day whose stored revisions fail to decode is skipped rather than failing the whole list —
+    /// one corrupted day must never hide every other day's history.
+    func allCases() async throws -> [SavedCase]
 }

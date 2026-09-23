@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftData
 
 /// The single place anything is written.
@@ -144,6 +145,29 @@ extension PersistenceActor: CaseStore {
             try modelContext.save()
         } catch {
             throw FoodgeError.saveFailed
+        }
+    }
+
+    /// Every saved case, most recently recorded local day first.
+    ///
+    /// A day whose stored revisions fail to decode is skipped rather than failing the whole
+    /// list — one corrupted day must never hide every other day's history. The outer `fetch`
+    /// is not wrapped: a failure there is a genuine store problem, not a per-case decode issue,
+    /// and propagates like every other method in this actor.
+    func allCases() throws -> [SavedCase] {
+        let descriptor = FetchDescriptor<DailyCase>(
+            sortBy: [SortDescriptor(\.localDayKey, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor).compactMap { dailyCase in
+            do {
+                let revisions = try dailyCase.revisions
+                    .sorted { $0.sequence < $1.sequence }
+                    .map { try $0.asSavedRevision() }
+                return SavedCase(localDayKey: dailyCase.localDayKey, revisions: revisions)
+            } catch {
+                PersistenceLog.logger.error("PERSISTENCE case=corrupted")
+                return nil
+            }
         }
     }
 

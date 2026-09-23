@@ -241,4 +241,85 @@ struct CaseStoreTests {
             try await sut.recordRevision(makeDraft(evidence: makeEvidence(day: 6)))
         }
     }
+
+    // MARK: - allCases
+
+    @Test("An empty store returns no cases")
+    func allCasesOnAnEmptyStoreReturnsNone() async throws {
+        // Given a store with nothing recorded
+        let sut = try makeSUT()
+
+        // When every case is fetched
+        let cases = try await sut.allCases()
+
+        // Then there is nothing to return
+        #expect(cases.isEmpty)
+    }
+
+    @Test("Cases recorded out of order come back most-recent-day-first")
+    func allCasesReturnsMostRecentDayFirst() async throws {
+        // Given three days recorded out of chronological order
+        let sut = try makeSUT()
+        try await sut.recordRevision(makeDraft(evidence: makeEvidence(day: 5)))
+        try await sut.recordRevision(makeDraft(evidence: makeEvidence(day: 7)))
+        try await sut.recordRevision(makeDraft(evidence: makeEvidence(day: 6)))
+
+        // When every case is fetched
+        let cases = try await sut.allCases()
+
+        // Then they come back most-recent-day-first — exact order is the oracle, not just a count
+        #expect(cases.map(\.localDayKey) == ["2026-09-07", "2026-09-06", "2026-09-05"])
+    }
+
+    @Test("A day with two revisions shares the real decode path")
+    func allCasesDecodesMultipleRevisionsInOrder() async throws {
+        // Given a day with two revisions, the second recorded after the first
+        let sut = try makeSUT()
+        let evidence = makeEvidence(day: 5)
+        try await sut.recordRevision(makeDraft(evidence: evidence, decision: makeDecision(category: .treat)))
+        let secondEvidence = makeEvidence(day: 5, hour: 20, minute: 0)
+        try await sut.recordRevision(makeDraft(evidence: secondEvidence, decision: makeDecision(category: .light)))
+
+        // When every case is fetched
+        let cases = try await sut.allCases()
+
+        // Then the revisions stay ascending by sequence, and the latest is the second one recorded
+        // — proving `allCases()` shares the real decode path, not a shortcut
+        let theCase = try #require(cases.first)
+        #expect(theCase.revisions.map(\.sequence) == [0, 1])
+        #expect(theCase.latestRevision?.decision.category == .light)
+    }
+
+    @Test("A corrupted day is skipped, the rest of the list survives")
+    func allCasesSkipsACorruptedDay() async throws {
+        // Given one valid day recorded through the actor, the normal path
+        let container = try ContainerFactory.makeInMemory()
+        let sut = PersistenceActor(modelContainer: container)
+        try await sut.recordRevision(makeDraft(evidence: makeEvidence(day: 5), decision: makeDecision(category: .treat)))
+
+        // And a second day inserted directly through a raw `ModelContext`, bypassing the actor,
+        // with genuinely invalid `decisionData`
+        let context = ModelContext(container)
+        let corruptedCase = DailyCase(localDayKey: "2026-09-06")
+        let corruptedRevision = VerdictRevision(
+            sequence: 0,
+            createdAt: TestCalendar.date(2026, 9, 6, 19, 30),
+            decisionData: Data("not json".utf8),
+            evidenceData: Data("not json".utf8),
+            catalogueVersion: "1.0.0",
+            dishOutcome: makeDishOutcome()
+        )
+        corruptedRevision.dailyCase = corruptedCase
+        corruptedCase.revisions.append(corruptedRevision)
+        context.insert(corruptedCase)
+        try context.save()
+
+        // When every case is fetched
+        let cases = try await sut.allCases()
+
+        // Then `allCases()` succeeds, returning exactly the valid day — the corrupted day is
+        // silently excluded, not thrown, not leaked through undecoded
+        #expect(cases.count == 1)
+        #expect(cases.first?.localDayKey == "2026-09-05")
+    }
 }

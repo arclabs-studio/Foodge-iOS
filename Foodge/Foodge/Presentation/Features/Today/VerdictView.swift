@@ -34,20 +34,7 @@ struct VerdictView: View {
     /// visible with a retry regardless, never silently dropped to a spinner.
     private func content(for display: TodayViewModel.Display) -> some View {
         Form {
-            Section {
-                JudgeBadgeView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                Text(display.decision.category.displayName)
-                    .font(.largeTitle.bold())
-                    .frame(maxWidth: .infinity, alignment: .center)
-                if display.decision.isProvisional {
-                    Text("Provisional — there wasn’t enough to go on yet.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-            }
-            .listRowBackground(Color.clear)
+            CategoryHeaderSection(category: display.decision.category, isProvisional: display.decision.isProvisional)
 
             dishSection(for: display.dishOutcome)
 
@@ -88,20 +75,10 @@ struct VerdictView: View {
     private func dishSection(for dishOutcome: PersistedDishOutcome) -> some View {
         switch dishOutcome {
         case let .selected(variantID, family, alternativeVariantID, alternativeFamily):
+            let displayedVariantID = showingAlternative ? (alternativeVariantID ?? variantID) : variantID
+            let displayedFamily = showingAlternative ? (alternativeFamily ?? family) : family
             Section {
-                HStack(spacing: 16) {
-                    DishArtPlaceholderView(family: showingAlternative ? (alternativeFamily ?? family) : family)
-                    VStack(alignment: .leading) {
-                        Text(DishCatalogue.displayName(
-                            forVariantID: showingAlternative ? alternativeVariantID ?? variantID : variantID
-                        ))
-                        .font(.headline)
-                        Text((showingAlternative ? alternativeFamily ?? family : family).displayName)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityElement(children: .combine)
-                }
+                DishSummaryRow(variantID: displayedVariantID, family: displayedFamily)
                 Button("See alternative") {
                     showingAlternative.toggle()
                 }

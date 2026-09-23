@@ -54,6 +54,12 @@ struct AppDependencies: Sendable {
         TodayViewModel(evidence: evidence, preferences: store, caseStore: caseStore, clock: clock)
     }
 
+    /// Builds the History view model from these dependencies.
+    @MainActor
+    func makeHistoryViewModel() -> HistoryViewModel {
+        HistoryViewModel(caseStore: caseStore)
+    }
+
     /// The real thing: HealthKit, the on-disk store, and the device's own clock.
     ///
     /// `store` and `caseStore` share one `PersistenceActor` over the container — it already

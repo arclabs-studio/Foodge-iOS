@@ -10,8 +10,10 @@ import SwiftUI
 /// The food judge, standing in as an SF Symbol until the artwork lands on Day 24.
 ///
 /// Deliberately the only place the judge is drawn, so that swap touches exactly one file (D15).
-/// Decorative: the sentence beside it already says what Foodge does, so repeating it to
-/// VoiceOver would only add noise.
+/// Decorative: it is a mascot logo, not content — `WelcomeView` and `TodayBeforeVerdictView` pair
+/// it with an explanatory sentence, but `CategoryHeaderSection` (shared by `VerdictView` and
+/// `CaseDetailView`) pairs it only with the one-word category name, which already stands on its
+/// own as text. Either way the badge itself adds no information VoiceOver users would be missing.
 @MainActor
 struct JudgeBadgeView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var diameter: CGFloat = 76
