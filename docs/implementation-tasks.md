@@ -125,6 +125,14 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D95 | Final art uses an Apple Icon Composer project (`AppIcon.icon`) for the app icon and named 1×/2×/3× PNG image sets under `Assets.xcassets/Artwork` for in-app judge and dish art. | This keeps the icon editable by Apple's current tool and lets Xcode compile only the device-appropriate in-app scales. After the D97 character revision, the committed PNG payload is 6,106,620 bytes for the 36 in-app renditions plus 1,080,744 bytes for the Icon Composer source image; the editable commission brief and generation provenance stay in `docs/artwork-brief.md` and `docs/artwork-manifest.md`. |
 | D96 | Loading is one reusable `CourtLoadingView` backed by native indeterminate `ProgressView`: it replaces the app while the persistent store opens and overlays Today only during `.evaluating`. Launch yields one task turn so the first frame can render, but adds no artificial minimum duration. | Both waits now report real work instead of displaying a decorative delay. While a verdict is being prepared, the covered form is disabled and hidden from accessibility so users and VoiceOver have one active status; the system owns progress animation and Reduce Motion behavior. |
 | D97 | The final judge identity adds a restrained ivory judicial wig and promotes the dark-walnut gavel to a large, high-contrast foreground cue in the app icon and all three poses. | The robe alone did not make the judicial role unmistakable at small sizes, and the former tiny lowered gavel disappeared in the in-app silhouette. The wig frames rather than covers the pizza, while the enlarged gavel uses one restrained gold band so the character remains in the established burgundy/gold system without becoming ornate. |
+| D98 | The demonstration session lives in `AppLaunch`, as `State.ready(AppSession)` where `AppSession` carries container + dependencies + an optional scenario id. The **live container is retained, never reopened**, so exiting is synchronous and cannot fail. Entering shows `CourtLoadingView` (D96); exiting shows nothing. `FoodgeApp` applies `.id(session.id)` outside `.modelContainer(session.container)`. | `AppLaunch` already owns the container/dependency pair and is the only thing `FoodgeApp` switches on; a second owner would mean two objects that must agree about which container is in the environment. `.id()` is the part that actually matters: `.modelContainer` alone rebinds `@Query` but leaves `MainTabView`'s `@State today/history/settings` alive, so the demo would keep the **live** `TodayViewModel` and read real HealthKit under a "demonstration data" banner. No unit test can prove that — it is a device check. Reopening the live store on exit would risk `storeUnavailable` on the way back from a demonstration, which is the worst possible moment for it. |
+| D99 | No protocol seam for the scenario catalogue. Domain gains `DemonstrationScenarioID` (a ten-case enum whose declaration order **is** the offer order); Data gains `SyntheticScenarios.scenario(for:)`, an exhaustive switch. | D36 applied: a seam is for I/O and failure modes, and this lookup has neither. Presentation may not name `SyntheticScenario` (Data), so something Domain-shaped has to cross. Moving `SyntheticScenarios` into Domain was rejected — ~700 lines of sample data into the layer `CLAUDE.md` reserves for Entities/Services/UseCases/Errors/Catalogue, three days from freeze. The exhaustive switch is total by construction: no optional, nothing to force-unwrap. Retyping `SyntheticScenario.id` to the enum (the ten ids already match letter for letter) is deferred to WU-25-A because it touches existing scenario code. |
+| D100 | The demonstration container is **seeded with a `PreferencesDraft` derived from the chosen scenario's own snapshot** — `dietProfile`/`excludedIngredientIDs` from `snapshot.constraints`, `trackingRepresentative` from `snapshot.trackingRepresentative ?? true`, `onboardingCompletedAt` from the scenario clock. `favouriteFamilies` stays empty. | Two findings force it. `TodayViewModel.requestVerdict()` passes `draft.constraints` — the **stored** preferences — to `evidence.snapshot(...)`, and `finish()` builds the `DishSelectionRequest` from `draft.constraints` and `draft.favouriteFamilies`, never `snapshot.constraints`. So `noCompatibleDish`, whose whole point is the vegan + rice/pasta no-match (D58), would have demonstrated an ordinary pasta dish. Separately, `EvidenceSnapshot.trackingRepresentative` drives nothing in production: the rule reads `draft.trackingRepresentative`, so `partialTracking`'s "not representative" was inert too. One seeding rule fixes both. `favouriteFamilies: []` keeps each scenario demonstrating exactly what its doc comment claims (user-settled). The `?? true` covers the scenarios that leave the field `nil`: unasked means the standing default, which is what `PreferencesDraft` already documents — presently inert, since every scenario that reaches a low ratio sets the field. Pinned by `DemonstrationScenarioOutcomeTests`. |
+| D101 | `DemonstrationEvidenceProvider` **merges the caller's `DailyContext` over the scenario's** — the caller's non-nil fields win, the scenario fills the gaps — unlike `PreviewEvidence`, which returns its snapshot verbatim. | `TodayViewModel.finish()` feeds `snapshot.context`, not the caller's, into `DishSelection`, and `NarrationPrompt` reads the note from the same place. A verbatim return would therefore make "review → add context → request a verdict" visibly dead under a demonstration: the craving, the energy level and the note would all be discarded. Merging rather than replacing is what keeps `shortSleep`'s deliberate `.low` energy unless the user overrides it on stage. |
+| D102 | A demonstration uses stub reminders and stub Health authorization, and **hides** the evening-reminder and Delete-local-data rows while it runs. The narrator is the **real** chain, shared through a new `AppDependencies.liveNarrator()` rather than copied. | A demonstration must never schedule a real notification or raise a HealthKit sheet. But a stub that accepts and forgets would leave the reminder toggle reading "on" for a reminder the system never got, and the delete copy promises every saved case is gone from this iPhone when nothing was ever on the iPhone — both controls would lie, which is exactly what D61/D92 rule against. Hiding was chosen over `.disabled` + a footer (user-settled): fewer moving parts, no new string, and strictly honest. The narrator is deliberately *not* stubbed — the demonstration exists partly to prove genuine on-device narration — and extracting `liveNarrator()` avoids the two-maintained-copies drift D63/D70/D71 exist to stop. |
+| D103 | The demonstration banner is a top `safeAreaInset` on the root view, above the tab hierarchy. Sheets are exempt. | Every screen of the verdict and history flows sits inside the tab hierarchy, so one inset covers all of them at once. A per-value "Demonstration data" label exists on exactly **two** of them — `EvidenceDetailsView` (which prints it instead of "From Health") and `CaseDetailView` — and those are the two that actually render raw Health-derived numbers; `TodayBeforeVerdictView`, `VerdictView` and `HistoryListView` show a category, a dish and a date, so the banner is the whole of the labelling there rather than a second line of defence. The two sheets need no banner for specific reasons rather than convenience: Appeal shows no Health numbers, and Settings carries its own Exit control. |
+| D105 | **Entering a demonstration touches `state` only on success.** The planned `CourtLoadingView` entry is dropped, `AppLaunch.State.Loading` with it; `TodayFlowView` no longer dismisses the Settings sheet before starting one (it still does before leaving one, which cannot fail). The Settings footer also branches on whether a demonstration is running. | `arc-audit-accessibility` found that the planned shape made a failed start **invisible to everyone**, not merely unannounced. `FoodgeApp` switches on `state`, so passing through `.loading(.demonstration)` and back to `.ready` tore down `AppRootView` → `MainTabView` → `TodayFlowView` and everything they hold in `@State`. On the success path that teardown is the entire point (D98); on the failure path it discarded an in-progress verdict flow for nothing **and** took the failure message with it, since the rebuilt `TodayFlowView` starts with `isShowingSettings = false` and `demonstrationFailure` is read nowhere else. `aFailedDemonstrationStartLeavesTheLiveSessionRunning` passed throughout — it asserts on `AppLaunch`, and the defect was in the view layer above it. Cost of the fix: no loading screen while the in-memory container opens (one container plus one seed write — there was little to show), the "Setting up the demonstration…" key becomes stale, and the success path now tears down a presented sheet, which is checked for presentation warnings on the simulator. Rejected: re-presenting Settings after the teardown, which cannot observe the transition it would need and lands the user at the Settings root rather than the scenario list. The user chose this option over that and over shipping it as a known gap. `arc-audit-hig` separately rated the unbranched footer MAJOR: an invitation to start a demonstration sat under the control that ends one. |
+| D104 | `AppLaunch` gains two injectable openers: the live container (`@MainActor () throws -> ModelContainer`, defaulting to `ContainerFactory.makeLive`) and the demonstration session (defaulting to `DemonstrationSessionFactory.make`). | The first is what makes entering and exiting a demonstration — and the previously untested `storeUnavailable` path — provable without touching the real Application Support store; without it, `DemonstrationSessionTests`' central claim ("nothing a demonstration writes reaches the live store") could only be asserted against the tester's own device. The second exists because opening an in-memory container does not fail on request, so "a failed demonstration leaves the live session running, with the failure reported as a failed demonstration rather than a broken store" has no other way to be reached. |
 
 ---
 
@@ -1564,6 +1572,147 @@ SwiftLint pre-commit hook fired again on pre-existing long footer strings — th
 recorded under WU-24-B.1: it runs default rules, and this project has no SwiftLint configuration.
 
 **Next.** WU-24-B.3 — demonstration mode, which adds the sixth row.
+
+### WU-24-B.3 ✅ Demonstration mode
+
+**Objective / scope.** The sixth Settings row and what it opens: the whole app switches onto an
+in-memory store fed by one of ten clearly labelled synthetic scenarios, with a persistent banner
+and an Exit control. Today, Verdict, Appeal and History all run live on synthetic input. The
+machinery this consumes was built and documented as waiting for this unit —
+`ContainerFactory.makeInMemory()`, `SyntheticScenarios.all`, and the `isSynthetic` rendering in
+`EvidenceDetailsView`/`CaseDetailView`. No new domain rules; this is wiring.
+
+**What was built.**
+
+- Domain: `DemonstrationScenarioID` — a ten-case enum whose declaration order *is* the offer order.
+- Data: `SyntheticScenarios.scenario(for:)` (exhaustive switch, D99) and a non-DEBUG
+  `Data/Demonstration/` folder holding `DemonstrationEvidenceProvider` (merges the caller's
+  context, D101), `DemonstrationReminderService` and `DemonstrationHealthAuthorization` (both
+  stubs, D102).
+- App: `AppSession`, `DemonstrationSessionFactory` (including the seed, D100), `DemonstrationLog`,
+  a rewritten `AppLaunch` with two injectable openers (D104), and
+  `AppDependencies.liveNarrator()` extracted so the demonstration shares the real narration chain
+  rather than copying it.
+- Presentation: `DemonstrationControls`, `DemonstrationSection`, `DemonstrationScenariosView`,
+  `DemonstrationBanner`, and the display names. `SettingsRoute` gains `.demonstration`;
+  the reminder and delete rows are hidden while a demonstration runs.
+
+**Acceptance.** Nothing a demonstration writes reaches the live store; leaving one restores the
+real session unchanged; the demonstration container is seeded so each scenario demonstrates
+itself; no HealthKit sheet or notification prompt can be raised; every new string ships Spanish.
+
+**The two findings that shaped it.** `TodayViewModel` reads *stored* preferences for both the
+dietary constraints (`draft.constraints`, not `snapshot.constraints`) and the standing
+representativeness flag (`draft.trackingRepresentative`). Without seeding the demonstration store
+from the scenario's own snapshot, `noCompatibleDish` would have recommended an ordinary pasta dish
+and `partialTracking` would have been inert — the two scenarios whose whole purpose is those
+paths. D100 is the decision that fixes both, and `DemonstrationScenarioOutcomeTests` is what pins
+it.
+
+**Audits, and what they changed.**
+
+- `arc-audit-concurrency`: **0 findings**, verified against its own zero-warning build. It read
+  the `FailureGate` doc comment as overstating why a `@MainActor` box was needed; the compiler
+  error it would have hit (`'shouldFail' mutated after capture by sendable closure`) says
+  otherwise, so the comment was rewritten to quote the real diagnostic rather than deleted.
+- `arc-audit-hig`: **0 blockers, 1 MAJOR, 1 MINOR — both fixed.** The MAJOR was the Settings
+  footer: the row label branches on whether a demonstration is running, and the footer did not, so
+  an invitation to *start* one sat under the control that *ends* one. It now branches too, with a
+  matched Spanish pair. The MINOR was a redundant `Color.` prefix. It also settled two questions
+  put to it deliberately: the plain scenario rows are correct without a disclosure indicator (a
+  chevron would promise navigation that never happens — tapping replaces the session), and the
+  AX 5 large-title truncation is system-owned chrome.
+- `arc-audit-accessibility`: derived the banner's contrast from the asset catalogue rather than
+  trusting comments — **10.05:1** standard-contrast light, **7.85:1** dark, both well clear of
+  4.5:1 at `.footnote`. Confirmed the 44 pt Exit target and added the missing WCAG 4.1.3
+  announcement for a failed start. Then found the defect below.
+- `arc-constitution-review`: **0 blockers, 4 MINOR**, all documentation precision — see below.
+
+**The defect the accessibility audit found, and D105.** A failed demonstration start was
+**invisible to everyone**, not merely unannounced. `FoodgeApp` switches on `AppLaunch.state`, so
+the planned `.loading(.demonstration)` round-trip tore down `AppRootView` → `MainTabView` →
+`TodayFlowView` and everything they hold in `@State`. On the success path that teardown is the
+entire point (D98); on the failure path it discarded an in-progress verdict flow for nothing and
+took the failure message with it, because the rebuilt `TodayFlowView` comes back with
+`isShowingSettings = false`. `aFailedDemonstrationStartLeavesTheLiveSessionRunning` passed
+throughout — it asserts on `AppLaunch`, and the defect lived in the view layer above it. Fixed
+under D105: `state` is assigned only on success, the loading case is gone, and the Settings sheet
+is no longer dismissed before a start. A green unit test over a state machine says nothing about
+whether anyone can see the state.
+
+**Three documentation inaccuracies corrected.** D103 claimed all five in-flow screens print
+"Demonstration data" per value; only `EvidenceDetailsView` and `CaseDetailView` do, and the other
+three show a category, a dish and a date — the banner is the whole of the labelling there. D100
+described `trackingRepresentative` as a direct passthrough when the code is `?? true`. And a
+comment calling `EvidenceSnapshot.trackingRepresentative` "the per-day check-in answer" was wrong
+in a way inherited from an older memory note: both fields ask the same *standing* question, and
+the per-day confirmation is stored in no field at all. The older note now carries a dated
+correction.
+
+**The blocker the simulator found.** The banner was attached with `.safeAreaInset(edge: .top)` on
+the root, which draws it **over** the navigation bars inside: each `NavigationStack` lays its bar
+out against the window's safe area rather than the inset one. Measured from the hierarchy dump,
+the banner occupied `{0,0}–{402,114}` while the nav bar sat at `{0,62}–{402,116}` — so the back
+button on Evidence details was invisible and untappable (two taps at its own hitPoint did
+nothing; escaping needed an edge-swipe), and the Settings gear on Today was buried under the
+banner's "Salir". Replaced with a `VStack(spacing: 0)`, which takes the banner's height out of the
+layout. Re-measured after the fix: banner `{0,0}–{402,114}`, Today's nav bar `{0,124}–{402,230}`
+with the gear at `{346,128}–{382,164}`, Evidence's nav bar `{0,124}–{402,178}` with the back
+button at `{16,124}–{60,168}` — no overlap, and both taps worked first time. **No preview or unit
+test could have caught this**: it needs a real `NavigationStack` inside a real window.
+
+**Evidence.**
+
+- Build succeeded; `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**, re-checked after
+  every edit round including all four auditors' and the two simulator fixes.
+- **279/279 tests passed** (`RunAllTests`) on the code as it stood before the final banner-layout
+  fix, of which **19 are new**: 6 in `DemonstrationSessionTests`, 7 in
+  `DemonstrationScenarioOutcomeTests`, 3 in `DemonstrationScenarioCatalogueTests`, 3 in
+  `DemonstrationEvidenceProviderTests`.
+- **After that fix the suite could not be completed on this machine, for an environment reason
+  rather than a code one.** The host disk filled during the device-interaction sessions, and the
+  `FoodgeUITests` target has been unable to install since: *"No se puede instalar Foodge… no hay
+  espacio suficiente"*, referencing a clone under `~/Library/Developer/XCTestDevices/`. Freeing
+  58 GB and moving the affected clone aside did not clear it. The observed state is **231
+  `FoodgeTests` passed — including all 19 new ones and every other demonstration test — 2
+  `FoodgeUITests` failed on install, and 12 parameterised `FoodgeTests` cases did not run**
+  because the run aborts with the UI target. The two failing tests are the template smoke tests
+  D2 kept, and they exercise nothing this unit touches. **The full green run is owed**: re-run
+  after an Xcode restart or a simulator erase before this unit is treated as closed.
+- Spanish: **32 new keys, 32 translated**, 0 left in `new` state — three sub-agents in batches of
+  ≤ 15, never inline, never a hand-edit. One correction applied afterwards: the failure line used
+  an em dash where all six sibling failure strings use a colon in Spanish.
+- Previews rendered: `DemonstrationScenariosView` (es, es at **AX 5**), `DemonstrationBanner`
+  (es, es at AX 5 — wraps to four lines, Exit still reachable), `SettingsView` "During a
+  demonstration" (es, before and after the footer fix).
+- **Simulator** (iPhone 18 Pro, iOS 27): entered `An active day` and confirmed Evidence details
+  shows the scenario's own invented values — **520 kcal active, 11,200 steps, 7 h 40 min, ratio
+  130 %** against a 400 kcal median — under the provenance line **"Datos de demostración"**, not
+  "Desde Salud". That is the D98 `.id` check, and it is the only way to make it. Banner confirmed
+  present on Today, Verdict, Evidence and History, and absent over the Settings and Appeal sheets.
+  `Nada del menú encaja` produced an honest no-match with no dish and no alternative;
+  `Un registro que no refleja el día` reached the three-way self-report instead of ruling.
+  Exit restored the live session with History empty — nothing the demonstration recorded leaked.
+  No notification prompt and no HealthKit sheet appeared at any point.
+  `GetConsoleOutput` for `presenting|dismiss|not in the view hierarchy|Unbalanced` → **0 matches**,
+  which clears the risk D105 introduced by leaving the Settings sheet presented during a teardown.
+
+**Two findings outside this unit's scope, recorded rather than fixed.**
+
+1. `DinnerCategory.flourishTemplate` switches on category alone and never on the dish outcome, so
+   a Balanced **no-match** still renders "Tonight's leading candidate is on the table" when no
+   candidate was found. Pre-existing (the flourish predates this unit), but `noCompatibleDish` is
+   one of the ten scenarios intended for the stage, which is what made it visible. Needs a
+   decision in WU-25-A: either a fourth template for the no-match case, or suppressing the
+   flourish entirely when `dishOutcome` is `.noMatch`.
+2. The verdict screen does not name the blocking ingredients — it says nothing was relaxed and
+   points at Preferences. That is by design: `AppealNoMatchSection` names them in the appeal flow.
+   Verified, not a defect.
+
+**Next.** WU-25-A — accessibility, privacy, regression and performance verification; defect fixes
+only. It inherits the flourish/no-match decision above, and the `@Query`-after-`PersistenceActor`
+question D93 left open.
+
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

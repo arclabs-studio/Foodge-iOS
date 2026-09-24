@@ -62,6 +62,10 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[history-load-must-never-guard-on-stage]] — a stage guard that's correct on Today and wrong on History
 - [[reminder-toggle-tracks-the-system-not-the-switch]] — `onChange` echoes the app's own revert
 - [[deletion-is-its-own-seam-and-the-latch-must-be-cleared]] — wiping data, and the latch that survives it
+- [[demo-preferences-must-be-seeded-from-the-scenario]] — the snapshot's constraints are never read by dish selection
+- [[swapping-the-container-needs-an-id-not-just-modelcontainer]] — `.modelContainer` alone leaves the live view models alive
+- [[demo-evidence-must-merge-the-callers-context]] — a verbatim snapshot silently deletes the "add context" step
+- [[a-loading-state-tears-down-everything-below-it]] — a failure path routed through `.loading` is invisible to everyone
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

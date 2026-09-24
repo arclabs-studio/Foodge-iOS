@@ -12,9 +12,18 @@ ledger: D55
 `Domain/Services/VerdictEngine.swift` declares `decideCategory(for snapshot:)` — a single
 `EvidenceSnapshot` in, a `CategoryOutcome` out. But `ActivityBaselineCalculator.baseline(from:
 trackingRepresentative:)` needs `PreferencesDraft.trackingRepresentative` — the *standing*
-"may my recorded days be used at all" flag — and `EvidenceSnapshot` doesn't carry it (its own
-`trackingRepresentative` field is the *per-day* check-in answer, a different thing; see
-[[schema-v1-grows-tracking-representative]]). There is no way to satisfy `VerdictEngine`'s
+"may my recorded days be used at all" flag — and nothing hands it to the engine.
+
+**Correction, 2026-09-24 (WU-24-B.3):** this note used to say `EvidenceSnapshot`'s own
+`trackingRepresentative` field is "the per-day check-in answer, a different thing". That is
+wrong, and `arc-constitution-review` caught it. Read the two doc comments side by side:
+`EvidenceSnapshot.trackingRepresentative` is "whether the user has confirmed **the recorded
+days** reflect their usual days", which is the same *standing* question `PreferencesDraft` asks
+— it is simply read by nothing in production. The **per-day** confirmation is a third thing,
+asked fresh on every low-ratio evaluation and stored in no field at all (D32); see
+[[tracking-confirmation-must-discard-not-replay]] and
+[[schema-v1-grows-tracking-representative]]. The conclusion below is unaffected: the snapshot
+still does not carry the flag the calculator needs. There is no way to satisfy `VerdictEngine`'s
 signature without either smuggling the preferences flag into the snapshot (muddying what a
 snapshot means) or growing the protocol for a caller that doesn't exist yet.
 
