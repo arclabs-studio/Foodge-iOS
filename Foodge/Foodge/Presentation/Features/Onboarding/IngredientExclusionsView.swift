@@ -9,25 +9,36 @@ import SwiftUI
 
 /// Choosing which ingredients this catalogue's dishes must never contain.
 ///
-/// Pushed from `PreferencesView`, which is the one screen that writes — toggling here only
-/// mutates the shared draft in memory, and nothing is persisted until Save. Discharges D31: the
-/// catalogue now exists, so a picker over these identifiers can no longer produce an exclusion
-/// that silently never bites.
+/// Shared by both screens that offer exclusions: pushed from `PreferencesView` during onboarding,
+/// where toggling mutates the in-memory draft and nothing is written until Save, and from
+/// `SettingsPreferencesView` afterwards, where each toggle saves immediately. It therefore takes
+/// the selection and the action rather than a view model — one copy, two owners, no second list
+/// to keep in step (D63/D70/D71).
+///
+/// Discharges D31: the catalogue now exists, so a picker over these identifiers can no longer
+/// produce an exclusion that silently never bites.
 @MainActor
 struct IngredientExclusionsView: View {
-    @Bindable var vm: OnboardingViewModel
+    let excludedIngredientIDs: Set<String>
+    let toggle: (String) -> Void
+
     @Environment(\.locale) private var locale
     @State private var searchText: String
 
     /// - Parameter initialSearchText: Only ever non-empty from a `#Preview` — lets the render
     ///   matrix reach the `ContentUnavailableView.search` empty state without a live device.
-    init(vm: OnboardingViewModel, initialSearchText: String = "") {
-        self.vm = vm
+    init(
+        excludedIngredientIDs: Set<String>,
+        initialSearchText: String = "",
+        toggle: @escaping (String) -> Void
+    ) {
+        self.excludedIngredientIDs = excludedIngredientIDs
+        self.toggle = toggle
         _searchText = State(initialValue: initialSearchText)
     }
 
     private var ingredients: [Ingredient] {
-        vm.excludableIngredients(matching: searchText, locale: locale)
+        Ingredient.excludable(matching: searchText, in: locale)
     }
 
     var body: some View {
@@ -35,9 +46,9 @@ struct IngredientExclusionsView: View {
             ForEach(ingredients) { ingredient in
                 SelectableRow(
                     title: ingredient.displayName,
-                    isSelected: vm.draft.excludedIngredientIDs.contains(ingredient.id)
+                    isSelected: excludedIngredientIDs.contains(ingredient.id)
                 ) {
-                    vm.toggleExclusion(ingredient.id)
+                    toggle(ingredient.id)
                 }
             }
         }
@@ -54,15 +65,15 @@ struct IngredientExclusionsView: View {
 
 #Preview("Editing", traits: .sampleData) {
     NavigationStack {
-        IngredientExclusionsView(vm: PreviewDependencies.all.makeOnboardingViewModel())
+        IngredientExclusionsView(excludedIngredientIDs: [Ingredient.rice.id]) { _ in }
     }
 }
 
 #Preview("No matches", traits: .sampleData) {
     NavigationStack {
         IngredientExclusionsView(
-            vm: PreviewDependencies.all.makeOnboardingViewModel(),
+            excludedIngredientIDs: [],
             initialSearchText: "zzz-no-such-ingredient"
-        )
+        ) { _ in }
     }
 }

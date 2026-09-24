@@ -83,7 +83,9 @@
                 store: dependencies.store,
                 caseStore: PreviewCaseStore(seeded: seeded, matching: evidence, appealFailure: appealFailure),
                 clock: dependencies.clock,
-                narrator: dependencies.narrator
+                narrator: dependencies.narrator,
+                reminders: dependencies.reminders,
+                localData: dependencies.localData
             )
         }
 
@@ -101,7 +103,19 @@
                 store: base.store,
                 caseStore: PreviewHistoryCaseStore(cases: HistorySeedCases.all),
                 clock: base.clock,
-                narrator: base.narrator
+                narrator: base.narrator,
+                reminders: base.reminders,
+                localData: base.localData
+            )
+        }
+
+        /// Settings with a notification centre that refuses permission — the one reminder state
+        /// that cannot be reached in a preview any other way.
+        static func reminderRefused() -> AppDependencies {
+            make(
+                authorization: PreviewAuthorization(isHealthDataAvailable: true),
+                snapshot: SyntheticScenarios.typicalDay.snapshot,
+                reminderFailure: .reminderNotAuthorized
             )
         }
 
@@ -109,7 +123,8 @@
             authorization: PreviewAuthorization,
             snapshot: EvidenceSnapshot,
             storeFailure: FoodgeError? = nil,
-            seededPreferences: PreferencesDraft? = nil
+            seededPreferences: PreferencesDraft? = nil,
+            reminderFailure: FoodgeError? = nil
         ) -> AppDependencies {
             AppDependencies(
                 authorization: authorization,
@@ -117,7 +132,9 @@
                 store: PreviewStore(failure: storeFailure, seeded: seededPreferences),
                 caseStore: PreviewCaseStore(failure: storeFailure),
                 clock: SyntheticScenarios.clock,
-                narrator: PreviewNarrator()
+                narrator: PreviewNarrator(),
+                reminders: PreviewReminders(failure: reminderFailure),
+                localData: PreviewLocalData(failure: storeFailure)
             )
         }
     }
@@ -140,6 +157,31 @@
     private struct PreviewNarrator: VerdictNarrator {
         func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
             "The defence pleaded tiredness; the court finds pasta a proportionate remedy."
+        }
+    }
+
+    /// Accepts or refuses the reminder, and forgets it when the preview ends. Nothing here
+    /// reaches `UNUserNotificationCenter` — a preview must never raise a permission prompt.
+    private struct PreviewReminders: ReminderService {
+        let failure: FoodgeError?
+
+        func schedule(at _: DateComponents) async throws {
+            if let failure {
+                throw failure
+            }
+        }
+
+        func cancel() async {}
+    }
+
+    /// Reports deletion as done, or refuses it, without a store to empty.
+    private struct PreviewLocalData: LocalDataErasing {
+        let failure: FoodgeError?
+
+        func eraseLocalData() async throws {
+            if let failure {
+                throw failure
+            }
         }
     }
 

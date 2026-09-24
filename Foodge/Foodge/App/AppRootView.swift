@@ -37,7 +37,16 @@ struct AppRootView: View {
     var body: some View {
         Group {
             if hasCompletedOnboarding {
-                MainTabView(dependencies: dependencies)
+                MainTabView(dependencies: dependencies) {
+                    // The latch above is a within-session `true` that a deletion has to clear,
+                    // or someone who onboarded and then deleted in the same session would stay
+                    // in the tab bar with no profile behind it. A fresh view model is the whole
+                    // reset: `didFinish` starts `false` again, and the stored side is already
+                    // gone. What is *not* proven here is whether `@Query` re-reads after
+                    // `PersistenceActor`'s own context deleted the record — the same open
+                    // question this view's own note describes, and only a device shows it.
+                    onboarding = dependencies.makeOnboardingViewModel()
+                }
             } else {
                 OnboardingFlowView(vm: onboarding)
             }

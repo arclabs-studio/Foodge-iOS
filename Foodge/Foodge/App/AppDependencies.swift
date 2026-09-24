@@ -19,6 +19,8 @@ struct AppDependencies: Sendable {
     let caseStore: any CaseStore
     let clock: any EvaluationClock
     let narrator: any VerdictNarrator
+    let reminders: any ReminderService
+    let localData: any LocalDataErasing
 
     init(
         authorization: any HealthAuthorizing,
@@ -26,7 +28,9 @@ struct AppDependencies: Sendable {
         store: any PreferencesStore,
         caseStore: any CaseStore,
         clock: any EvaluationClock,
-        narrator: any VerdictNarrator
+        narrator: any VerdictNarrator,
+        reminders: any ReminderService,
+        localData: any LocalDataErasing
     ) {
         self.authorization = authorization
         self.evidence = evidence
@@ -34,6 +38,8 @@ struct AppDependencies: Sendable {
         self.caseStore = caseStore
         self.clock = clock
         self.narrator = narrator
+        self.reminders = reminders
+        self.localData = localData
     }
 
     /// Builds the onboarding view model from these dependencies.
@@ -69,11 +75,22 @@ struct AppDependencies: Sendable {
         HistoryViewModel(caseStore: caseStore)
     }
 
+    /// Builds the Settings view model from these dependencies.
+    @MainActor
+    func makeSettingsViewModel() -> SettingsViewModel {
+        SettingsViewModel(
+            store: store,
+            reminders: reminders,
+            localData: localData,
+            clock: clock
+        )
+    }
+
     /// The real thing: HealthKit, the on-disk store, and the device's own clock.
     ///
-    /// `store` and `caseStore` share one `PersistenceActor` over the container — it already
-    /// conforms to both protocols, and two separate actors over the same `ModelContainer` would
-    /// race needlessly.
+    /// `store`, `caseStore` and `localData` share one `PersistenceActor` over the container — it
+    /// already conforms to all three protocols, and separate actors over the same
+    /// `ModelContainer` would race needlessly.
     init(container: ModelContainer) {
         let persistence = PersistenceActor(modelContainer: container)
         self.init(
@@ -89,7 +106,9 @@ struct AppDependencies: Sendable {
             narrator: DeadlineNarrator(
                 budget: .seconds(8),
                 wrapped: ValidatingNarrator(wrapped: FoundationModelsNarrator())
-            )
+            ),
+            reminders: LocalReminderService(centre: UserNotificationCentre()),
+            localData: persistence
         )
     }
 }

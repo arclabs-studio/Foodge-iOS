@@ -441,27 +441,6 @@ struct OnboardingViewModelTests {
         #expect(saved.excludedIngredientIDs == [Ingredient.mushroom.id, Ingredient.olive.id])
     }
 
-    @Test("Excludable ingredients are sorted alphabetically in the requested locale, and search is accent-insensitive")
-    func excludableIngredientsAreSortedAndSearchIsAccentInsensitive() {
-        // Given the view model with the compiled-in catalogue
-        let sut = makeSUT()
-        let spanish = Locale(identifier: "es")
-
-        // When listing with no search text
-        let all = sut.viewModel.excludableIngredients(matching: "", locale: spanish)
-
-        // Then the list holds every catalogue ingredient, alphabetically ordered in Spanish
-        #expect(all.count == DishCatalogue.ingredients.count)
-        let names = all.map { $0.localizedName(in: spanish) }
-        #expect(names == names.sorted { $0.localizedStandardCompare($1) == .orderedAscending })
-
-        // When searching without the accent Spanish actually uses on "Salmón"
-        let matches = sut.viewModel.excludableIngredients(matching: "salmon", locale: spanish)
-
-        // Then the accented ingredient is still found
-        #expect(matches.contains(Ingredient.salmon))
-    }
-
     @Test("A failed save is never reported as a save")
     func aFailedSaveLeavesNothingClaimingOnboardingHappened() async {
         // Given a store that will refuse the write

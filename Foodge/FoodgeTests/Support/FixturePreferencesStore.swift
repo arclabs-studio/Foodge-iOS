@@ -16,9 +16,15 @@ import Foundation
 actor FixturePreferencesStore: PreferencesStore {
     private(set) var savedDrafts: [PreferencesDraft] = []
     private var failure: (any Error)?
+    /// What was already on disk before the subject ran.
+    ///
+    /// Deliberately not folded into `savedDrafts`: that list means "what the subject wrote", and
+    /// a seeded value in it would make "nothing was saved" unprovable.
+    private let seeded: PreferencesDraft?
 
-    init(failure: (any Error)? = nil) {
+    init(failure: (any Error)? = nil, seeded: PreferencesDraft? = nil) {
         self.failure = failure
+        self.seeded = seeded
     }
 
     /// Lets one scripted failure be cleared, so a retry can be exercised.
@@ -34,6 +40,6 @@ actor FixturePreferencesStore: PreferencesStore {
     }
 
     func preferences() async throws -> PreferencesDraft? {
-        savedDrafts.last
+        savedDrafts.last ?? seeded
     }
 }

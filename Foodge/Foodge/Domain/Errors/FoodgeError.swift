@@ -30,4 +30,10 @@ enum FoodgeError: Error, Hashable, Sendable {
     /// A stored blob failed to decode. Real corruption, not a foreseeable rename with a safe
     /// fallback, so this throws rather than silently defaulting.
     case caseCorrupted
+    /// Notifications are not permitted, so the evening reminder was not scheduled. Distinct from
+    /// a failure: the system gave a clear answer, and the answer was no.
+    case reminderNotAuthorized
+    /// The reminder could not be scheduled, and Foodge cannot say why. Never reported as a
+    /// refusal — the same distinction `healthAuthorizationFailed` keeps for Health.
+    case reminderSchedulingFailed
 }

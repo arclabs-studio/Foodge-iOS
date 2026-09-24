@@ -60,6 +60,35 @@ actor PersistenceActor: PreferencesStore {
     }
 }
 
+extension PersistenceActor: LocalDataErasing {
+    /// Deletes every preference record and every saved case, then commits once.
+    ///
+    /// Fetched and deleted object by object rather than with SwiftData's batch
+    /// `delete(model:)`: a batch delete does not run the model layer's cascade rules, which is
+    /// how `VerdictRevision` and `Appeal` rows would be left behind with no case to belong to.
+    /// The dataset here is one person's own history, so the cost of walking it is irrelevant
+    /// beside the guarantee that nothing survives.
+    ///
+    /// Apple Health records are never touched — Foodge reads Health and does not own it.
+    ///
+    /// - Throws: ``FoodgeError/saveFailed`` if the deletion does not commit. The caller must keep
+    ///   saying the data is still there.
+    func eraseLocalData() throws {
+        for preferences in try modelContext.fetch(FetchDescriptor<UserPreferences>()) {
+            modelContext.delete(preferences)
+        }
+        for dailyCase in try modelContext.fetch(FetchDescriptor<DailyCase>()) {
+            modelContext.delete(dailyCase)
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            throw FoodgeError.saveFailed
+        }
+    }
+}
+
 extension PersistenceActor: CaseStore {
     /// The case matching the local day `evidence` was evaluated on, or `nil` if none exists.
     ///

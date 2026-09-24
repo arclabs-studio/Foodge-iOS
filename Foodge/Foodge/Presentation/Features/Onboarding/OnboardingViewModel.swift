@@ -202,22 +202,6 @@ final class OnboardingViewModel {
         }
     }
 
-    /// The catalogue's ingredients, alphabetically ordered in `locale` and filtered by
-    /// `searchText`, diacritic- and case-insensitively.
-    ///
-    /// Only Presentation knows display names, so only Presentation can sort or search by them —
-    /// the Domain catalogue orders ingredients by first appearance, not alphabetically.
-    func excludableIngredients(matching searchText: String, locale: Locale) -> [Ingredient] {
-        let candidates = searchText.isEmpty
-            ? DishCatalogue.ingredients
-            : DishCatalogue.ingredients.filter {
-                $0.localizedName(in: locale).localizedStandardContains(searchText)
-            }
-        return candidates.sorted {
-            $0.localizedName(in: locale).localizedStandardCompare($1.localizedName(in: locale)) == .orderedAscending
-        }
-    }
-
     /// Writes the preferences, and only then reports onboarding complete.
     ///
     /// The stamped draft is built as a local copy: on failure nothing is mutated, so no part of

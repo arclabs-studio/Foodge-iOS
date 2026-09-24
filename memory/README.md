@@ -60,6 +60,8 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[tracking-confirmation-must-discard-not-replay]] — "No" must not replay into the same guard
 - [[no-match-still-reaches-a-verdict]] — the category rules even when the dish pick can't
 - [[history-load-must-never-guard-on-stage]] — a stage guard that's correct on Today and wrong on History
+- [[reminder-toggle-tracks-the-system-not-the-switch]] — `onChange` echoes the app's own revert
+- [[deletion-is-its-own-seam-and-the-latch-must-be-cleared]] — wiping data, and the latch that survives it
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

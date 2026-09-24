@@ -11,9 +11,16 @@ import SwiftUI
 ///
 /// One `NavigationStack` over a typed route, driven by the view model's path — the same shape
 /// `OnboardingFlowView` uses. There is no custom router here and never will be.
+///
+/// Settings opens from the toolbar as a sheet with its own stack (`DESIGN.md` §"Screens"), so it
+/// never lands on the path back from a verdict.
 @MainActor
 struct TodayFlowView: View {
     @Bindable var vm: TodayViewModel
+    @Bindable var settings: SettingsViewModel
+    let onLocalDataErased: () -> Void
+
+    @State private var isShowingSettings = false
 
     var body: some View {
         NavigationStack(path: $vm.path) {
@@ -28,10 +35,23 @@ struct TodayFlowView: View {
                         }
                     }
                 }
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Settings", systemImage: "gearshape") {
+                            isShowingSettings = true
+                        }
+                    }
+                }
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(vm: settings, onLocalDataErased: onLocalDataErased)
         }
     }
 }
 
 #Preview(traits: .sampleData) {
-    TodayFlowView(vm: PreviewDependencies.all.makeTodayViewModel())
+    TodayFlowView(
+        vm: PreviewDependencies.all.makeTodayViewModel(),
+        settings: PreviewDependencies.all.makeSettingsViewModel()
+    ) {}
 }

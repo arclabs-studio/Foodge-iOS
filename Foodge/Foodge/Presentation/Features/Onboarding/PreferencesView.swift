@@ -22,25 +22,12 @@ struct PreferencesView: View {
 
     var body: some View {
         Form {
-            Section {
-                Picker("Diet", selection: $vm.draft.dietProfile) {
-                    ForEach(DietProfile.allCases, id: \.self) { profile in
-                        Text(profile.displayName).tag(profile)
-                    }
-                }
-            } footer: {
-                Text("Foodge never infers this from Health, and never relaxes it to find a match.")
-            }
+            DietProfileSection(dietProfile: $vm.draft.dietProfile)
 
-            Section {
-                NavigationLink(value: OnboardingRoute.ingredientExclusions) {
-                    LabeledContent(
-                        "Ingredients to exclude",
-                        value: vm.draft.excludedIngredientIDs.count,
-                        format: .number
-                    )
-                }
-            }
+            IngredientExclusionsLinkSection(
+                excludedCount: vm.draft.excludedIngredientIDs.count,
+                route: OnboardingRoute.ingredientExclusions
+            )
 
             ForEach(DinnerCategory.allCases, id: \.self) { category in
                 FavouriteFamiliesSection(
@@ -50,18 +37,7 @@ struct PreferencesView: View {
                 )
             }
 
-            Section {
-                Picker("Most evenings", selection: $vm.draft.dinnerRoutine) {
-                    Text("No preference").tag(DinnerTime?.none)
-                    ForEach(DinnerTime.allCases, id: \.self) { time in
-                        Text(time.displayName).tag(DinnerTime?.some(time))
-                    }
-                }
-            } header: {
-                Text("Dinner routine")
-            } footer: {
-                Text(vm.draft.dinnerRoutine.footerDescription)
-            }
+            DinnerRoutineSection(dinnerRoutine: $vm.draft.dinnerRoutine)
 
             Section {
                 Button("Save and finish") {

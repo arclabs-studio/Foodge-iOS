@@ -112,6 +112,15 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D78 | A fresh `LanguageModelSession` per request; no stored session, no `prewarm`, no `isResponding` guard, no `tools:`. | No context accumulates between days, `FoundationModelsNarrator` stays a stateless `Sendable` struct, and nothing from persistence or decision-making is reachable from a generation. `prewarm` was rejected because a decoration does not justify holding model resources for a screen the user may never reach. |
 | D79 | Deliberate non-goals for WU-23, so they read as decisions rather than omissions: no Settings screen for `narrationEnabled` (the flag is read and honoured; the disabled path is covered by a seeded fixture), no template variety beyond one per category, no streaming, no accessibility announcement when the model line replaces the template. | The template is keyed by category only, with no dish-name interpolation, so it renders correctly for a `.noMatch` night (no dish name exists) and for a historical case whose `variantID` a later catalogue no longer resolves — `DishCatalogue.displayName(forVariantID:)` falls back to the raw id, and a raw id must never reach prose. Low variety is explicitly sanctioned by this document's own cut list. The announcement is omitted because it would interrupt a VoiceOver reader for a decorative change. |
 | D81 | `narrateIfNeeded()` shows a revision's stored `narrationText` and returns, rather than generating again: a day is narrated **once, ever**, not once per screen appearance. | Device-caught, and the unit tests could not have caught it — every fixture seeded `narrationText: nil`, so no test ever reopened a day that already had a flourish. On the phone, reopening a saved case logged `narration=narrating` → a fresh 1.96 s generation on every launch. Two consequences, both wrong: `attachNarration` is write-once (D76), so the store kept the *first* line while Today showed a *new* one — the same day reading differently on two screens — and every launch spent seconds of on-device model work to produce that disagreement. After the fix the same reopen logs `stage=verdict` → `narration=narrated` 7 ms later, with no model call at all. Pinned by `TodayNarrationViewModelTests.storedNarrationIsShownWithoutRegenerating` (call count 0, nothing attached). |
+| D86 | Settings opens from Today's toolbar as a `.sheet` carrying its own `NavigationStack`, not pushed onto Today's stack. | `DESIGN.md` §"Screens" says Settings opens from a toolbar button and does not say how it is presented. Today's stack belongs to the verdict flow: pushing Settings into it would leave Settings sitting on the path back from a verdict, and a `Done` button there would compete with the flow's own back gesture. The sheet also keeps `SettingsViewModel`'s loaded state alive independently of `TodayViewModel.path`. |
+| D87 | Deletion is its own Domain seam, `LocalDataErasing`, rather than a method on `PreferencesStore`; `PersistenceActor` conforms to it as a third protocol and throws the existing `FoodgeError.saveFailed`. It deletes by fetching each `UserPreferences`/`DailyCase` rather than with SwiftData's batch `delete(model:)`. | A store that reads and writes one person's preferences and a wipe of every case are different scopes; keeping them apart means a screen that only edits preferences cannot reach the delete path. A batch delete does not run the model layer's cascade rules, so `VerdictRevision`/`Appeal` rows would outlive their `DailyCase`. A new error case would buy nothing over `saveFailed` — a deletion that does not commit is a write that did not complete — and would cost a second sentence to translate two days from freeze. |
+| D88 | `NotificationScheduling` (Domain) is the seam under `LocalReminderService`, and `FoodgeError` grows **two** cases: `reminderNotAuthorized` and `reminderSchedulingFailed`. | Same reasoning as D34's `HealthAuthorizing`: `UNUserNotificationCenter` presents a system prompt and cannot be driven off a device, so without the seam the rule "a refused authorization schedules nothing and is never reported as scheduled" has no reachable test. Two cases rather than one because only a refusal is something the user can undo in the Settings app — collapsing them would make Foodge claim an answer the system never gave, the same mistake as claiming Health denial. |
+| D89 | `SettingsViewModel` keeps `isReminderScheduled` (what the system accepted) separate from `reminderEnabled` (what the toggle shows), and `reminderEnabledChanged(to:)` guards on the former. | The failure path puts the toggle back itself, and SwiftUI sends that write back through the same `.onChange` as "the user switched it off" — which would cancel, clear the stored time and **erase the refusal message** a frame after it appeared. Guarding on "did the value change" does not help: it genuinely changed. Pinned by `SettingsViewModelTests.theRevertedToggleKeepsTheRefusalVisible`. |
+| D90 | Settings saves on every change; there is no Save button, unlike onboarding's single write. | Onboarding holds everything in memory because someone who abandons it must leave nothing behind (that is why `finish()` is the only write). In Settings the profile already exists, so a half-finished edit is not a risk, and an iOS settings screen that needs a Save button is not native. The failure rule is unchanged and now appears in both screens through one shared `SettingsSaveFailureSection`. |
+| D91 | `IngredientExclusionsView` is generalized to take `excludedIngredientIDs` + a `toggle` closure instead of `OnboardingViewModel`, and the alphabetical/diacritic-insensitive ordering moves to `Ingredient.excludable(matching:in:)`. `OnboardingViewModel.excludableIngredients` delegates to it. | Settings offers the same exclusion list from a different view model. A second copy of the screen — or of the sort — is the drift D63/D70/D71 exist to prevent, and only one copy would have been under test. The view keeps working identically in onboarding (toggling still mutates the in-memory draft) and saves immediately in Settings, because the difference is entirely in the closure each owner passes. |
+| D92 | WU-24-B.2 ships **five** Settings rows. The demonstration-mode row lands with WU-24-B.3, which builds what it opens. | A row that opens nothing, or a "coming soon" placeholder, is the thing D61 already ruled against — except D61 had a screen to be honest *about*. Shipping the row one unit later costs nothing and keeps every control on this screen doing what it says. |
+| D93 | Deleting local data clears `AppRootView`'s within-session `didFinish` latch, through an `onLocalDataErased` closure passed down from `AppRootView` → `MainTabView` → `TodayFlowView` → `SettingsView`. | Without it, someone who onboards and deletes in the same session keeps the latch `true` and stays in the tab bar with no profile behind it. What this does **not** prove is whether `@Query` re-reads after `PersistenceActor`'s separate `ModelContext` deleted the record — the open question `AppRootView` has carried since WU-19-D. Recorded as a device check for WU-25-A rather than claimed. |
+| D94 | D34's sentence "production Presentation code may not name `AppDependencies`" is narrowed to what has actually been enforced since WU-19-D: **no ViewModel initializer may name it**. The composition-root View chain — `AppRootView` (App layer) and `MainTabView` (Presentation) — may, because each has to build and hold child view models in `@State` so navigation paths and in-progress stages survive a re-render. | Raised by `arc-constitution-review` on WU-24-B.2 as a MAJOR: `MainTabView.init(dependencies:)` literally contradicts D34 as written, and an earlier audit treated the same pattern as a blocker on `OnboardingViewModel`. The pattern predates this unit, which only extended the existing signature. Two ways out: reword the rule, or route dependencies to `MainTabView` through something that is not the type — the second buys nothing but a wrapper with the same fields, two days from feature freeze. What the rule is *for* is keeping App-layer assembly out of view models, and that still holds: `SettingsViewModel`, like every other, takes four narrow Domain protocols. The user may overturn this in favour of the code change. |
 | D80 | `SavedRevision.attachingNarration(_:)` is a new value-copy helper on the entity, rather than each caller rebuilding the struct field by field. | `SavedRevision` is let-only on purpose, so a caller holding one replaces it. Three call sites needed that copy (`PersistenceActor`, `PreviewCaseStore`, the narration test fixture); one shared helper means no call site can silently drop a field while rebuilding one by hand — the same reasoning as D63/D70/D71, applied to a value type. |
 
 ---
@@ -1433,6 +1442,83 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   its default rules, not this project's. `CLAUDE.md` already says it: *there is no SwiftLint here;
   a warning is a build failure.* Reformatting pre-existing preview code to satisfy it would have
   been precisely the unrequested change the constitution forbids.
+
+### WU-24-B.2 ✅ Settings screen and the evening reminder
+
+**Objective / scope.** The five Settings rows the plan commits to — preferences, the evening
+reminder, Health guidance, the judge's flourish, and deleting local data — plus the reminder
+itself, which exists now because the plan requires "cancellation of pending reminders" on
+deletion and the two therefore ship together. Demonstration mode is **not** in this unit (D92).
+No schema change: `UserPreferences` has carried `narrationEnabled`, `reminderHour` and
+`reminderMinute` since V1 and they were simply unreachable from any screen.
+
+**What was built.**
+
+- Domain seams: `NotificationScheduling` (+ `ScheduledNotification`) and `LocalDataErasing`
+  (D87, D88). `FoodgeError` gains `reminderNotAuthorized` and `reminderSchedulingFailed`.
+- Data: `LocalReminderService` over the seam, `UserNotificationCentre` as the thin real
+  conformer, `PersistenceActor.eraseLocalData()`.
+- Presentation: `Presentation/Features/Settings/` — `SettingsView` (sheet + own
+  `NavigationStack`, D86), `SettingsViewModel`, `SettingsPreferencesView`, `SettingsRoute`,
+  `SettingsLog`, and five section components. `IngredientExclusionsView` generalized and shared
+  with onboarding (D91); ingredient ordering moved to `Ingredient.excludable(matching:in:)`.
+- App: `AppDependencies` gains `reminders`/`localData` and `makeSettingsViewModel()`;
+  `MainTabView` holds the Settings view model in `@State` beside Today and History; deletion
+  clears `AppRootView`'s onboarding latch (D93).
+
+**Acceptance.** Permission is requested only when the reminder is switched on; a refusal shows
+the toggle off with an explanation and stores no time; the reminder repeats at the chosen local
+wall-clock time; deletion wipes preferences and every case, cancels the pending reminder and
+never touches Health; every new string ships Spanish.
+
+**Audits, and what they changed.**
+
+- `arc-audit-concurrency`: **0 findings**. Confirmed the three new `actor` fixtures are real
+  cross-actor hops rather than decorative `await`s, and that no doc comment overclaims.
+- `arc-audit-hig`: **1 BLOCKER, 1 MAJOR — both fixed.** The blocker was `Button("Done")` in the
+  sheet toolbar: iOS 27 wants the role-based initializer, and this unit's own sibling
+  `AppealSheetView` already used it. Now `Button(role: .close)`, which draws the Liquid Glass
+  glyph and supplies its own accessibility label (`.close`, not `.cancel`: there is no draft to
+  lose when every change is already saved). The MAJOR was three UI blocks duplicated verbatim
+  between `PreferencesView` and `SettingsPreferencesView`; extracted to
+  `DietProfileSection`, `DinnerRoutineSection` and `IngredientExclusionsLinkSection`
+  (generic over the route value, since the two stacks use different route enums). The same
+  audit noticed that the extraction left `OnboardingViewModel.excludableIngredients` called by
+  nothing but its own test — the method is deleted and the test moved to
+  `IngredientOrderingTests`, where the helper now lives.
+- `arc-audit-accessibility`: one real defect, **fixed in the presentation layer**. The reminder
+  refusal, the save failure and the delete failure each appear as a row with no navigation and
+  no focus change, so VoiceOver would never reach them (WCAG 4.1.3 Status Messages). All three
+  now post `AccessibilityNotification.Announcement(...)` on the transition into failure. Success
+  of a deletion is deliberately **not** announced: it triggers `onLocalDataErased()` and the
+  screen goes away, so the system's own screen-changed notification covers it. D79's decorative
+  narration line stays un-announced — that exception is about a decoration, this is a failure the
+  user has to act on. The audit also re-derived `AppBurgundyMuted`'s contrast from the asset
+  catalogue rather than trusting the comments: **4.72:1** in standard-contrast light (the worst
+  of the four appearances), 5.69:1 dark, 6.84:1 increased-contrast light. The claim holds, with
+  only 0.22 of margin — re-check it if either that colour or the Form row background moves.
+- `arc-constitution-review`: **0 blockers, 1 MAJOR** — `MainTabView.init(dependencies:)` names
+  `AppDependencies`, which D34's wording forbids for Presentation. Pre-existing and extended, not
+  introduced, by this unit. Resolved as **D94** (narrow the rule to ViewModel initializers) rather
+  than by a refactor two days from freeze. The same review confirmed D92's "five rows" is
+  accurate, that D93 under-claims rather than overclaims, and that each of the 13 Settings tests
+  has an oracle independent of the code under test.
+
+**Evidence.** Build succeeded; `GetBuildLog { severity: "warning" }` → `totalFound: 0`, checked
+after every edit round including the auditors'. **260/260 tests pass** (`RunAllTests`, after a
+fresh build so `UIStringLocalizationTests` compares against the real `es.lproj`), of which 18 are
+new: 5 in `LocalReminderServiceTests`, 13 in `SettingsViewModelTests`. Spanish: **25 new keys,
+25 translated**, 0 left in `new` state — delegated to three translation sub-agents, never written
+inline, never a hand-edit. Previews rendered: `SettingsView` (es, en at **AX 5**, and the
+refusal state), `SettingsPreferencesView` (es), `PreferencesView` (es, unchanged by the
+extraction), `TodayFlowView` (es, toolbar gear). No clipping or overlap at AX 5.
+
+Two debts this unit adds, both small: the `Done` string is now unreferenced and will show up as
+a stale catalogue key (removable only in Xcode's own editor, like the other 71), and the
+SwiftLint pre-commit hook fired again on pre-existing long footer strings — the same false alarm
+recorded under WU-24-B.1: it runs default rules, and this project has no SwiftLint configuration.
+
+**Next.** WU-24-B.3 — demonstration mode, which adds the sixth row.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

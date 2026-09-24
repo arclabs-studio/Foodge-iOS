@@ -31,6 +31,24 @@ extension Ingredient {
         Self.localizedString(for: nameKey, in: locale)
     }
 
+    /// The catalogue's ingredients, alphabetically ordered in `locale` and filtered by
+    /// `searchText`, diacritic- and case-insensitively.
+    ///
+    /// A display helper on the model rather than a method on one screen's view model: two
+    /// screens now offer the same exclusion list (onboarding and Settings), and only Presentation
+    /// knows display names — the Domain catalogue orders ingredients by first appearance, not
+    /// alphabetically.
+    static func excludable(matching searchText: String, in locale: Locale) -> [Ingredient] {
+        let candidates = searchText.isEmpty
+            ? DishCatalogue.ingredients
+            : DishCatalogue.ingredients.filter {
+                $0.localizedName(in: locale).localizedStandardContains(searchText)
+            }
+        return candidates.sorted {
+            $0.localizedName(in: locale).localizedStandardCompare($1.localizedName(in: locale)) == .orderedAscending
+        }
+    }
+
     static func localizedString(for key: String, in locale: Locale) -> String {
         guard
             let languageCode = locale.language.languageCode?.identifier,

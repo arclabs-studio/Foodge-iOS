@@ -26,7 +26,10 @@ struct OnboardingFlowView: View {
                     case .preferences:
                         PreferencesView(vm: vm)
                     case .ingredientExclusions:
-                        IngredientExclusionsView(vm: vm)
+                        IngredientExclusionsView(
+                            excludedIngredientIDs: vm.draft.excludedIngredientIDs,
+                            toggle: vm.toggleExclusion
+                        )
                     }
                 }
         }
