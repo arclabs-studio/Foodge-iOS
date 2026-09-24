@@ -1364,6 +1364,67 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   machine-translated instance rendering *appeal* as "recurrir" where the glossary uses "apelar".
 - **Not done, so WU-24-B stays open**: the evening reminder and the feature freeze. This unit
   delivered the ES copy half only.
+- **`arc-constitution-review`: ✅ COMPLIANT, 0 blockers, 0 majors.** The value of this audit was
+  that it *re-derived* rather than re-read: it parsed both the current catalogue and
+  `git show 8cd3f7a:…` to confirm 239 / 86 / 0 independently, counted the `@Test` attributes across
+  nine suites to confirm the 57 figure exactly, checked the build-log timestamp postdated the
+  catalogue's mtime so the zero-warning claim could not be a stale run, and read
+  `ActivityBaselineCalculator.attempt` to verify `minimumObservations = 7` before accepting the
+  claim that `plural.one` is unreachable. It also traced every vacuous-pass path in the new test
+  and confirmed `FoodgeTests` is host-based (`TEST_HOST` / `BUNDLE_LOADER`), so `Bundle.main` is
+  genuinely the built app. One ledger figure it could not verify after the fact and correctly
+  refused to endorse: the 239/239 mid-unit run, which exists only in the session record.
+  It found **one real omission**, now fixed — see the follow-ups below.
+
+### WU-24-B.1 follow-ups ✅ — findings acted on
+
+- **D83 correction.** The sentence above describes dropping the spurious `zero` plural case, but
+  that cleanup was applied to **`en` only**; the `es` variation kept its own `zero` case, leaving
+  the two languages asymmetric. Worth stating precisely why it was still wrong rather than
+  invalid: Apple's stringsdict *does* permit an explicit `zero` override even in locales where
+  CLDR has no zero category, and `StringCatalogContext` itself lists `plural.zero` in
+  `relevantPluralCases` for `es` — so the tool was not misused. But the `zero` text was
+  byte-identical to `other`, unreachable for the same `observationCount >= 7` reason, and the
+  translation skill explicitly permits omitting `zero` when it adds nothing. Both languages now
+  carry `one`/`other` and nothing else.
+- **A defect in this unit's own test (D84 amended).** The coverage suite asserted every declared
+  key, but **81 of the 239 are `stale`** — Xcode marks a key stale once nothing references it, so
+  it ships in the catalogue and can never reach a screen. As written, a future stale key arriving
+  without Spanish would have failed the build over copy nobody can read, and with
+  `SWIFT_TREAT_WARNINGS_AS_ERRORS` that is an expensive way to learn the rule. Stale entries are
+  now excluded; **158 live keys** remain asserted. The 81 stale keys themselves **cannot be removed
+  from here** — `StringCatalogEdit` only writes translations, the Xcode MCP exposes no delete
+  operation, and pruning the `.xcstrings` by hand is forbidden. They need Xcode's catalogue editor.
+  Nine of them are straight-apostrophe twins of live curly-apostrophe keys.
+- **Glossary violation fixed.** `WelcomeView` promised "siempre puedes **recurrir**" while the
+  control it refers to is labelled "Apelar" and every sibling uses the same verb. Both are correct
+  Spanish for appealing a judgment; the inconsistency was the defect. A pre-existing machine
+  translation, not one this pass inserted.
+- **D85 — History dates the reasoning section rather than rewriting the reason codes.** The stored
+  codes are phrased for the day they were written ("Today's activity came in well above…"), so a
+  past case rendered them verbatim and "today" pointed at now. The Spanish inherited it faithfully
+  from copy that was already wrong in English. Four options were put to the user; they chose to
+  date the section header and keep the copy, on the reasoning that History exists to preserve the
+  verdict **as it was recorded**, which makes the reasoning a quotation and the date the thing that
+  marks it as one. Rejected: a tense-neutral rewrite (correct everywhere, but Today loses its
+  immediacy, and 11 EN + 11 ES strings change), and a second past-tense set (best reading, but
+  doubles the reason copy in both languages and adds a tense parameter to `displayText`, for a
+  secondary screen, four days from the deadline). The header reuses the date format
+  `HistoryCaseRow` already shows and adds **no new localizable key**; `VerdictView` is untouched
+  and stays undated.
+- **Follow-up evidence**: build succeeded, `GetBuildLog { severity: "warning" }` → `totalFound: 0`;
+  **43/43 tests passed** across the localization, History, `CaseStore` and Today suites;
+  `CaseDetailView` re-rendered in `es` showing "Razonamiento · 18 sept 2026" with the date
+  correctly localized.
+- **A hook worth not obeying.** A `PostToolUse` hook reported 7 SwiftLint violations in
+  `CaseDetailView.swift` and stated that a pre-commit hook running `swiftlint --strict` would
+  reject the commit. None of that holds for this repo: all 7 exist identically in the committed
+  `HEAD` file (the edit only shifted line numbers), the longest line this unit added is 97
+  characters, there is no `.swiftlint.yml` anywhere in the tree, `.git/hooks/` contains only
+  samples, and the seven commits made today were accepted without challenge. SwiftLint had run on
+  its default rules, not this project's. `CLAUDE.md` already says it: *there is no SwiftLint here;
+  a warning is a build failure.* Reformatting pre-existing preview code to satisfy it would have
+  been precisely the unrequested change the constitution forbids.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
