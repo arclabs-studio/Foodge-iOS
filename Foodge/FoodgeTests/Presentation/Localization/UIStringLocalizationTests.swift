@@ -26,6 +26,11 @@ import Testing
 /// Neither side is produced by calling the same `LocalizedStringResource` lookup the app uses —
 /// this never resolves a string through production code, it only compares two independently
 /// produced artefacts.
+///
+/// One operational caveat, shared by any test that reflects on the built bundle: the two sides are
+/// only comparable when the host app has been rebuilt from the current catalogue. Against stale
+/// DerivedData this can pass on an old `es.lproj`, or fail on a half-written one, while the source
+/// says otherwise. Run it after a build, not instead of one.
 @Suite("UI string localization", .tags(.integration, .critical))
 struct UIStringLocalizationTests {
     /// A minimal decode of the String Catalog — only enough to enumerate keys and respect an
