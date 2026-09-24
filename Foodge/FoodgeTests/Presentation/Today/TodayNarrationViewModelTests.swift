@@ -26,6 +26,7 @@ struct TodayNarrationViewModelTests {
     private func makeSUT(
         scripted: String? = "The court finds the defence charming.",
         narrationEnabled: Bool = true,
+        seededNarration: String? = nil,
         dishOutcome: PersistedDishOutcome = .selected(
             variantID: "dish.pasta.pesto",
             family: .pasta,
@@ -37,7 +38,11 @@ struct TodayNarrationViewModelTests {
         beforeNarratorReturns: (@Sendable () async -> Void)? = nil
     ) -> SUT {
         let evidence = Self.evidence(note: note)
-        let revision = Self.revision(evidence: evidence, dishOutcome: dishOutcome)
+        let revision = Self.revision(
+            evidence: evidence,
+            dishOutcome: dishOutcome,
+            narrationText: seededNarration
+        )
         let caseStore = NarrationFixtureCaseStore(
             seeded: SavedCase(localDayKey: "2026-09-18", revisions: [revision]),
             attachFailure: attachFailure
@@ -76,7 +81,8 @@ struct TodayNarrationViewModelTests {
 
     private static func revision(
         evidence: EvidenceSnapshot,
-        dishOutcome: PersistedDishOutcome
+        dishOutcome: PersistedDishOutcome,
+        narrationText: String? = nil
     ) -> SavedRevision {
         SavedRevision(
             id: UUID(),
@@ -92,7 +98,7 @@ struct TodayNarrationViewModelTests {
             evidence: evidence,
             catalogueVersion: DishCatalogue.version,
             dishOutcome: dishOutcome,
-            narrationText: nil,
+            narrationText: narrationText,
             appeals: []
         )
     }
@@ -154,6 +160,28 @@ struct TodayNarrationViewModelTests {
         // Then the model was asked exactly once, and the shown line did not change
         #expect(await sut.narrator.callCount == 1)
         #expect(sut.viewModel.narrationStage == .narrated("The court finds the defence charming."))
+    }
+
+    @Test("A day that already carries narration shows it without asking the model again")
+    func storedNarrationIsShownWithoutRegenerating() async {
+        // Given a saved case whose revision already carries a flourish from an earlier session
+        let sut = makeSUT(
+            scripted: "A different remark entirely.",
+            seededNarration: "The remark this day was actually ruled with."
+        )
+        await sut.viewModel.onAppear()
+
+        // When the screen appears again — a relaunch, or a tab revisit
+        await sut.viewModel.narrateIfNeeded()
+
+        // Then the stored line is what shows, the model was never asked, and nothing was written.
+        // Without this, Today and History show different flourishes for the same day — the store
+        // keeps the first (write-once, D76) while the screen shows a fresh one — and every launch
+        // spends seconds of model work to create that disagreement. Device-caught: the log read
+        // `narration=narrating` on a reopened case.
+        #expect(sut.viewModel.narrationStage == .narrated("The remark this day was actually ruled with."))
+        #expect(await sut.narrator.callCount == 0)
+        #expect(await sut.caseStore.attached.isEmpty)
     }
 
     // MARK: - When narration must not run at all

@@ -53,7 +53,7 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
 ]
 ```
 
-`RunAllTests` reports **240 passed as of Day 23** (WU-23 added the seven narration suites above;
+`RunAllTests` reports **241 passed as of Day 23** (WU-23 added the seven narration suites above;
 the Day 22 figure was 157). Note the count expands every argument of a parameterized `@Test`, so
 it grows faster than the number of test functions. Prefer the curated list over `RunAllTests` for
 a quick loop — `RunAllTests` also runs the XCTest UI bundle. Add new suites here as they land.
@@ -65,6 +65,10 @@ Tests and previews run on **iPhone 17 Pro (27.0)**. Switch with
 
 Switch to `iPhone de CR` only for a real device run, and switch back afterwards. Changing
 destination while the app is running on the phone disturbs that session.
+
+**`RunSomeTests`/`RunAllTests` silently return `notRun` while the device destination is active** —
+every test comes back `"state": "No result"` with no error explaining why. It is not a broken
+test; it is the destination. Switch back to `iPhone 17 Pro (27.0)` and re-run (Day 23).
 
 ## Verifying things the build log does not show
 

@@ -1,13 +1,14 @@
 ---
-title: Narration is never persisted as a template, written once, and never reports a failure
-tags: [foodge, decision, persistence, narration, history]
+title: Narration is never persisted as a template, written once, shown not regenerated, and never reports a failure
+tags: [foodge, decision, persistence, narration, history, device-caught]
 date: 2026-09-23
-ledger: D75, D76, D77
+updated: 2026-09-24
+ledger: D75, D76, D77, D81
 ---
 
-# Narration: template never persisted · attach is write-once · a failed save is silent
+# Narration: template never persisted · attach is write-once · a stored line is shown, never regenerated · a failed save is silent
 
-Three rules that only make sense together.
+Four rules that only make sense together.
 
 ## 1. The template is never persisted (D75)
 
@@ -33,7 +34,31 @@ A revision that already carries narration is returned **unchanged**, not overwri
 read differently each time it was opened. The oracle in `CaseStoreTests.narrationIsWriteOnce` is
 that the **first** text stands.
 
-## 3. A failed attach is silent (D77)
+## 3. A stored line is shown, never regenerated (D81) — the one the tests missed
+
+`narrateIfNeeded()` opens with:
+
+```swift
+if let existing = revision.narrationText {
+    transitionNarration(to: .narrated(existing))
+    return
+}
+```
+
+**Rule 2 alone is a trap without this one.** Write-once keeps the *store* stable; it does nothing
+to stop the *screen* asking the model again. Without rule 3, reopening a saved day generated a
+fresh flourish, the attach silently returned the existing revision, and Today showed one line
+while History showed another — for the same day, from the same code.
+
+Every unit-test fixture seeded `narrationText: nil`, so **no test ever reopened a day that already
+had a flourish** — the whole suite was green while this was live. It was caught by reading the
+device console: `narration=narrating` on a case that was merely reopened. After the fix the same
+reopen is `stage=verdict` → `narration=narrated`, 7 ms apart, with no model call.
+
+The lesson generalizes past narration: a fixture that only ever seeds the *empty* shape of an
+optional field cannot test the branch that field exists to create.
+
+## 4. A failed attach is silent (D77)
 
 The line is genuine and validated, so it stays on screen for the session via `.narrated(text)`
 while the revision keeps `nil`. `stage` **never** becomes `.saveFailed`.

@@ -385,6 +385,15 @@ final class TodayViewModel {
     func narrateIfNeeded() async {
         guard case .idle = narrationStage, let revision = currentRevision else { return }
 
+        // A revision that already carries narration shows exactly that, and the model is never
+        // asked again. `attachNarration` is write-once (D76), so regenerating here would leave
+        // Today showing one flourish while History showed the one actually stored for the same
+        // day — and would spend two to four seconds of model work on every launch to do it.
+        if let existing = revision.narrationText {
+            transitionNarration(to: .narrated(existing))
+            return
+        }
+
         // A `.noMatch` night has no dish to be playful about, and inventing one would be the
         // opposite of the honest no-match the product rule requires.
         guard case let .selected(variantID, _, _, _) = revision.dishOutcome else {
