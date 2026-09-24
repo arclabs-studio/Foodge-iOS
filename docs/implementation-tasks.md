@@ -1395,7 +1395,15 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   now excluded; **158 live keys** remain asserted. The 81 stale keys themselves **cannot be removed
   from here** — `StringCatalogEdit` only writes translations, the Xcode MCP exposes no delete
   operation, and pruning the `.xcstrings` by hand is forbidden. They need Xcode's catalogue editor.
-  Nine of them are straight-apostrophe twins of live curly-apostrophe keys.
+- **Ten of those stale keys have since been removed by the user**, through Xcode's catalogue
+  editor. Nine were straight-apostrophe twins of live curly-apostrophe keys — the source switched
+  from `'` to `’` at some point, so Xcode kept the original, marked it stale, and created a new
+  one; both halves carried identical Spanish. The tenth was the curly half of "The judge is still
+  reviewing the evidence. Tonight’s verdict arrives soon.", where **both** halves were stale with
+  no Swift reference to either (superseded by "No verdict yet"). Catalogue is now **229 keys, 158
+  live, 71 stale**. Verified after the fact: no live key removed, no surviving entry altered, no
+  live key left without Spanish; zero-warning build and **52/52 tests** including the full
+  Onboarding suite, where most of the deleted strings' live twins are used.
 - **Glossary violation fixed.** `WelcomeView` promised "siempre puedes **recurrir**" while the
   control it refers to is labelled "Apelar" and every sibling uses the same verb. Both are correct
   Spanish for appealing a judgment; the inconsistency was the defect. A pre-existing machine
