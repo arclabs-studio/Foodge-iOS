@@ -16,6 +16,15 @@ struct FoodgeApp: App {
     var body: some Scene {
         WindowGroup {
             switch launch.state {
+            case .loading:
+                CourtLoadingView(
+                    message: LocalizedStringResource(
+                        "Preparing the court…",
+                        comment: "Launch loading message"
+                    ),
+                    artwork: .judgeWelcome
+                )
+                .task { await launch.load() }
             case let .ready(container, dependencies):
                 // `.modelContainer(_:)` rather than `.modelContainer(_:onSetup:)`, which is
                 // otherwise the rule for initial load. That overload *builds* the container

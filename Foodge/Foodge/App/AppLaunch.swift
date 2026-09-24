@@ -16,24 +16,29 @@ import SwiftData
 /// the dishonesty ``FoodgeError/storeUnavailable`` exists to prevent. Failure shows a screen
 /// with a retry instead.
 ///
-/// Building the container is synchronous and cheap, so there is no loading state and no
-/// `.task`: by the time the first body runs, the answer is already known.
+/// The explicit loading state lets SwiftUI present the branded launch view before the synchronous
+/// container open begins. `Task.yield()` gives that first frame a chance to render without adding
+/// an artificial delay to every launch.
 @MainActor
 @Observable
 final class AppLaunch {
     enum State {
+        case loading
         case ready(ModelContainer, AppDependencies)
         case storeUnavailable(FoodgeError)
     }
 
-    private(set) var state: State
+    private(set) var state: State = .loading
 
-    init() {
+    func load() async {
+        guard case .loading = state else { return }
+
+        await Task.yield()
         state = Self.open()
     }
 
     func retry() {
-        state = Self.open()
+        state = .loading
     }
 
     /// The enum is what lets the failure path exist without a force unwrap.
