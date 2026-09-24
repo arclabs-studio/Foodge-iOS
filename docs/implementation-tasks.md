@@ -122,6 +122,8 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D93 | Deleting local data clears `AppRootView`'s within-session `didFinish` latch, through an `onLocalDataErased` closure passed down from `AppRootView` → `MainTabView` → `TodayFlowView` → `SettingsView`. | Without it, someone who onboards and deletes in the same session keeps the latch `true` and stays in the tab bar with no profile behind it. What this does **not** prove is whether `@Query` re-reads after `PersistenceActor`'s separate `ModelContext` deleted the record — the open question `AppRootView` has carried since WU-19-D. Recorded as a device check for WU-25-A rather than claimed. |
 | D94 | D34's sentence "production Presentation code may not name `AppDependencies`" is narrowed to what has actually been enforced since WU-19-D: **no ViewModel initializer may name it**. The composition-root View chain — `AppRootView` (App layer) and `MainTabView` (Presentation) — may, because each has to build and hold child view models in `@State` so navigation paths and in-progress stages survive a re-render. | Raised by `arc-constitution-review` on WU-24-B.2 as a MAJOR: `MainTabView.init(dependencies:)` literally contradicts D34 as written, and an earlier audit treated the same pattern as a blocker on `OnboardingViewModel`. The pattern predates this unit, which only extended the existing signature. Two ways out: reword the rule, or route dependencies to `MainTabView` through something that is not the type — the second buys nothing but a wrapper with the same fields, two days from feature freeze. What the rule is *for* is keeping App-layer assembly out of view models, and that still holds: `SettingsViewModel`, like every other, takes four narrow Domain protocols. The user may overturn this in favour of the code change. |
 | D80 | `SavedRevision.attachingNarration(_:)` is a new value-copy helper on the entity, rather than each caller rebuilding the struct field by field. | `SavedRevision` is let-only on purpose, so a caller holding one replaces it. Three call sites needed that copy (`PersistenceActor`, `PreviewCaseStore`, the narration test fixture); one shared helper means no call site can silently drop a field while rebuilding one by hand — the same reasoning as D63/D70/D71, applied to a value type. |
+| D95 | Final art uses an Apple Icon Composer project (`AppIcon.icon`) for the app icon and named 1×/2×/3× PNG image sets under `Assets.xcassets/Artwork` for in-app judge and dish art. | This keeps the icon editable by Apple's current tool and lets Xcode compile only the device-appropriate in-app scales. The committed PNG payload is 5,896,736 bytes for the 36 in-app renditions plus 805,419 bytes for the Icon Composer source image; the editable commission brief and generation provenance stay in `docs/artwork-brief.md` and `docs/artwork-manifest.md`. |
+| D96 | Loading is one reusable `CourtLoadingView` backed by native indeterminate `ProgressView`: it replaces the app while the persistent store opens and overlays Today only during `.evaluating`. Launch yields one task turn so the first frame can render, but adds no artificial minimum duration. | Both waits now report real work instead of displaying a decorative delay. While a verdict is being prepared, the covered form is disabled and hidden from accessibility so users and VoiceOver have one active status; the system owns progress animation and Reduce Motion behavior. |
 
 ---
 
@@ -1291,6 +1293,42 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
     Deferred by the user. `ValidatingNarrator` logs `NARRATION rejected=<case label>`, so whoever
     runs them will see which rule, if any, eats a real generation.
 
+## Day 24 — final artwork and loading states (WU-24-A) ✅
+
+**Objective / scope.** Replace every temporary artwork surface with the approved pizza-headed
+judge and nine cheat-meal dish illustrations, ship an Apple Icon Composer app icon, and add a
+coherent loading treatment for the two waits a user can encounter: opening the local store and
+preparing a verdict. The visual direction follows the FavRes icon language and ARC Labs Studio
+branding while using Foodge's courtroom burgundy/gold palette. No product-rule, persistence or
+verdict-engine behavior changed.
+
+**What shipped.**
+
+- `Resources/AppIcon.icon` is the editable Apple Icon Composer source used by Xcode. Its
+  1024×1024 judge source is 805,419 bytes; the icon remains layered and tint-ready rather than
+  being flattened into a legacy `AppIcon.appiconset`.
+- `Resources/Assets.xcassets/Artwork` contains three judge poses (`JudgeWelcome`,
+  `JudgeVerdict`, `JudgeAppeal`) and nine dish families (`DishBurger`, `DishLentilSalad`,
+  `DishPasta`, `DishPizza`, `DishRiceBowl`, `DishTacos`, `DishTortilla`,
+  `DishVegetableSoup`, `DishVegetableWrap`). Xcode receives explicit 1×/2×/3× PNGs, totalling
+  5,896,736 bytes, so it can compile the scale needed by each device while preserving quality.
+- `JudgeBadgeView` now accepts the appropriate named image resource at welcome, Today, verdict
+  and appeal surfaces. `DishArtworkView` maps every catalogue family to its named asset and
+  replaces `DishArtPlaceholderView` in the verdict, alternative, appeal and history summaries.
+- `docs/artwork-brief.md` preserves the commission constraints. `docs/artwork-manifest.md`
+  records every generated source, prompt and derivative so the binary assets remain auditable.
+- `CourtLoadingView` combines the judge art with native `ProgressView`. `AppLaunch.State.loading`
+  presents "Preparing the court…" while the real store open runs; Today overlays "The judge is
+  weighing tonight’s evidence…" only for `.evaluating`. Both strings ship in English and Spanish.
+  The covered Today form is disabled and accessibility-hidden for the duration (D96).
+
+**Evidence.** Xcode 27 build succeeded with zero warnings; **260/260 tests pass**. Visual previews
+were checked at the default size, Small/dark, and AX 5 in Spanish, including both loading messages,
+with no clipping or competing controls. Artwork and loading landed as atomic commits:
+`abd803e`, `192989d`, `3c39d68`, `2b40a3b`, and `c72fe25` (the preceding brief is `97122ed`).
+
+**Next.** WU-24-B.3 — demonstration mode; then WU-25-A verification.
+
 ## Day 24 — Spanish copy (WU-24-B, part 1 of 2)
 
 ### WU-24-B.1 ✅ Spanish completed across the app; the coverage gap that hid it closed
@@ -1524,7 +1562,6 @@ recorded under WU-24-B.1: it runs default rules, and this project has no SwiftLi
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
-| 24 | WU-24-A | Final artwork: app icon, three judge poses, nine dish illustrations; `JudgeBadgeView` swapped (D15) | Visual review |
 | 24 | WU-24-B | Evening reminder (single local notification, generic content), complete ES/EN copy, feature freeze | Reminder tests green |
 | 25 | WU-25-A | Accessibility, privacy, regression and performance verification. Defect fixes only | All audits no blockers |
 | 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package | Clean checkout builds and runs |
