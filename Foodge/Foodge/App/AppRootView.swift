@@ -22,11 +22,13 @@ struct AppRootView: View {
     @Query private var preferences: [UserPreferences]
     @State private var onboarding: OnboardingViewModel
     private let dependencies: AppDependencies
+    private let demonstration: DemonstrationControls
 
     /// A custom `init` because the view model needs the composition root's dependencies —
     /// the real-input-transformation case, and Apple's documented injection pattern.
-    init(dependencies: AppDependencies) {
+    init(dependencies: AppDependencies, demonstration: DemonstrationControls) {
         self.dependencies = dependencies
+        self.demonstration = demonstration
         _onboarding = State(wrappedValue: dependencies.makeOnboardingViewModel())
     }
 
@@ -37,7 +39,7 @@ struct AppRootView: View {
     var body: some View {
         Group {
             if hasCompletedOnboarding {
-                MainTabView(dependencies: dependencies) {
+                MainTabView(dependencies: dependencies, demonstration: demonstration) {
                     // The latch above is a within-session `true` that a deletion has to clear,
                     // or someone who onboarded and then deleted in the same session would stay
                     // in the tab bar with no profile behind it. A fresh view model is the whole
@@ -60,9 +62,9 @@ struct AppRootView: View {
 }
 
 #Preview("First launch", traits: .sampleData) {
-    AppRootView(dependencies: PreviewDependencies.all)
+    AppRootView(dependencies: PreviewDependencies.all, demonstration: .previewInert)
 }
 
 #Preview("Onboarding already done", traits: .completedOnboarding) {
-    AppRootView(dependencies: PreviewDependencies.all)
+    AppRootView(dependencies: PreviewDependencies.all, demonstration: .previewInert)
 }

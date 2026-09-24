@@ -15,6 +15,9 @@ struct MainTabView: View {
     @State private var settings: SettingsViewModel
     /// Passed down to Settings, and called once the local store has actually been emptied.
     private let onLocalDataErased: () -> Void
+    /// Starting, reporting on and leaving a demonstration — all of it owned by `AppLaunch` and
+    /// passed straight through to Settings.
+    private let demonstration: DemonstrationControls
 
     /// A custom `init` because the view models need the composition root's dependencies —
     /// the same reasoning as `AppRootView`'s. Building them here, once, and holding them in
@@ -24,17 +27,27 @@ struct MainTabView: View {
     /// a brand-new view model — and discard the visible verdict, or mid-flow check-in — every
     /// time anything upstream (an `@Query` refresh in `AppRootView`, say) causes this view to
     /// re-render. Settings is held the same way, so an open sheet keeps its loaded preferences.
-    init(dependencies: AppDependencies, onLocalDataErased: @escaping () -> Void) {
+    init(
+        dependencies: AppDependencies,
+        demonstration: DemonstrationControls,
+        onLocalDataErased: @escaping () -> Void
+    ) {
         _today = State(wrappedValue: dependencies.makeTodayViewModel())
         _history = State(wrappedValue: dependencies.makeHistoryViewModel())
         _settings = State(wrappedValue: dependencies.makeSettingsViewModel())
+        self.demonstration = demonstration
         self.onLocalDataErased = onLocalDataErased
     }
 
     var body: some View {
         TabView {
             Tab("Today", systemImage: "fork.knife") {
-                TodayFlowView(vm: today, settings: settings, onLocalDataErased: onLocalDataErased)
+                TodayFlowView(
+                    vm: today,
+                    settings: settings,
+                    onLocalDataErased: onLocalDataErased,
+                    demonstration: demonstration
+                )
             }
 
             Tab("History", systemImage: "clock.arrow.circlepath") {
@@ -45,5 +58,5 @@ struct MainTabView: View {
 }
 
 #Preview(traits: .completedOnboarding) {
-    MainTabView(dependencies: PreviewDependencies.all) {}
+    MainTabView(dependencies: PreviewDependencies.all, demonstration: .previewInert) {}
 }

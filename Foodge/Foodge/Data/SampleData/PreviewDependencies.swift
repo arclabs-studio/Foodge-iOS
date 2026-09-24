@@ -139,6 +139,29 @@
         }
     }
 
+    extension DemonstrationControls {
+        /// Controls that render every state truthfully and do nothing when tapped.
+        ///
+        /// A preview has no session to switch, so starting or leaving a demonstration from one
+        /// would be a lie either way; inert is the honest answer and keeps each `#Preview` a
+        /// single line.
+        static var previewInert: Self {
+            DemonstrationControls(running: nil, failure: nil, start: { _ in }, exit: {})
+        }
+
+        /// The same, with a demonstration reported as running — for the Settings variants where
+        /// two rows are hidden and the sixth reads "Exit demonstration".
+        static var previewRunning: Self {
+            DemonstrationControls(running: .typicalDay, failure: nil, start: { _ in }, exit: {})
+        }
+
+        /// The same, reporting a failed attempt to start — for the failure row
+        /// `DemonstrationScenariosView` shows below the list (no preview covered it before).
+        static var previewFailed: Self {
+            DemonstrationControls(running: nil, failure: .storeUnavailable, start: { _ in }, exit: {})
+        }
+    }
+
     /// Reports availability without presenting anything — there is no system sheet in a preview.
     private struct PreviewAuthorization: HealthAuthorizing {
         let isHealthDataAvailable: Bool

@@ -16,10 +16,11 @@ import Testing
 struct ContainerFactoryTests {
 
     /// A fresh store location per test, so nothing leaks between them.
+    ///
+    /// The implementation moved to `TemporaryStore` once `DemonstrationSessionTests` needed the
+    /// same thing; this stays as the local spelling the suite already reads with.
     private func makeStoreURL() -> URL {
-        FileManager.default.temporaryDirectory
-            .appending(path: "FoodgeTests-\(UUID().uuidString)")
-            .appendingPathExtension("store")
+        TemporaryStore.makeURL()
     }
 
     @Test("Preferences written to a real store are still there when it is reopened")

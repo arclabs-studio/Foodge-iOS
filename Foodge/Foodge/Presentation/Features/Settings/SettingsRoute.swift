@@ -14,4 +14,5 @@ import Foundation
 enum SettingsRoute: Hashable, Sendable {
     case preferences
     case ingredientExclusions
+    case demonstration
 }

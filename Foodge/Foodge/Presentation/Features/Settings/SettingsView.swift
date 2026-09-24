@@ -19,6 +19,7 @@ struct SettingsView: View {
     /// Called once the local store has actually been emptied, so the app can go back to its
     /// first-launch state instead of showing a profile that no longer exists.
     let onLocalDataErased: () -> Void
+    let demonstration: DemonstrationControls
 
     @Environment(\.dismiss) private var dismiss
 
@@ -29,10 +30,19 @@ struct SettingsView: View {
                     NavigationLink("Preferences", value: SettingsRoute.preferences)
                 }
 
-                EveningReminderSection(vm: vm)
+                // Hidden during a demonstration, both of them, because neither can tell the truth
+                // there: the stubbed reminder accepts silently, so the toggle would read "on" for
+                // a reminder the system never received, and the delete copy promises every saved
+                // case is gone from this iPhone when nothing was ever on the iPhone (D102).
+                if !demonstration.isRunning {
+                    EveningReminderSection(vm: vm)
+                }
                 HealthGuidanceSection()
                 JudgeFlourishSection(vm: vm)
-                DeleteLocalDataSection(vm: vm)
+                DemonstrationSection(controls: demonstration)
+                if !demonstration.isRunning {
+                    DeleteLocalDataSection(vm: vm)
+                }
                 SettingsSaveFailureSection(saveState: vm.saveState)
             }
             .navigationTitle("Settings")
@@ -46,6 +56,8 @@ struct SettingsView: View {
                     ) { ingredientID in
                         Task { await vm.toggleExclusion(ingredientID) }
                     }
+                case .demonstration:
+                    DemonstrationScenariosView(controls: demonstration)
                 }
             }
             .toolbar {
@@ -65,7 +77,15 @@ struct SettingsView: View {
 }
 
 #Preview(traits: .sampleData) {
-    SettingsView(vm: PreviewDependencies.all.makeSettingsViewModel()) {}
+    SettingsView(vm: PreviewDependencies.all.makeSettingsViewModel(), onLocalDataErased: {}, demonstration: .previewInert)
+}
+
+#Preview("During a demonstration", traits: .sampleData) {
+    SettingsView(
+        vm: PreviewDependencies.all.makeSettingsViewModel(),
+        onLocalDataErased: {},
+        demonstration: .previewRunning
+    )
 }
 
 #Preview("Reminder refused", traits: .sampleData) {
@@ -73,7 +93,7 @@ struct SettingsView: View {
         .reminderRefused()
         .makeSettingsViewModel()
 
-    SettingsView(vm: vm) {}
+    SettingsView(vm: vm, onLocalDataErased: {}, demonstration: .previewInert)
         .task {
             vm.reminderEnabled = true
             await vm.reminderEnabledChanged(to: true)
