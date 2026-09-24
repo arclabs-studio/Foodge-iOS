@@ -99,16 +99,26 @@ struct AppDependencies: Sendable {
             store: persistence,
             caseStore: persistence,
             clock: SystemClock(),
-            // Read outside in: the budget is enforced first, so a slow generation is cancelled
-            // rather than validated late; validation then stands between the model and everything
-            // above it. Splitting the chain this way is what makes the timeout, malformed output,
-            // invented numbers and note-echo paths testable off-device.
-            narrator: DeadlineNarrator(
-                budget: .seconds(8),
-                wrapped: ValidatingNarrator(wrapped: FoundationModelsNarrator())
-            ),
+            narrator: Self.liveNarrator(),
             reminders: LocalReminderService(centre: UserNotificationCentre()),
             localData: persistence
+        )
+    }
+
+    /// The real narration chain, built in one place.
+    ///
+    /// Read outside in: the budget is enforced first, so a slow generation is cancelled rather
+    /// than validated late; validation then stands between the model and everything above it.
+    /// Splitting the chain this way is what makes the timeout, malformed output, invented numbers
+    /// and note-echo paths testable off-device.
+    ///
+    /// Extracted because demonstration mode uses the **same** chain rather than a stub — proving
+    /// genuine on-device narration is part of what the demonstration is for — and a second copy of
+    /// this assembly is exactly the drift D63/D70/D71 exist to stop (D102).
+    static func liveNarrator() -> any VerdictNarrator {
+        DeadlineNarrator(
+            budget: .seconds(8),
+            wrapped: ValidatingNarrator(wrapped: FoundationModelsNarrator())
         )
     }
 }
