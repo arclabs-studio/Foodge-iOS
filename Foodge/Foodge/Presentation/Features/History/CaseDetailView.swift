@@ -43,13 +43,25 @@ struct CaseDetailView: View {
 
             dishSection(for: revision.dishOutcome)
 
-            Section("Why") {
+            // The header carries the case's date because the reason codes are stored, not
+            // recomputed: they are phrased for the day they were written ("Today's activity came
+            // in…"), so on a past case the date is what makes "today" read as the day being
+            // quoted rather than as now. `VerdictView` shows the same codes undated, where today
+            // really is today.
+            Section {
                 ForEach(revision.decision.reasonCodes, id: \.self) { reason in
                     Text(reason.displayText)
                 }
                 Text("These are prototype product heuristics, not nutritional advice.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            } header: {
+                HStack {
+                    Text("Why")
+                    Spacer()
+                    Text(revision.createdAt, format: .dateTime.year().month().day())
+                }
+                .accessibilityElement(children: .combine)
             }
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
