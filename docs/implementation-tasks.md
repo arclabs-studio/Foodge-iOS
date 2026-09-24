@@ -122,8 +122,9 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D93 | Deleting local data clears `AppRootView`'s within-session `didFinish` latch, through an `onLocalDataErased` closure passed down from `AppRootView` → `MainTabView` → `TodayFlowView` → `SettingsView`. | Without it, someone who onboards and deletes in the same session keeps the latch `true` and stays in the tab bar with no profile behind it. What this does **not** prove is whether `@Query` re-reads after `PersistenceActor`'s separate `ModelContext` deleted the record — the open question `AppRootView` has carried since WU-19-D. Recorded as a device check for WU-25-A rather than claimed. |
 | D94 | D34's sentence "production Presentation code may not name `AppDependencies`" is narrowed to what has actually been enforced since WU-19-D: **no ViewModel initializer may name it**. The composition-root View chain — `AppRootView` (App layer) and `MainTabView` (Presentation) — may, because each has to build and hold child view models in `@State` so navigation paths and in-progress stages survive a re-render. | Raised by `arc-constitution-review` on WU-24-B.2 as a MAJOR: `MainTabView.init(dependencies:)` literally contradicts D34 as written, and an earlier audit treated the same pattern as a blocker on `OnboardingViewModel`. The pattern predates this unit, which only extended the existing signature. Two ways out: reword the rule, or route dependencies to `MainTabView` through something that is not the type — the second buys nothing but a wrapper with the same fields, two days from feature freeze. What the rule is *for* is keeping App-layer assembly out of view models, and that still holds: `SettingsViewModel`, like every other, takes four narrow Domain protocols. The user may overturn this in favour of the code change. |
 | D80 | `SavedRevision.attachingNarration(_:)` is a new value-copy helper on the entity, rather than each caller rebuilding the struct field by field. | `SavedRevision` is let-only on purpose, so a caller holding one replaces it. Three call sites needed that copy (`PersistenceActor`, `PreviewCaseStore`, the narration test fixture); one shared helper means no call site can silently drop a field while rebuilding one by hand — the same reasoning as D63/D70/D71, applied to a value type. |
-| D95 | Final art uses an Apple Icon Composer project (`AppIcon.icon`) for the app icon and named 1×/2×/3× PNG image sets under `Assets.xcassets/Artwork` for in-app judge and dish art. | This keeps the icon editable by Apple's current tool and lets Xcode compile only the device-appropriate in-app scales. The committed PNG payload is 5,896,736 bytes for the 36 in-app renditions plus 805,419 bytes for the Icon Composer source image; the editable commission brief and generation provenance stay in `docs/artwork-brief.md` and `docs/artwork-manifest.md`. |
+| D95 | Final art uses an Apple Icon Composer project (`AppIcon.icon`) for the app icon and named 1×/2×/3× PNG image sets under `Assets.xcassets/Artwork` for in-app judge and dish art. | This keeps the icon editable by Apple's current tool and lets Xcode compile only the device-appropriate in-app scales. After the D97 character revision, the committed PNG payload is 6,106,620 bytes for the 36 in-app renditions plus 1,080,744 bytes for the Icon Composer source image; the editable commission brief and generation provenance stay in `docs/artwork-brief.md` and `docs/artwork-manifest.md`. |
 | D96 | Loading is one reusable `CourtLoadingView` backed by native indeterminate `ProgressView`: it replaces the app while the persistent store opens and overlays Today only during `.evaluating`. Launch yields one task turn so the first frame can render, but adds no artificial minimum duration. | Both waits now report real work instead of displaying a decorative delay. While a verdict is being prepared, the covered form is disabled and hidden from accessibility so users and VoiceOver have one active status; the system owns progress animation and Reduce Motion behavior. |
+| D97 | The final judge identity adds a restrained ivory judicial wig and promotes the dark-walnut gavel to a large, high-contrast foreground cue in the app icon and all three poses. | The robe alone did not make the judicial role unmistakable at small sizes, and the former tiny lowered gavel disappeared in the in-app silhouette. The wig frames rather than covers the pizza, while the enlarged gavel uses one restrained gold band so the character remains in the established burgundy/gold system without becoming ornate. |
 
 ---
 
@@ -1305,13 +1306,16 @@ verdict-engine behavior changed.
 **What shipped.**
 
 - `Resources/AppIcon.icon` is the editable Apple Icon Composer source used by Xcode. Its
-  1024×1024 judge source is 805,419 bytes; the icon remains layered and tint-ready rather than
+  1024×1024 judge source is 1,080,744 bytes; the icon remains layered and tint-ready rather than
   being flattened into a legacy `AppIcon.appiconset`.
 - `Resources/Assets.xcassets/Artwork` contains three judge poses (`JudgeWelcome`,
   `JudgeVerdict`, `JudgeAppeal`) and nine dish families (`DishBurger`, `DishLentilSalad`,
   `DishPasta`, `DishPizza`, `DishRiceBowl`, `DishTacos`, `DishTortilla`,
   `DishVegetableSoup`, `DishVegetableWrap`). Xcode receives explicit 1×/2×/3× PNGs, totalling
-  5,896,736 bytes, so it can compile the scale needed by each device while preserving quality.
+  6,106,620 bytes, so it can compile the scale needed by each device while preserving quality.
+- The D97 character revision adds the ivory judicial wig and a prominent gavel to the icon and
+  every pose while preserving each pose's expression, gesture, transparent background and
+  1×/2×/3× dimensions.
 - `JudgeBadgeView` now accepts the appropriate named image resource at welcome, Today, verdict
   and appeal surfaces. `DishArtworkView` maps every catalogue family to its named asset and
   replaces `DishArtPlaceholderView` in the verdict, alternative, appeal and history summaries.
@@ -1326,6 +1330,9 @@ verdict-engine behavior changed.
 were checked at the default size, Small/dark, and AX 5 in Spanish, including both loading messages,
 with no clipping or competing controls. Artwork and loading landed as atomic commits:
 `abd803e`, `192989d`, `3c39d68`, `2b40a3b`, and `c72fe25` (the preceding brief is `97122ed`).
+After D97, the Xcode 27 build and all **260/260 tests** passed again with zero warnings; Spanish
+previews of Welcome, loading and Appeal confirmed the wig and gavel remain legible at the real
+76-point placements. All ten replaced PNG renditions retained alpha and their declared dimensions.
 
 **Next.** WU-24-B.3 — demonstration mode; then WU-25-A verification.
 

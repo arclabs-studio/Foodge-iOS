@@ -51,7 +51,8 @@ Warm, playful casefile identity in the ARC Labs / FavRes family, with original F
 - **Brand accents**: burgundy and gold, from the asset catalogue. Gold is an accent, never assumed
   to be accessible as text colour — contrast is verified per use.
 - **Surfaces**: native system backgrounds and semantic text colours throughout. No custom greys.
-- **Judge**: a small, sculpted anthropomorphic food judge, three poses. Clearly distinct from FavRes.
+- **Judge**: a small, sculpted pizza-headed judge with a restrained ivory judicial wig and a
+  prominent dark-walnut gavel, in three poses. Clearly distinct from FavRes.
 - **Dishes**: nine sculpted illustrations, one per dish family, sharing lighting, materials, camera
   angle and proportions. No text inside any image. Generation provenance is preserved.
 - **Type**: SF system typography through semantic styles only — `.system(size:)` is never written.

@@ -79,8 +79,10 @@ Rules:
 
 A small **anthropomorphic food judge**: a friendly, dignified character with a food-derived head
 (your design call — it must be plausibly food, warm, and never a specific branded item), wearing
-a minimal courtroom cue in **burgundy** with **gold** trim (a small robe collar and/or a tiny
-gavel). Proportions: large head, small body, stable stance — a chess-piece-like silhouette.
+a minimal courtroom cue in **burgundy** with **gold** trim. The approved character is pizza-headed;
+a restrained ivory judicial wig frames the pizza without covering the face, toppings or most of
+the crust. A prominent dark-walnut gavel with one gold band must stay legible at small sizes.
+Proportions: large head, small body, stable stance — a chess-piece-like silhouette.
 Expression is **kind and amused**, never stern, never smug, never disappointed.
 
 The same character, same construction, same materials in all three poses:
@@ -88,8 +90,8 @@ The same character, same construction, same materials in all three poses:
 | Asset | Pose | Used on |
 |---|---|---|
 | `JudgeWelcome` | Greeting — open, welcoming gesture, slight bow or raised hand | Welcome screen, first launch |
-| `JudgeVerdict` | Delivering the ruling — gavel just tapped, confident, pleased | Today screen + the verdict/category header |
-| `JudgeAppeal` | Considering an appeal — thoughtful, hand to chin, one eyebrow up, amused | Appeal sheet |
+| `JudgeVerdict` | Delivering the ruling — gavel raised clearly, confident, pleased | Today screen + the verdict/category header |
+| `JudgeAppeal` | Considering an appeal — thoughtful, hand to chin, one eyebrow up, amused; gavel visible | Appeal sheet |
 
 Each pose must be recognisable as the **same** judge at 76 pt. Deliver a character-sheet
 contact image too (§8) so consistency can be checked at a glance.

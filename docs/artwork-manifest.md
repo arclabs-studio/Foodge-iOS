@@ -486,3 +486,48 @@ Preferred modern integration:
 
 Keeping masters and review sheets outside the target prevents the 2048-pixel
 production sources from increasing the application bundle.
+
+## 2026-09-24 character revision — judicial wig and prominent gavel
+
+The user approved one controlled identity revision after the original handoff: add a restrained
+ivory judicial wig that frames the pizza, and make the gavel unmistakable at app-icon and in-app
+sizes. This section supersedes the earlier prompts' `wig` prohibition and `tiny`/`lowered` gavel
+direction; those prompts remain above as historical provenance for the original generation.
+
+All four revisions used the built-in image editor in `precise-object-edit` mode. Every output was
+generated as a transparent 1254×1254 PNG, then mechanically resized for the checked-in target:
+1024×1024 for Icon Composer and 600/400/200 pixels for the 3×/2×/1× asset-catalogue renditions.
+
+| Target | Built-in output | SHA-256 |
+|---|---|---|
+| App icon foreground | `exec-df7f8db1-40d5-4f10-b3e8-c732d78d19b0.png` | `ea5bc97b659092d408e79a83e2557f0e0fba8352aafc2aa66bab2810b6084f2e` |
+| `JudgeWelcome` | `exec-0fd695d0-20aa-4315-8afb-fed72c3cf20d.png` | `0e8042edc3e98aa2b6d98b52be07c83859a52e7ccdf99cc96e452324e8d70ac3` |
+| `JudgeVerdict` | `exec-0cc7dc30-73f3-49ab-85b2-3fdd14461560.png` | `67307c394b4b80977d11ea6059b57633de023c1712cd7994605f42e93a110d81` |
+| `JudgeAppeal` | `exec-1a7fcf5c-b4c7-40f7-9197-cda4237be698.png` | `f76df3dcf8934a9dd908003091e3958987c1e4d71d041426e45445b421c578c2` |
+
+Shared edit prompt:
+
+> Preserve the existing Foodge mascot exactly: round pizza face with the same crust, toppings,
+> facial features, expression, proportions, burgundy judicial robe, gold piping, cream neck tab,
+> soft polished 3D illustration style, lighting, camera angle, and transparent background. Add a
+> restrained traditional ivory/off-white judge wig that frames the pizza with recognizable side
+> curls and a modest top/back section; keep the entire face, toppings, and most of the crust
+> unobstructed. Make the wooden judge's gavel 20–30% larger, clearly readable, and visually
+> separated from the burgundy robe, with rich dark wood and a subtle gold band. Do not add text,
+> symbols, scenery, extra props, extra limbs, or a background. Keep generous transparent padding
+> and a clean silhouette.
+
+Composition-specific instructions:
+
+- **App icon**: preserve the close bust; introduce one enlarged gavel diagonally in the lower
+  foreground without covering the face or neck tab, readable at small icon sizes.
+- **Welcome**: preserve the wave, full-body pose and expression; move the enlarged gavel upward
+  and outward while keeping the waving hand unchanged.
+- **Verdict**: preserve the composed expression and hand-behind-back pose; raise the gavel toward
+  shoulder height on the same side.
+- **Appeal**: preserve the thoughtful expression and chin-touching gesture; raise the gavel
+  slightly and angle it outward without competing with that gesture.
+
+Validation after resizing: every file retains alpha; the app icon is exactly 1024×1024; each pose
+ships at exactly 200×200, 400×400 and 600×600. The total checked-in PNG payload is 6,106,620 bytes
+for all 36 in-app artwork renditions plus 1,080,744 bytes for the Icon Composer foreground.
