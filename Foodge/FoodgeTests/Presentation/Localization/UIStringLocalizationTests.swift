@@ -36,6 +36,7 @@ struct UIStringLocalizationTests {
 
     private struct CatalogEntry: Decodable {
         let shouldTranslate: Bool?
+        let extractionState: String?
     }
 
     /// Located relative to this source file rather than shipped as a test-target resource.
@@ -46,7 +47,13 @@ struct UIStringLocalizationTests {
         .deletingLastPathComponent() // the project root, sibling of Foodge/ and FoodgeTests/
         .appendingPathComponent("Foodge/Resources/Localizable.xcstrings")
 
-    /// Every key the String Catalog declares, minus any explicitly marked not to translate.
+    /// Every key the String Catalog declares that can still reach a user, minus any explicitly
+    /// marked not to translate.
+    ///
+    /// `stale` entries are excluded deliberately: Xcode marks a key stale once no code references
+    /// it any more, so it ships in the catalogue but can never appear on screen. 81 of the 239
+    /// keys are stale at the time of writing — holding them to the same standard would fail the
+    /// build over copy nobody can read, which is the opposite of what this suite is for.
     private static let declaredKeys: Set<String> = {
         guard
             let data = try? Data(contentsOf: sourceCatalogURL),
@@ -56,7 +63,7 @@ struct UIStringLocalizationTests {
         }
         return Set(
             catalog.strings
-                .filter { $0.value.shouldTranslate != false }
+                .filter { $0.value.shouldTranslate != false && $0.value.extractionState != "stale" }
                 .keys
         )
     }()
