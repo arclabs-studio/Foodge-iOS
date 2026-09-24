@@ -23,12 +23,12 @@ struct AppealCompatibleSection: View {
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 16) {
-                        DishArtPlaceholderView(family: entry.family)
+                        DishArtworkView(family: entry.family)
                         dishText
                     }
                 } else {
                     HStack(spacing: 16) {
-                        DishArtPlaceholderView(family: entry.family)
+                        DishArtworkView(family: entry.family)
                         dishText
                     }
                 }

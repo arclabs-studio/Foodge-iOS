@@ -25,7 +25,7 @@ struct WelcomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                JudgeBadgeView()
+                JudgeBadgeView(artwork: .judgeWelcome)
 
                 Text("The court is now in session.")
                     .font(.largeTitle.bold())

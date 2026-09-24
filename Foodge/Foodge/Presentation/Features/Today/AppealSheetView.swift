@@ -21,6 +21,12 @@ struct AppealSheetView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    JudgeBadgeView(artwork: .judgeAppeal)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .listRowBackground(Color.clear)
+
                 switch vm.appealStage {
                 case .choosingCraving:
                     AppealCravingSection(

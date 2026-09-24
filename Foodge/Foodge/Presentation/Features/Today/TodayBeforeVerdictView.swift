@@ -24,7 +24,7 @@ struct TodayBeforeVerdictView: View {
     var body: some View {
         Form {
             Section {
-                JudgeBadgeView()
+                JudgeBadgeView(artwork: .judgeVerdict)
                     .frame(maxWidth: .infinity, alignment: .center)
                 Text("Tell the judge about tonight, or just ask for a verdict.")
                     .font(.footnote)

@@ -23,12 +23,12 @@ struct DishSummaryRow: View {
         // once Dynamic Type crosses into accessibility sizes instead.
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 16) {
-                DishArtPlaceholderView(family: family)
+                DishArtworkView(family: family)
                 textColumn
             }
         } else {
             HStack(spacing: 16) {
-                DishArtPlaceholderView(family: family)
+                DishArtworkView(family: family)
                 textColumn
             }
         }

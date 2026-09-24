@@ -16,7 +16,7 @@ struct CategoryHeaderSection: View {
 
     var body: some View {
         Section {
-            JudgeBadgeView()
+            JudgeBadgeView(artwork: .judgeVerdict)
                 .frame(maxWidth: .infinity, alignment: .center)
             Text(category.displayName)
                 .font(.largeTitle.bold())
