@@ -1282,6 +1282,89 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
     Deferred by the user. `ValidatingNarrator` logs `NARRATION rejected=<case label>`, so whoever
     runs them will see which rule, if any, eats a real generation.
 
+## Day 24 — Spanish copy (WU-24-B, part 1 of 2)
+
+### WU-24-B.1 ✅ Spanish completed across the app; the coverage gap that hid it closed
+
+- **Objective / scope**: the user reported the Today screen as "half-translated". Diagnosis first:
+  `Localizable.xcstrings` held **239 keys, of which 86 had no `es` localization at all** — not a
+  bad translation, an absent one, so every affected string fell back to English at runtime on a
+  Spanish device. The remaining 153 were `machine_translated`; **zero** keys were in state
+  `translated`. No code defect: every `Text(…)` in the Today tree is already a `LocalizedStringKey`
+  and every enum label already resolves through `String(localized:)`, so the views were correct and
+  only the catalogue was short. Scope taken: the 79 keys reachable from Today, then — on the user's
+  go-ahead mid-unit — the 7 History-only keys as well, taking the catalogue to **0 untranslated**.
+  Out of scope, and still true: every entry is state `machine_translated`, because
+  `StringCatalogEdit` writes no other state; promoting them to reviewed is a manual pass in Xcode.
+- **Baseline**: 239/239 tests, 0 warnings, taken before any catalogue edit.
+- **Method (D82)**: translation went through Xcode's own String Catalog tooling, never a hand-edit.
+  The four `mcp__xcode__StringCatalog*` tools refuse to run until the `xcode-integration:translation`
+  skill is active, and that skill is **not registered with Claude Code** — it ships as files inside
+  `IDEXCStringsSupport.framework`, and was read from there. Its coordinator half mandates delegation
+  in batches of ≤ 15 keys with ≤ 5 agents at once, which is how the 86 were done: six batches
+  grouped by screen area so terminology stayed coherent within a batch, each handed the fixed
+  glossary (Foodge untranslated · Capricho / Equilibrado / Ligero · veredicto · el juez · el
+  tribunal · las pruebas · apelar · Apple Salud · tu patrón registrado), informal *tú*, peninsular
+  Spanish, and the banned-phrase list enforced in Spanish as well as English.
+- **Copy decisions worth keeping**:
+  - `Give me a verdict` → **"Pedir veredicto"**, not "Quiero mi veredicto". The style guide's
+    infinitive-for-buttons rule was preferred over preserving the English's first-person cheek, on
+    the user's explicit choice. The other buttons follow suit: Apelar, Omitir, Enviar, Volver a
+    intentarlo, Ver la alternativa.
+  - `Why` → **"Razonamiento"**, a noun, because it is a `Section` header on both `VerdictView` and
+    `CaseDetailView`, and it cross-references the existing "el razonamiento de arriba es el
+    veredicto."
+  - `Your account` → **"Tu declaración"** — the courtroom sense (a statement given to the judge),
+    which also keeps it unmistakably a self-report rather than a user account.
+  - `No readable data` → **"Sin datos legibles"**, never "permiso denegado" and never 0: HealthKit
+    cannot distinguish absence from denial, and the honesty rule binds in both languages.
+  - Em dashes become a colon in Spanish throughout, following the pre-existing house pattern.
+- **A source-language change, made by a sub-agent (D83)**: one batch followed the bundled skill's
+  sanctioned flow and plural-varied the **English** source of `Based on %lld recorded days.` after
+  the tool reported `sourcePluralCasesToAdd`. This proved **irreversible through the tooling** —
+  `StringCatalogEdit` refuses a flat `translation` for a varied string ("String has variations. Use
+  'variationStructure'"), and flattening it by hand is forbidden. Resolution: the `en` variation was
+  rewritten to `plural.one` / `plural.other`, dropping the spurious `zero` case the agent had added
+  (English has no CLDR zero category). Rendered output is unchanged for every reachable value —
+  the baseline rule gates `observationCount` at ≥ 7, so `plural.one` can never appear. The sibling
+  `Optional, up to %lld characters.` was correctly left flat, its count being a compile-time
+  constant. **Lesson**: state explicitly whether a source string may be varied before delegating
+  any key that carries a numeric format specifier.
+- **The coverage gap, closed (D84)**: `CatalogueNameLocalizationTests` already asserted Spanish
+  coverage — but only for dish and ingredient names, which is why 86 UI strings drifted without
+  anything going red. New `FoodgeTests/Presentation/Localization/UIStringLocalizationTests.swift`
+  extends the same idea to the whole catalogue, comparing two independently produced artefacts:
+  the declared key set parsed from `Localizable.xcstrings` on disk (via `#filePath`; adding it as a
+  test-target resource would need a forbidden `project.pbxproj` edit) against what the **built**
+  `es.lproj` actually ships, reading `Localizable.strings` *and* `Localizable.stringsdict` because
+  a plural key never appears in the flat file. It resolves nothing through production code. Two
+  `#require` guards close the vacuous-pass hole: an unparseable catalogue or an unreadable bundle
+  fails loudly instead of yielding an empty diff that trivially passes. Proven able to fail by
+  unioning a synthetic absent key into the declared set — reported
+  `No Spanish translation shipped for: PROOF-OF-FAILURE deliberately absent key` — then reverted.
+- **Evidence**:
+  - Catalogue: `newCount` **86 → 0** for `es` (`StringCatalogRead`). 239 keys, all localized.
+  - Build: succeeded; `GetBuildLog { severity: "warning" }` → `totalFound: 0`, twice (mid-unit and
+    at close). The severity default is `error`, so this is the second call, not the first.
+  - Tests: **239/239 passed** on the curated suite list mid-unit; **57/57 passed** at close on the
+    localization, Today, History and catalogue suites, including the new
+    `UIStringLocalizationTests/everyDeclaredUIStringShipsASpanishTranslation()`.
+  - Visual, `RenderPreview` with `previewLocalizationOverride: "es"`: `TodayBeforeVerdictView`,
+    `VerdictView` and `CaseDetailView` render fully Spanish with no English fallback and the
+    courtroom voice intact ("Razonamiento", "El toque del juez", "Detalle del caso", "Fuentes").
+    `TodayBeforeVerdictView` re-rendered at **AX 5** in Spanish — longer Spanish strings wrap
+    without truncation or clipping.
+- **Found, not fixed — a real copy defect in both languages**: `CaseDetailView` renders the stored
+  reason codes verbatim, so an old case reads "La actividad de **hoy** ha quedado dentro de tu
+  patrón registrado." The English is identically wrong ("**Today's** activity sat within…"). The
+  reason codes were written for Today and are reused unchanged in History. Not introduced by this
+  unit and not a translation problem; needs a product-copy decision about past-tense variants.
+- **Also found, not fixed**: pre-existing duplicate keys differing only in straight vs curly
+  apostrophe (e.g. both `Foodge couldn't…` and `Foodge couldn’t…` carry Spanish), and one
+  machine-translated instance rendering *appeal* as "recurrir" where the glossary uses "apelar".
+- **Not done, so WU-24-B stays open**: the evening reminder and the feature freeze. This unit
+  delivered the ES copy half only.
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
