@@ -70,16 +70,21 @@ struct AllowanceBreakdownRow: View {
                     )
                 )
             }
+            // `.secondary` measures ~3.4:1 against the row background in standard-contrast light
+            // appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is the brand's
+            // dedicated secondary-text color, tuned to ≥4.5:1 in every appearance/contrast
+            // combination — the same fix already applied in `VerdictView` and
+            // `HealthUnavailableSection`.
             Text("These figures are estimates, not nutritional advice.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.appBurgundyMuted)
         case let .selfReported(report):
             LabeledContent("Your account") {
                 Text(report.displayName)
             }
         case .provisional:
             Text("Nothing readable to go on — this verdict is provisional.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.appBurgundyMuted)
         }
     }
 }
@@ -97,14 +102,20 @@ struct AllowanceFigureRow: View {
     var body: some View {
         LabeledContent {
             VStack(alignment: .trailing, spacing: 2) {
+                // `Text(_:format:)` rather than a pre-formatted `String`: the latter hands
+                // VoiceOver plain text with no numeric metadata, so a negative figure like
+                // "−500 kcal" risks being read literally as "hyphen 500" instead of "negative
+                // 500" (WCAG 1.3.1 / 4.1.2). Keeping the `Measurement` typed all the way into
+                // `Text` preserves the sign semantics the same way `allowance.share` already does
+                // two lines below via `Text(_:format:)`.
                 Text(
-                    Measurement(value: kilocalories, unit: UnitEnergy.kilocalories)
-                        .formatted(.measurement(width: .abbreviated, usage: .food))
+                    Measurement(value: kilocalories, unit: UnitEnergy.kilocalories),
+                    format: .measurement(width: .abbreviated, usage: .food)
                 )
                 if isEstimated {
                     Text("Estimated")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.appBurgundyMuted)
                 }
             }
         } label: {
