@@ -167,6 +167,36 @@ struct NarrationValidatorTests {
     }
 
     @Test(
+        "Cheat-meal framing is accepted in English (D118)",
+        arguments: [
+            "The court grants one cheat meal.",
+            "Consider it a cheat day, by order of the bench.",
+            "A guilt free verdict, for once.",
+        ]
+    )
+    func cheatMealFramingIsAccepted(candidate: String) {
+        // The inverse of `bannedPhrasesAreRejected`, and the reason D119's change is exactly three
+        // string removals: the product is a judge granting a cheat meal, and a validator that
+        // refused the words could never let it say so. This test fails if any of the three is put
+        // back into `bannedPhrases`.
+        #expect(NarrationValidator.validate(candidate, note: nil) == .accepted(candidate))
+    }
+
+    @Test(
+        "The Spanish guilt framing stays banned even though the English is allowed",
+        arguments: [
+            "Hoy toca comida trampa.",
+            "Una cena sin culpa.",
+        ]
+    )
+    func spanishGuiltFramingIsStillRejected(candidate: String) {
+        // *Comida trampa* is not the Spanish for a cheat meal in this product's voice: *trampa* is
+        // cheating-as-transgression. The Spanish copy says *capricho*, and this is what stops a
+        // well-meaning future edit from "matching" the English relaxation (D118).
+        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
+    }
+
+    @Test(
         "Fence and instruction artifacts are caught",
         arguments: [
             "```The court approves.```",

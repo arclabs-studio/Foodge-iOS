@@ -205,8 +205,13 @@ enum NarrationValidator {
         // Compensation framing.
         "burn it off", "burn off", "burn them off", "work it off", "make up for it",
         "quemalo", "quemarlo", "quemar", "compensar", "compensalo",
-        // Guilt, and guilty-food framing.
-        "guilt", "guilty", "guilt free", "cheat meal", "cheat day", "sinful", "indulgence you",
+        // Guilt, and guilty-food framing. **Exactly three strings were removed here by D119** —
+        // "cheat meal", "cheat day" and "guilt free" — because the product's own premise is a judge
+        // granting a cheat meal, and it could not name one. What the ban was protecting against is
+        // narrower and all of it stays: guilt itself, and *comida trampa*, which is not the Spanish
+        // for the newly allowed framing — *trampa* is cheating-as-transgression and carries exactly
+        // the guilt that remains banned. The Spanish voice says *capricho* (D118).
+        "guilt", "guilty", "sinful", "indulgence you",
         "culpa", "culpable", "sin culpa", "pecado", "pecaminoso", "comida trampa",
         // Skipping a meal.
         "skip dinner", "skip a meal", "skip the meal", "skip supper", "go hungry",
