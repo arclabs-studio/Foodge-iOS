@@ -66,10 +66,16 @@ struct CaseDetailView: View {
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
 
-            // Unconditional: `narrationText` is nil for every case recorded before narration
-            // existed, and stays nil whenever the model did not produce a validated line. The
-            // reviewed template covers all of it, so History never shows a case with no flourish.
-            NarrationSection(text: revision.narrationText, category: revision.decision.category)
+            // `narrationText` is nil for every case recorded before narration existed, and stays
+            // nil whenever the model did not produce a validated line. The reviewed template
+            // covers all of that. The one case it does not cover is a no-match, where the section
+            // renders nothing at all rather than promising a candidate that was never found
+            // (D106) — so History shows a flourish for every case except those.
+            NarrationSection(
+                text: revision.narrationText,
+                category: revision.decision.category,
+                dishOutcome: revision.dishOutcome
+            )
 
             ForEach(revision.appeals) { appeal in
                 AppealRecordedSection(choice: appeal.choice)

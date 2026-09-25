@@ -216,6 +216,25 @@ struct TodayNarrationViewModelTests {
         #expect(sut.viewModel.narrationStage == .template)
     }
 
+    @Test("A no-match night shows no flourish at all, not even the template")
+    func aNoMatchShowsNoFlourish() {
+        // Given the two outcomes a recorded verdict can carry
+        let selected = PersistedDishOutcome.selected(
+            variantID: "dish.pasta.pesto",
+            family: .pasta,
+            alternativeVariantID: nil,
+            alternativeFamily: nil
+        )
+        let noMatch = PersistedDishOutcome.noMatch(blockingIngredientIDs: [Ingredient.rice.id])
+
+        // Then only the one with a dish shows a flourish. Falling back to the template on a
+        // no-match is what the ledger caught on stage: every template speaks of a candidate that
+        // was found, so a Balanced no-match promised "Tonight's leading candidate is on the table"
+        // with nothing on it (D106). The stage above only stops the *model* from being asked.
+        #expect(selected.showsFlourish)
+        #expect(noMatch.showsFlourish == false)
+    }
+
     // MARK: - What the narrator is given
 
     @Test("The narrator receives the dish name, never the stored variant id")

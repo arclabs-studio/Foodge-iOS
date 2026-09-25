@@ -57,7 +57,11 @@ struct VerdictView: View {
                 // decorative flourish over a verdict that has not actually been recorded reads as
                 // if everything went fine. `arc-audit-hig` caught this — `.saveFailed` still has a
                 // `display`, so an ungated section showed the template over an unsaved verdict.
-                NarrationSection(text: vm.narrationStage.text, category: display.decision.category)
+                NarrationSection(
+                    text: vm.narrationStage.text,
+                    category: display.decision.category,
+                    dishOutcome: display.dishOutcome
+                )
             }
 
             if case .saveFailed = vm.stage {
