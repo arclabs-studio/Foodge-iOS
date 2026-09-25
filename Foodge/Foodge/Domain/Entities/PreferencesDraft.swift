@@ -17,13 +17,12 @@ struct PreferencesDraft: Hashable, Sendable {
     var excludedIngredientIDs: Set<String>
     var favouriteFamilies: [DishFamily]
     var dinnerRoutine: DinnerTime?
-    /// Whether the recorded days may be used as a baseline at all.
+    /// The body basics behind an estimated resting figure, or `nil` when they have not been given.
     ///
-    /// The standing answer, not a per-day one: `false` means "these fourteen days do not reflect
-    /// how I usually live". Defaults to `true` because unasked means "use my data", which is what
-    /// someone who skipped the Health step expects. The separate per-day confirmation the
-    /// category rule asks for is not this (D32).
-    var trackingRepresentative: Bool
+    /// Load-bearing rather than decorative (D117): without `basalEnergyBurned` these are the only
+    /// way maintenance can be estimated at all, and `nil` means the allowance has no resting basis
+    /// rather than a resting figure of zero.
+    var bodyBasics: BodyBasics?
     /// Set when the draft is the one that finishes onboarding; left `nil` by later edits so a
     /// change of diet cannot rewrite when onboarding happened.
     var onboardingCompletedAt: Date?
@@ -36,7 +35,7 @@ struct PreferencesDraft: Hashable, Sendable {
         excludedIngredientIDs: Set<String> = [],
         favouriteFamilies: [DishFamily] = [],
         dinnerRoutine: DinnerTime? = nil,
-        trackingRepresentative: Bool = true,
+        bodyBasics: BodyBasics? = nil,
         onboardingCompletedAt: Date? = nil,
         narrationEnabled: Bool = true,
         reminderHour: Int? = nil,
@@ -46,7 +45,7 @@ struct PreferencesDraft: Hashable, Sendable {
         self.excludedIngredientIDs = excludedIngredientIDs
         self.favouriteFamilies = favouriteFamilies
         self.dinnerRoutine = dinnerRoutine
-        self.trackingRepresentative = trackingRepresentative
+        self.bodyBasics = bodyBasics
         self.onboardingCompletedAt = onboardingCompletedAt
         self.narrationEnabled = narrationEnabled
         self.reminderHour = reminderHour

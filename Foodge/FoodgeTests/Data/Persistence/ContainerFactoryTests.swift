@@ -33,7 +33,12 @@ struct ContainerFactoryTests {
             excludedIngredientIDs: ["ingredient.mushroom", "ingredient.olive"],
             favouriteFamilies: [.tacos, .riceBowls],
             dinnerRoutine: .quick,
-            trackingRepresentative: false,
+            bodyBasics: BodyBasics(
+                sex: .female,
+                ageYears: 34,
+                heightCentimetres: 168,
+                weightKilograms: 62
+            ),
             onboardingCompletedAt: completedAt,
             narrationEnabled: false,
             reminderHour: 20,
@@ -53,9 +58,13 @@ struct ContainerFactoryTests {
         #expect(stored.excludedIngredientIDs == ["ingredient.mushroom", "ingredient.olive"])
         #expect(stored.favouriteFamilies == [.tacos, .riceBowls])
         #expect(stored.dinnerRoutine == .quick)
-        // The mark that says "do not use my recorded fortnight" is the one thing here that
-        // silently re-enables itself if it is not persisted: the field defaults to true.
-        #expect(stored.trackingRepresentative == false)
+        // The body basics are the figures that decide a resting estimate, and they round-trip
+        // through four separate columns — so all four are checked, not just that something came
+        // back (D117).
+        #expect(stored.bodyBasics?.sex == .female)
+        #expect(stored.bodyBasics?.ageYears == 34)
+        #expect(stored.bodyBasics?.heightCentimetres == 168)
+        #expect(stored.bodyBasics?.weightKilograms == 62)
         #expect(stored.onboardingCompletedAt == completedAt)
         #expect(stored.narrationEnabled == false)
         #expect(stored.reminderHour == 20)

@@ -118,20 +118,12 @@ struct CaseDetailView: View {
                         createdAt: SyntheticScenarios.evaluationDate,
                         decision: VerdictDecision(
                             category: .balanced,
-                            basis: .recorded(
-                                ratio: 1.02,
-                                baseline: ActivityBaseline(
-                                    metric: .activeEnergy,
-                                    median: 400,
-                                    observationCount: 14,
-                                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                                )
-                            ),
-                            reasonCodes: [.withinRecordedPattern],
+                            basis: .energyBalance(SampleDecisions.moderateAllowance),
+                            reasonCodes: [.moderateAllowance],
                             isProvisional: false,
-                            ruleVersion: DinnerCategoryRule.ruleVersion
+                            ruleVersion: CheatMealAllowanceRule.ruleVersion
                         ),
-                        evidence: SyntheticScenarios.typicalDay.snapshot,
+                        evidence: SyntheticScenarios.modestAllowance.snapshot,
                         catalogueVersion: DishCatalogue.version,
                         dishOutcome: .selected(
                             variantID: "dish.pasta.pesto",
@@ -160,18 +152,10 @@ struct CaseDetailView: View {
                         createdAt: SyntheticScenarios.evaluationDate,
                         decision: VerdictDecision(
                             category: .balanced,
-                            basis: .recorded(
-                                ratio: 1.0,
-                                baseline: ActivityBaseline(
-                                    metric: .activeEnergy,
-                                    median: 400,
-                                    observationCount: 14,
-                                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                                )
-                            ),
-                            reasonCodes: [.withinRecordedPattern],
+                            basis: .energyBalance(SampleDecisions.moderateAllowance),
+                            reasonCodes: [.moderateAllowance],
                             isProvisional: false,
-                            ruleVersion: DinnerCategoryRule.ruleVersion
+                            ruleVersion: CheatMealAllowanceRule.ruleVersion
                         ),
                         evidence: SyntheticScenarios.noCompatibleDish.snapshot,
                         catalogueVersion: DishCatalogue.version,
@@ -197,20 +181,12 @@ struct CaseDetailView: View {
                         createdAt: SyntheticScenarios.evaluationDate,
                         decision: VerdictDecision(
                             category: .light,
-                            basis: .recorded(
-                                ratio: 0.45,
-                                baseline: ActivityBaseline(
-                                    metric: .activeEnergy,
-                                    median: 400,
-                                    observationCount: 14,
-                                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                                )
-                            ),
-                            reasonCodes: [.belowRecordedPattern],
+                            basis: .energyBalance(SampleDecisions.slimAllowance),
+                            reasonCodes: [.slimAllowance],
                             isProvisional: false,
-                            ruleVersion: DinnerCategoryRule.ruleVersion
+                            ruleVersion: CheatMealAllowanceRule.ruleVersion
                         ),
-                        evidence: SyntheticScenarios.restDay.snapshot,
+                        evidence: SyntheticScenarios.slimAllowance.snapshot,
                         catalogueVersion: DishCatalogue.version,
                         dishOutcome: .selected(
                             variantID: "dish.lentilSalad.tomato",

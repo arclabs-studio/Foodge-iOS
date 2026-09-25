@@ -9,8 +9,8 @@
 import Foundation
 import Testing
 
-/// Today is where a saved case must come back unregenerated, a low reading must pause for
-/// confirmation rather than guess, and a failed save must never be reported as saved.
+/// Today is where a saved case must come back unregenerated, a day with nothing readable must ask
+/// rather than guess, and a failed save must never be reported as saved.
 ///
 /// Fixtures here are deliberately duplicated rather than reaching into `OnboardingViewModelTests`'
 /// private types — this suite owns its own `TodayFixtureEvidenceProvider`/`TodayFixturePreferencesStore`
@@ -26,7 +26,7 @@ struct TodayViewModelTests {
     }
 
     private func makeSUT(
-        snapshot: EvidenceSnapshot = SyntheticScenarios.typicalDay.snapshot,
+        snapshot: EvidenceSnapshot = SyntheticScenarios.modestAllowance.snapshot,
         evidenceFailure: (any Error)? = nil,
         preferencesDraft: PreferencesDraft = PreferencesDraft(),
         seededCase: SavedCase? = nil,
@@ -54,7 +54,7 @@ struct TodayViewModelTests {
 
     private func makeSavedRevision(
         category: DinnerCategory,
-        evidence: EvidenceSnapshot = SyntheticScenarios.typicalDay.snapshot
+        evidence: EvidenceSnapshot = SyntheticScenarios.modestAllowance.snapshot
     ) -> SavedRevision {
         SavedRevision(
             id: UUID(),
@@ -65,7 +65,7 @@ struct TodayViewModelTests {
                 basis: .provisional,
                 reasonCodes: [.checkInSkipped],
                 isProvisional: true,
-                ruleVersion: DinnerCategoryRule.ruleVersion
+                ruleVersion: CheatMealAllowanceRule.ruleVersion
             ),
             evidence: evidence,
             catalogueVersion: DishCatalogue.version,
@@ -100,7 +100,7 @@ struct TodayViewModelTests {
     @Test("With no saved case, requesting a verdict reads Health and records exactly once")
     func noSavedCaseEvaluatesAndRecordsOnce() async throws {
         // Given no saved case, and a day well above the recorded pattern
-        let sut = makeSUT(snapshot: SyntheticScenarios.activeDay.snapshot)
+        let sut = makeSUT(snapshot: SyntheticScenarios.generousAllowance.snapshot)
         await sut.viewModel.onAppear()
 
         // When a verdict is requested
@@ -110,15 +110,15 @@ struct TodayViewModelTests {
         #expect(await sut.evidence.callCount == 1)
         let recorded = try #require(await sut.caseStore.recordedDrafts.first)
         #expect(await sut.caseStore.recordedDrafts.count == 1)
-        #expect(recorded.evidence == SyntheticScenarios.activeDay.snapshot)
+        #expect(recorded.evidence == SyntheticScenarios.generousAllowance.snapshot)
     }
 
-    // MARK: - The recorded comparison
+    // MARK: - The allowance
 
-    @Test("A ratio above the treat threshold rules directly, with no check-in")
-    func aboveTreatThresholdRulesDirectly() async {
-        // Given a day well above the recorded pattern
-        let sut = makeSUT(snapshot: SyntheticScenarios.activeDay.snapshot)
+    @Test("A generous allowance rules directly, with no check-in")
+    func aGenerousAllowanceRulesDirectly() async {
+        // Given a day that leaves 45% of its maintenance unspent
+        let sut = makeSUT(snapshot: SyntheticScenarios.generousAllowance.snapshot)
 
         // When a verdict is requested
         await sut.viewModel.requestVerdict()
@@ -131,57 +131,138 @@ struct TodayViewModelTests {
         #expect(sut.viewModel.currentRevision?.decision.category == .treat)
     }
 
-    @Test("A low ratio pauses for tracking confirmation before recording anything")
-    func lowRatioPausesForTrackingConfirmation() async {
-        // Given a day well below the recorded pattern, not yet asked about
-        let sut = makeSUT(snapshot: SyntheticScenarios.quietDayUnconfirmed.snapshot)
+    @Test("A slim allowance rules light without asking anything")
+    func aSlimAllowanceRulesLight() async throws {
+        // Given a quiet day and a heavy lunch, leaving 12% of maintenance
+        let sut = makeSUT(snapshot: SyntheticScenarios.slimAllowance.snapshot)
 
         // When a verdict is requested
         await sut.viewModel.requestVerdict()
 
-        // Then Foodge asks before ruling, and nothing has been recorded yet
-        guard case .needsTrackingConfirmation = sut.viewModel.stage else {
-            Issue.record("Expected .needsTrackingConfirmation, got \(sut.viewModel.stage.logLabel)")
-            return
-        }
-        #expect(await sut.caseStore.recordedDrafts.isEmpty)
-    }
-
-    @Test("Confirming tracking reflects today records the recorded verdict, unchanged")
-    func confirmingTrackingRecordsRecordedVerdict() async throws {
-        // Given a paused tracking-confirmation check-in
-        let sut = makeSUT(snapshot: SyntheticScenarios.quietDayUnconfirmed.snapshot)
-        await sut.viewModel.requestVerdict()
-
-        // When the user confirms the recorded activity reflects today
-        await sut.viewModel.confirmTrackingReflectsToday(true)
-
-        // Then the light verdict is recorded from the original evidence, unchanged
-        guard case .verdict = sut.viewModel.stage else {
-            Issue.record("Expected .verdict, got \(sut.viewModel.stage.logLabel)")
-            return
-        }
+        // Then it rules light from the figures themselves. Nothing is asked first: the old rule
+        // had to check whether a low reading was real, because it compared today against a
+        // fortnight; an allowance is measured against today's own maintenance and needs no such
+        // question (D111 supersedes D12 and D56).
         let recorded = try #require(await sut.caseStore.recordedDrafts.first)
         #expect(recorded.decision.category == .light)
-        #expect(recorded.evidence == SyntheticScenarios.quietDayUnconfirmed.snapshot)
+        #expect(recorded.evidence.today == SyntheticScenarios.slimAllowance.snapshot.today)
     }
 
-    @Test("Declining tracking confirmation moves to self-report, and never loops back")
-    func decliningTrackingMovesToSelfReport() async {
-        // Given a paused tracking-confirmation check-in
-        let sut = makeSUT(snapshot: SyntheticScenarios.quietDayUnconfirmed.snapshot)
+    @Test("A day with no readable active energy asks instead of inventing a figure")
+    func noActiveEnergyPausesForTheSelfReport() async {
+        // Given nothing readable at all
+        let sut = makeSUT(snapshot: SyntheticScenarios.noHealthData.snapshot)
+
+        // When a verdict is requested
         await sut.viewModel.requestVerdict()
 
-        // When the user says the recorded activity does not reflect today
-        await sut.viewModel.confirmTrackingReflectsToday(false)
-
-        // Then the flow moves on to the self-report check-in — the regression this pins is a
-        // loop straight back to `.needsTrackingConfirmation` (D56)
+        // Then the flow pauses for the check-in, and nothing has been recorded
         guard case .needsSelfReport = sut.viewModel.stage else {
             Issue.record("Expected .needsSelfReport, got \(sut.viewModel.stage.logLabel)")
             return
         }
         #expect(await sut.caseStore.recordedDrafts.isEmpty)
+    }
+
+    @Test("An unanswered intake check-in is not an intake of zero")
+    func anUnansweredQuestionnaireIsNotAZero() async {
+        // Given a day Health recorded energy for but logged no food, and a user who answered
+        // nothing
+        let sut = makeSUT(snapshot: SyntheticScenarios.estimatedIntake.snapshot.attaching(intake: nil, body: nil))
+
+        // When a verdict is requested
+        await sut.viewModel.requestVerdict()
+
+        // Then there is no intake basis, so the check-in is asked for rather than the whole of
+        // maintenance being handed over as an allowance
+        guard case .needsSelfReport = sut.viewModel.stage else {
+            Issue.record("Expected .needsSelfReport, got \(sut.viewModel.stage.logLabel)")
+            return
+        }
+    }
+
+    @Test("Answering the intake check-in supplies the figure Health did not")
+    func answeringTheCheckInSuppliesIntake() async throws {
+        // Given the same day, with breakfast and lunch answered on the check-in
+        let sut = makeSUT(snapshot: SyntheticScenarios.estimatedIntake.snapshot.attaching(intake: nil, body: nil))
+        sut.viewModel.breakfast = .light
+        sut.viewModel.lunch = .normal
+
+        // When a verdict is requested
+        await sut.viewModel.requestVerdict()
+
+        // Then 200 + 650 is the intake, it is recorded as an estimate, and the questionnaire is
+        // saved with the evidence so a reopened case can say where the figure came from
+        let recorded = try #require(await sut.caseStore.recordedDrafts.first)
+        guard case let .energyBalance(allowance) = recorded.decision.basis else {
+            Issue.record("Expected an energy-balance basis.")
+            return
+        }
+        #expect(allowance.intakeKilocalories == 850)
+        #expect(allowance.intakeIsEstimated)
+        #expect(recorded.evidence.intake == IntakeQuestionnaire(breakfast: .light, lunch: .normal))
+    }
+
+    @Test("Health's own food total replaces the check-in rather than adding to it")
+    func recordedIntakeReplacesTheCheckIn() async throws {
+        // Given a day Health did log food for, and a user who also answered the check-in
+        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot)
+        sut.viewModel.breakfast = .heavy
+        sut.viewModel.lunch = .heavy
+
+        // When a verdict is requested
+        await sut.viewModel.requestVerdict()
+
+        // Then the recorded 1460 stands alone — never 1460 plus 1650
+        let recorded = try #require(await sut.caseStore.recordedDrafts.first)
+        guard case let .energyBalance(allowance) = recorded.decision.basis else {
+            Issue.record("Expected an energy-balance basis.")
+            return
+        }
+        #expect(allowance.intakeKilocalories == 1460)
+        #expect(allowance.intakeIsEstimated == false)
+    }
+
+    @Test("Stored body basics supply resting energy when Health has none")
+    func storedBodyBasicsSupplyRestingEnergy() async throws {
+        // Given a day with no basal samples, and body basics in the store
+        let body = BodyBasics(sex: .male, ageYears: 35, heightCentimetres: 175, weightKilograms: 70)
+        let sut = makeSUT(
+            snapshot: SyntheticScenarios.estimatedResting.snapshot.attaching(intake: nil, body: nil),
+            preferencesDraft: PreferencesDraft(bodyBasics: body)
+        )
+
+        // When a verdict is requested
+        await sut.viewModel.requestVerdict()
+
+        // Then resting is the published equation prorated across 19.5 of the day's 24 hours,
+        // computed here rather than read back from the rule
+        let recorded = try #require(await sut.caseStore.recordedDrafts.first)
+        guard case let .energyBalance(allowance) = recorded.decision.basis else {
+            Issue.record("Expected an energy-balance basis.")
+            return
+        }
+        #expect(allowance.restingKilocalories.isApproximately(1623.75 * (19.5 / 24.0)))
+        #expect(allowance.restingIsEstimated)
+        #expect(recorded.evidence.body == body)
+    }
+
+    @Test("Without body basics a day with no resting energy asks instead")
+    func noBodyBasicsMeansNoRestingBasis() async {
+        // Given the same day and an empty store
+        let sut = makeSUT(
+            snapshot: SyntheticScenarios.estimatedResting.snapshot.attaching(intake: nil, body: nil),
+            preferencesDraft: PreferencesDraft()
+        )
+
+        // When a verdict is requested
+        await sut.viewModel.requestVerdict()
+
+        // Then nothing is invented: the check-in is asked for
+        guard case .needsSelfReport = sut.viewModel.stage else {
+            Issue.record("Expected .needsSelfReport, got \(sut.viewModel.stage.logLabel)")
+            return
+        }
     }
 
     // MARK: - The self-report fallback
@@ -262,7 +343,7 @@ struct TodayViewModelTests {
     @Test("A failed save keeps the computed decision visible, with a retry")
     func failedSaveKeepsDecisionVisible() async {
         // Given a store that will refuse the write
-        let sut = makeSUT(snapshot: SyntheticScenarios.activeDay.snapshot, recordFailure: FoodgeError.saveFailed)
+        let sut = makeSUT(snapshot: SyntheticScenarios.generousAllowance.snapshot, recordFailure: FoodgeError.saveFailed)
 
         // When a verdict is requested
         await sut.viewModel.requestVerdict()
@@ -279,7 +360,7 @@ struct TodayViewModelTests {
     @Test("Retrying a failed save with the same draft can complete it")
     func retryingFailedSaveCanSucceed() async {
         // Given a save that failed
-        let sut = makeSUT(snapshot: SyntheticScenarios.activeDay.snapshot, recordFailure: FoodgeError.saveFailed)
+        let sut = makeSUT(snapshot: SyntheticScenarios.generousAllowance.snapshot, recordFailure: FoodgeError.saveFailed)
         await sut.viewModel.requestVerdict()
         guard case let .saveFailed(originalDraft, _) = sut.viewModel.stage else {
             Issue.record("Expected the first save to fail")
@@ -308,7 +389,7 @@ struct TodayViewModelTests {
             dietProfile: .vegan,
             excludedIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id]
         )
-        let sut = makeSUT(snapshot: SyntheticScenarios.typicalDay.snapshot, preferencesDraft: draft)
+        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot, preferencesDraft: draft)
 
         // When a verdict is requested
         await sut.viewModel.requestVerdict()
@@ -331,7 +412,7 @@ struct TodayViewModelTests {
     @Test("An oversized note is dropped safely, never force-unwrapped")
     func oversizedNoteIsDroppedSafely() async throws {
         // Given a note one character over the limit
-        let sut = makeSUT(snapshot: SyntheticScenarios.typicalDay.snapshot)
+        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot)
         sut.viewModel.noteText = String(repeating: "a", count: Note.maximumLength + 1)
 
         // When a verdict is requested

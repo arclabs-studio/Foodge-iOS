@@ -26,7 +26,7 @@ struct OnboardingViewModelTests {
     private func makeSUT(
         isHealthDataAvailable: Bool = true,
         authorizationFailure: (any Error)? = nil,
-        snapshot: EvidenceSnapshot = SyntheticScenarios.typicalDay.snapshot,
+        snapshot: EvidenceSnapshot = SyntheticScenarios.modestAllowance.snapshot,
         evidenceFailure: (any Error)? = nil,
         storeFailure: (any Error)? = nil,
         clock: FixedClock = SyntheticScenarios.clock
@@ -55,14 +55,13 @@ struct OnboardingViewModelTests {
     /// A snapshot with exactly the readings a test wants, for the cases no scenario covers.
     private func makeSnapshot(
         today: HealthAggregates,
-        history: [DailyActivityObservation]
+        missing: Set<HealthKind> = []
     ) -> EvidenceSnapshot {
         EvidenceSnapshot(
             evaluatedAt: SyntheticScenarios.evaluationDate,
             timeZoneIdentifier: SyntheticScenarios.timeZoneIdentifier,
             today: today,
-            history: history,
-            availability: .readable(missing: [])
+            availability: .readable(missing: missing)
         )
     }
 
@@ -142,65 +141,6 @@ struct OnboardingViewModelTests {
         #expect(sut.viewModel.healthState == .idle)
     }
 
-    @Test("A fully tracked fortnight becomes an active-energy pattern")
-    func aTrackedFortnightProducesAnEnergyBaseline() async throws {
-        // Given fourteen recorded days whose energy median is 400 kcal by hand
-        let sut = makeSUT(snapshot: SyntheticScenarios.typicalDay.snapshot)
-
-        // When Health is connected
-        await sut.viewModel.connectHealth()
-
-        // Then the pattern is built from active energy over all fourteen days
-        let summary = try #require(sut.viewModel.healthState.connectedSummary)
-        let baseline = try #require(try? summary.pattern.get())
-        #expect(baseline.metric == .activeEnergy)
-        #expect(baseline.median == 400)
-        #expect(baseline.observationCount == 14)
-        #expect(summary.daysWithAnyReading == 14)
-    }
-
-    @Test("Eleven untracked days stay missing rather than becoming zeroes")
-    func untrackedDaysAreNotCountedAsZero() async throws {
-        // Given a fortnight where only three days recorded anything at all
-        let snapshot = makeSnapshot(
-            today: SyntheticScenarios.typicalDay.snapshot.today,
-            history: SyntheticScenarios.observations(
-                days: SyntheticScenarios.historyDays,
-                energy: [410, 430, 390],
-                steps: [8100, 8200, 8300]
-            )
-        )
-        let sut = makeSUT(snapshot: snapshot)
-
-        // When Health is connected
-        await sut.viewModel.connectHealth()
-
-        // Then three observations are reported, not fourteen. Coercing the missing eleven to
-        // zero would produce fourteen observations with a zero median, so the refusal would
-        // come back as `.zeroMedian` and the count would be wrong in the user's face.
-        let summary = try #require(sut.viewModel.healthState.connectedSummary)
-        #expect(summary.pattern == .failure(.insufficientHistory(found: 3)))
-        #expect(summary.daysWithAnyReading == 3)
-        #expect(summary.daysConsidered == 14)
-    }
-
-    @Test("Steps carry the pattern when energy cannot")
-    func stepsTakeOverWhenEnergyCannotCompare() async throws {
-        // Given a fortnight with energy on three days only, but steps throughout
-        let sut = makeSUT(snapshot: SyntheticScenarios.stepsFallback.snapshot)
-
-        // When Health is connected
-        await sut.viewModel.connectHealth()
-
-        // Then the comparison is made in steps. Reducing the history to energy before handing
-        // it to the calculator would leave this user with no pattern at all.
-        let summary = try #require(sut.viewModel.healthState.connectedSummary)
-        let baseline = try #require(try? summary.pattern.get())
-        #expect(baseline.metric == .steps)
-        #expect(baseline.median == 8200)
-        #expect(summary.daysWithAnyReading == 14)
-    }
-
     @Test("Health with nothing in it says so, and does not pretend to be connected")
     func anEmptyHealthStoreIsReportedAsNoReadableData() async {
         // Given a Health store that returns nothing for any kind
@@ -225,7 +165,7 @@ struct OnboardingViewModelTests {
                 workouts: [],
                 dietaryEnergy: nil
             ),
-            history: []
+            missing: Set(HealthKind.allCases)
         )
         let sut = makeSUT(snapshot: snapshot)
 
@@ -238,81 +178,81 @@ struct OnboardingViewModelTests {
         #expect(sut.viewModel.healthState == .noReadableData)
     }
 
-    @Test("Energy days and step days are both counted as recorded")
-    func daysRecordedCountsEitherMetric() async throws {
-        // Given three days recorded only in energy and five more recorded only in steps
-        let days = SyntheticScenarios.historyDays
-        let history = (0 ..< days.count).map { index in
-            DailyActivityObservation(
-                day: days[index],
-                activeEnergyAtCutoff: index < 3 ? 410 : nil,
-                stepsAtCutoff: (3 ..< 8).contains(index) ? 8200 : nil
-            )
-        }
-        let sut = makeSUT(
-            snapshot: makeSnapshot(today: SyntheticScenarios.typicalDay.snapshot.today, history: history)
-        )
+    @Test("A connected read reports which kinds came back empty")
+    func connectingReportsTheKindsThatCameBackEmpty() async throws {
+        // Given a day Health recorded everything but resting energy
+        let sut = makeSUT(snapshot: SyntheticScenarios.estimatedResting.snapshot)
 
         // When Health is connected
         await sut.viewModel.connectHealth()
 
-        // Then eight days recorded something, even though the calculator's own refusal counts
-        // only the three energy days (D23). Telling this user "3 of 14 days" would understate
-        // what Health actually holds — which is the whole reason the summary carries its own
-        // count instead of reading `insufficientHistory(found:)`.
-        let summary = try #require(sut.viewModel.healthState.connectedSummary)
-        #expect(summary.daysWithAnyReading == 8)
-        #expect(summary.pattern == .failure(.insufficientHistory(found: 3)))
+        // Then the screen can say exactly what is missing — never that it was refused, which
+        // HealthKit cannot tell an app
+        let missing = try #require(sut.viewModel.healthState.missingKinds)
+        #expect(missing == [.restingEnergy])
     }
 
-    // MARK: - The recorded days the user disowns
+    @Test("Nothing missing is still a connected state, and is not the same as not asking")
+    func anEmptyMissingSetIsStillConnected() async throws {
+        // Given a day Health recorded in full
+        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot)
 
-    @Test("Marking the days unrepresentative refuses the pattern and writes nothing")
-    func markingUnrepresentativeRefusesThePatternWithoutSaving() async throws {
-        // Given a connected, fully tracked fortnight
-        let sut = makeSUT(snapshot: SyntheticScenarios.typicalDay.snapshot)
+        // When Health is connected
         await sut.viewModel.connectHealth()
 
-        // When the user says these days do not reflect how they usually live
-        sut.viewModel.markUnrepresentative(true)
-
-        // Then the pattern is refused for that reason
-        let summary = try #require(sut.viewModel.healthState.connectedSummary)
-        #expect(summary.pattern == .failure(.markedUnrepresentative))
-        #expect(sut.viewModel.draft.trackingRepresentative == false)
-        // And nothing has been written: abandoning onboarding here must leave no trace
-        #expect(await sut.store.savedDrafts.isEmpty)
+        // Then `missingKinds` is empty rather than `nil`: empty means "connected, nothing
+        // missing", `nil` means the read has not happened
+        let missing = try #require(sut.viewModel.healthState.missingKinds)
+        #expect(missing.isEmpty)
     }
 
-    @Test("Taking the mark back restores the pattern without re-reading Health")
-    func unmarkingRestoresThePattern() async throws {
-        // Given a fortnight the user has just disowned
-        let sut = makeSUT(snapshot: SyntheticScenarios.typicalDay.snapshot)
-        await sut.viewModel.connectHealth()
-        sut.viewModel.markUnrepresentative(true)
+    // MARK: - Body basics
 
-        // When they change their mind
-        sut.viewModel.markUnrepresentative(false)
+    @Test("All four figures produce a body; three do not")
+    func bodyBasicsNeedAllFourFigures() {
+        // Given a user who has answered everything but their weight
+        let sut = makeSUT()
+        sut.viewModel.bodySex = .male
+        sut.viewModel.ageText = "35"
+        sut.viewModel.heightText = "175"
 
-        // Then the same 400 kcal pattern is back, from the retained snapshot rather than a
-        // second read — discarding the snapshot on the first mark would lose it for good
-        let summary = try #require(sut.viewModel.healthState.connectedSummary)
-        let baseline = try #require(try? summary.pattern.get())
-        #expect(baseline.median == 400)
-        #expect(await sut.evidence.callCount == 1)
+        // Then there is no body yet, and nothing is recorded on the draft
+        #expect(sut.viewModel.bodyBasicsFromInputs == nil)
+        sut.viewModel.applyBodyBasics()
+        #expect(sut.viewModel.draft.bodyBasics == nil)
+
+        // When the last figure arrives
+        sut.viewModel.weightText = "70"
+        sut.viewModel.applyBodyBasics()
+
+        // Then the whole body is recorded at once
+        #expect(sut.viewModel.draft.bodyBasics?.weightKilograms == 70)
+        #expect(sut.viewModel.draft.bodyBasics?.ageYears == 35)
     }
 
-    @Test("Disowning the days before connecting just records the choice")
-    func markingUnrepresentativeWithoutASnapshotRecordsTheChoiceOnly() {
-        // Given a user who has not connected Health at all
+    @Test("An implausible figure records no body rather than a clamped one")
+    func anImplausibleFigureRecordsNoBody() {
+        // Given a height typed in inches by mistake
+        let sut = makeSUT()
+        sut.viewModel.bodySex = .female
+        sut.viewModel.ageText = "35"
+        sut.viewModel.heightText = "69"
+        sut.viewModel.weightText = "62"
+
+        // When the step is left
+        sut.viewModel.applyBodyBasics()
+
+        // Then no estimate is possible, which is the honest answer — never 69 cm clamped to 120
+        #expect(sut.viewModel.draft.bodyBasics == nil)
+        #expect(sut.viewModel.hasStartedBodyBasics)
+    }
+
+    @Test("An untouched body-basics step is not a half-answered one")
+    func anUntouchedStepReportsItself() {
         let sut = makeSUT()
 
-        // When they say their recorded days are not representative
-        sut.viewModel.markUnrepresentative(true)
-
-        // Then the choice is kept for the eventual save, and nothing pretends to be connected
-        #expect(sut.viewModel.draft.trackingRepresentative == false)
-        #expect(sut.viewModel.healthState == .idle)
+        #expect(sut.viewModel.hasStartedBodyBasics == false)
+        #expect(sut.viewModel.bodyBasicsFromInputs == nil)
     }
 
     @Test("Continuing without Health clears a failed attempt and moves on")
@@ -327,7 +267,7 @@ struct OnboardingViewModelTests {
 
         // Then the failure is not left on screen behind them, and the flow advances
         #expect(sut.viewModel.healthState == .idle)
-        #expect(sut.viewModel.path == [.preferences])
+        #expect(sut.viewModel.path == [.bodyBasics])
     }
 
     // MARK: - The injected clock
@@ -361,7 +301,11 @@ struct OnboardingViewModelTests {
         sut.viewModel.draft.dinnerRoutine = .relaxed
         sut.viewModel.toggleFavourite(.tacos)
         sut.viewModel.toggleFavourite(.pasta)
-        sut.viewModel.markUnrepresentative(true)
+        sut.viewModel.bodySex = .male
+        sut.viewModel.ageText = "41"
+        sut.viewModel.heightText = "181"
+        sut.viewModel.weightText = "78"
+        sut.viewModel.applyBodyBasics()
         sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
 
         // When they save and finish
@@ -373,7 +317,8 @@ struct OnboardingViewModelTests {
         #expect(saved.dietProfile == .pescatarian)
         #expect(saved.dinnerRoutine == .relaxed)
         #expect(saved.favouriteFamilies == [.tacos, .pasta])
-        #expect(saved.trackingRepresentative == false)
+        #expect(saved.bodyBasics?.sex == .male)
+        #expect(saved.bodyBasics?.ageYears == 41)
         #expect(saved.excludedIngredientIDs == [Ingredient.mushroom.id])
         // Stamped from the injected clock, not from `Date()`
         #expect(saved.onboardingCompletedAt == SyntheticScenarios.evaluationDate)

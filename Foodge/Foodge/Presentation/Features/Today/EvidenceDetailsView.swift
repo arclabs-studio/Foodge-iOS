@@ -40,20 +40,12 @@ struct EvidenceDetailsView: View {
                 createdAt: SyntheticScenarios.evaluationDate,
                 decision: VerdictDecision(
                     category: .balanced,
-                    basis: .recorded(
-                        ratio: 1.02,
-                        baseline: ActivityBaseline(
-                            metric: .activeEnergy,
-                            median: 400,
-                            observationCount: 14,
-                            window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                        )
-                    ),
-                    reasonCodes: [.withinRecordedPattern],
+                    basis: .energyBalance(SampleDecisions.moderateAllowance),
+                    reasonCodes: [.moderateAllowance],
                     isProvisional: false,
-                    ruleVersion: DinnerCategoryRule.ruleVersion
+                    ruleVersion: CheatMealAllowanceRule.ruleVersion
                 ),
-                evidence: SyntheticScenarios.typicalDay.snapshot,
+                evidence: SyntheticScenarios.modestAllowance.snapshot,
                 catalogueVersion: DishCatalogue.version,
                 dishOutcome: .selected(
                     variantID: "dish.pasta.pesto",

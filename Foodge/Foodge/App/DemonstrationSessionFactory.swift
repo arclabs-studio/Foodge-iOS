@@ -63,11 +63,9 @@ enum DemonstrationSessionFactory {
     ///   builds the `DishSelectionRequest` from `draft.constraints` — never `snapshot.constraints`.
     ///   Without seeding, `noCompatibleDish` would recommend an ordinary pasta dish instead of the
     ///   honest no-match its whole existence is about (D58).
-    /// - The baseline calculator reads `draft.trackingRepresentative`. The snapshot's field of the
-    ///   same name asks the same *standing* question ("do the recorded days reflect my usual
-    ///   days?") but is read by nothing in production — the per-day check-in is asked fresh on
-    ///   every low-ratio evaluation and stored nowhere (D32). Without seeding, `partialTracking`
-    ///   would be inert.
+    /// - `TodayViewModel` reads `draft.bodyBasics` when Health has no resting energy, so
+    ///   `estimatedResting` would report `noRestingBasis` instead of an estimated figure if the
+    ///   body basics stayed in the snapshot alone (D117).
     ///
     /// `onboardingCompletedAt` is set from the scenario clock so the demonstration opens on Today
     /// rather than onboarding — through D9's single source of truth, not a second flag.
@@ -79,7 +77,7 @@ enum DemonstrationSessionFactory {
             excludedIngredientIDs: snapshot.constraints.excludedIngredientIDs,
             favouriteFamilies: [],
             dinnerRoutine: nil,
-            trackingRepresentative: snapshot.trackingRepresentative ?? true,
+            bodyBasics: snapshot.body,
             onboardingCompletedAt: scenario.clock.now,
             narrationEnabled: true,
             reminderHour: nil,

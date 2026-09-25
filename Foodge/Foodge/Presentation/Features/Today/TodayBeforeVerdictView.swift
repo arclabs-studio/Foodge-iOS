@@ -71,11 +71,9 @@ struct TodayBeforeVerdictView: View {
                     Text("Optional. This never changes the category — only the pick inside it.")
                 }
 
+                IntakeCheckInSection(vm: vm)
+
                 switch vm.stage {
-                case .needsTrackingConfirmation:
-                    TrackingConfirmationSection { reflectsToday in
-                        Task { await vm.confirmTrackingReflectsToday(reflectsToday) }
-                    }
                 case .needsSelfReport:
                     SelfReportCheckInSection { report in
                         Task { await vm.submitSelfReport(report) }
@@ -130,8 +128,8 @@ struct TodayBeforeVerdictView: View {
     }
 }
 
-#Preview("Needs tracking confirmation", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.quietDayUnconfirmed)
+#Preview("Needs the self-report", traits: .sampleData) {
+    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
         .makeTodayViewModel()
 
     NavigationStack {

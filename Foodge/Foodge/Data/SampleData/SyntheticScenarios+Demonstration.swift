@@ -15,15 +15,15 @@ extension SyntheticScenarios {
     /// ``DemonstrationScenarioID`` fails this switch to compile until the scenario exists.
     static func scenario(for id: DemonstrationScenarioID) -> SyntheticScenario {
         switch id {
-        case .activeDay: activeDay
-        case .typicalDay: typicalDay
-        case .restDay: restDay
+        case .generousAllowance: generousAllowance
+        case .modestAllowance: modestAllowance
+        case .slimAllowance: slimAllowance
+        case .allowanceSpent: allowanceSpent
+        case .estimatedResting: estimatedResting
+        case .estimatedIntake: estimatedIntake
         case .noHealthData: noHealthData
-        case .partialTracking: partialTracking
-        case .stepsFallback: stepsFallback
         case .shortSleep: shortSleep
         case .dstSpringForward: dstSpringForward
-        case .quietDayUnconfirmed: quietDayUnconfirmed
         case .noCompatibleDish: noCompatibleDish
         }
     }

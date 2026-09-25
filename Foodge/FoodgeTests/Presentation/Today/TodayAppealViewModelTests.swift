@@ -34,7 +34,7 @@ struct TodayAppealViewModelTests {
         appealFailure: (any Error)? = nil,
         clock: FixedClock = SyntheticScenarios.clock
     ) -> SUT {
-        let evidence = TodayAppealFixtureEvidenceProvider(snapshot: SyntheticScenarios.activeDay.snapshot)
+        let evidence = TodayAppealFixtureEvidenceProvider(snapshot: SyntheticScenarios.generousAllowance.snapshot)
         let preferences = TodayAppealFixturePreferencesStore(draft: preferencesDraft)
         let caseStore = TodayAppealFixtureCaseStore(
             seeded: seededCase,
@@ -57,7 +57,7 @@ struct TodayAppealViewModelTests {
 
     private func makeSavedRevision(
         category: DinnerCategory,
-        evidence: EvidenceSnapshot = SyntheticScenarios.typicalDay.snapshot
+        evidence: EvidenceSnapshot = SyntheticScenarios.modestAllowance.snapshot
     ) -> SavedRevision {
         SavedRevision(
             id: UUID(),
@@ -68,7 +68,7 @@ struct TodayAppealViewModelTests {
                 basis: .provisional,
                 reasonCodes: [.checkInSkipped],
                 isProvisional: true,
-                ruleVersion: DinnerCategoryRule.ruleVersion
+                ruleVersion: CheatMealAllowanceRule.ruleVersion
             ),
             evidence: evidence,
             catalogueVersion: DishCatalogue.version,

@@ -23,6 +23,8 @@ struct OnboardingFlowView: View {
                     switch route {
                     case .healthConnection:
                         HealthConnectionView(vm: vm)
+                    case .bodyBasics:
+                        BodyBasicsView(vm: vm)
                     case .preferences:
                         PreferencesView(vm: vm)
                     case .ingredientExclusions:

@@ -18,7 +18,7 @@ struct HealthConnectionView: View {
     var body: some View {
         Form {
             Section {
-                Text("Foodge compares today with the fortnight Health already recorded.")
+                Text("Foodge reads what Health already recorded today and works out what you have left to spend on dinner.")
                 // `.secondary` measures ~3.4:1 against a Form row's white/elevated background in
                 // standard-contrast light appearance — below the 4.5:1 WCAG 1.4.3 needs.
                 // `AppBurgundyMuted` is the brand's dedicated secondary-text color, already
@@ -41,16 +41,20 @@ struct HealthConnectionView: View {
                 Text("Apple asks for the permission, not Foodge. You choose what to share in its own sheet.")
             }
 
-            if let summary = vm.healthState.connectedSummary {
-                RecordedPatternSection(summary: summary) {
-                    vm.markUnrepresentative(false)
-                }
-
-                if case .success = summary.pattern {
-                    Section {
-                        Button("These days aren’t typical for me") {
-                            vm.markUnrepresentative(true)
+            if let missing = vm.healthState.missingKinds {
+                Section("What Health could read") {
+                    if missing.isEmpty {
+                        Text("Everything Foodge asks for is there today.")
+                    } else {
+                        ForEach(HealthKind.allCases.filter(missing.contains), id: \.self) { kind in
+                            LabeledContent(kind.displayName) {
+                                Text("No readable data")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        Text("No readable data is not the same as a refusal — Apple Health cannot tell Foodge which it was. Anything missing is either estimated from what you tell it, or left out.")
+                            .font(.footnote)
+                            .foregroundStyle(.appBurgundyMuted)
                     }
                 }
             }
@@ -66,7 +70,7 @@ struct HealthConnectionView: View {
                         vm.skipHealth()
                     }
                 case .connected, .noReadableData, .unavailable, .requestFailed:
-                    NavigationLink("Continue", value: OnboardingRoute.preferences)
+                    NavigationLink("Continue", value: OnboardingRoute.bodyBasics)
                 }
             }
         }
@@ -76,12 +80,14 @@ struct HealthConnectionView: View {
 }
 
 extension OnboardingViewModel.HealthState {
-    /// The summary of a connected state, or `nil` for every other state.
+    /// The kinds that came back empty in a connected state, or `nil` for every other state.
     ///
-    /// Lets the screen read one value instead of switching over six cases to find it.
-    var connectedSummary: RecordedPatternSummary? {
-        guard case let .connected(summary) = self else { return nil }
-        return summary
+    /// Lets the screen read one value instead of switching over six cases to find it. An **empty
+    /// set** and `nil` are deliberately different: empty means "connected, nothing missing", `nil`
+    /// means the read has not happened.
+    var missingKinds: Set<HealthKind>? {
+        guard case let .connected(missing) = self else { return nil }
+        return missing
     }
 }
 
@@ -92,7 +98,7 @@ extension OnboardingViewModel.HealthState {
 }
 
 #Preview("Connected") {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.typicalDay).makeOnboardingViewModel()
+    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.modestAllowance).makeOnboardingViewModel()
 
     NavigationStack {
         HealthConnectionView(vm: vm)
@@ -100,17 +106,14 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("Not enough recorded days") {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.stepsFallback)
+#Preview("Some kinds missing") {
+    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.estimatedResting)
         .makeOnboardingViewModel()
 
     NavigationStack {
         HealthConnectionView(vm: vm)
     }
-    .task {
-        await vm.connectHealth()
-        vm.markUnrepresentative(true)
-    }
+    .task { await vm.connectHealth() }
 }
 
 #Preview("No readable data") {

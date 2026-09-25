@@ -40,19 +40,10 @@ enum TestCalendar {
         return calendar.date(from: components) ?? .distantPast
     }
 
-    /// The window the category-rule fixtures carry on their baseline. It is inert there — the
-    /// rule never reads it — and the calculator suite asserts its own window per D24.
-    static let fortnight = DateInterval(
-        start: date(2026, 9, 4),
-        end: date(2026, 9, 18)
+    /// Local midnight up to 19:30 on 18 September 2026 — the evaluation window every allowance
+    /// fixture is cut at, matching `SyntheticScenarios`' own evaluation instant.
+    static let todayWindow = DateInterval(
+        start: date(2026, 9, 18),
+        end: date(2026, 9, 18, 19, 30)
     )
-}
-
-extension CategoryOutcome {
-    /// The decision inside a `.verdict` outcome, or `nil` when the rule asked for confirmation
-    /// instead. Lets a suite say `try #require(outcome.decision)` and keep the assertion on one
-    /// line.
-    var decision: VerdictDecision? {
-        if case let .verdict(decision) = self { decision } else { nil }
-    }
 }

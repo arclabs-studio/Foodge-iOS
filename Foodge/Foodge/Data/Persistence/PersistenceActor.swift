@@ -51,7 +51,7 @@ actor PersistenceActor: PreferencesStore {
             excludedIngredientIDs: Set(stored.excludedIngredientIDs),
             favouriteFamilies: stored.favouriteFamilies,
             dinnerRoutine: stored.dinnerRoutine,
-            trackingRepresentative: stored.trackingRepresentative,
+            bodyBasics: stored.bodyBasics,
             onboardingCompletedAt: stored.onboardingCompletedAt,
             narrationEnabled: stored.narrationEnabled,
             reminderHour: stored.reminderHour,

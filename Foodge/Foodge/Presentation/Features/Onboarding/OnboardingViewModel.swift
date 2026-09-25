@@ -29,12 +29,14 @@ final class OnboardingViewModel {
         /// The authorization request itself did not complete. Distinct from an absence, which
         /// this app may only claim after an actual read returned empty (D35).
         case requestFailed
-        case connected(RecordedPatternSummary)
+        /// The read came back with something. `missing` is the kinds that did not — never a
+        /// denial, because HealthKit cannot tell an app that.
+        case connected(missing: Set<HealthKind>)
 
         /// A label that is safe to log: the case name alone, never an associated value.
         ///
-        /// `.connected` carries the recorded median — a Health value — so `String(describing:)`
-        /// on this enum would put someone's health data in the device log.
+        /// The missing *kinds* would be safe to log, but the rule is the same for every state so
+        /// there is nothing to get wrong later: the label, never the value.
         var logLabel: String {
             switch self {
             case .idle: "idle"
@@ -60,9 +62,16 @@ final class OnboardingViewModel {
     /// Set only after a save returned without throwing.
     private(set) var didFinish = false
 
-    /// Retained so that marking the days unrepresentative recomputes the summary without
-    /// reading Health a second time.
-    private var snapshot: EvidenceSnapshot?
+    // MARK: - Body basics, gathered on their own step
+    //
+    // Held as text because that is what a keypad produces, and parsed in one place
+    // (``bodyBasicsFromInputs``) so a half-typed answer is simply not a body yet. Nothing is
+    // clamped and nothing is guessed: an implausible figure means no estimate is possible.
+
+    var bodySex: BiologicalSex?
+    var ageText = ""
+    var heightText = ""
+    var weightText = ""
 
     @ObservationIgnored private let authorization: any HealthAuthorizing
     @ObservationIgnored private let evidence: any HealthEvidenceProvider
@@ -110,7 +119,7 @@ final class OnboardingViewModel {
             return
         }
 
-        // Read both once, so everything in this evaluation agrees about what day it is.
+        // Read once from the clock, so everything in this evaluation agrees about what day it is.
         let now = clock.now
         let calendar = clock.calendar
 
@@ -132,54 +141,78 @@ final class OnboardingViewModel {
             return
         }
 
-        snapshot = read
-        transition(to: Self.state(for: read, trackingRepresentative: draft.trackingRepresentative))
+        transition(to: Self.state(for: read))
     }
 
     /// Continues without Health, leaving no failed attempt on the screen behind them.
     func skipHealth() {
-        snapshot = nil
         transition(to: .idle)
-        path.append(.preferences)
+        path.append(.bodyBasics)
     }
 
-    /// Records whether the recorded days may be used as a baseline, and recomputes the summary.
-    ///
-    /// Writes nothing. The single write is in ``finish()``, so a user who abandons onboarding
-    /// here leaves nothing behind. The retained snapshot is what makes taking the mark back
-    /// free — Health is not read a second time.
-    func markUnrepresentative(_ unrepresentative: Bool) {
-        draft.trackingRepresentative = !unrepresentative
+    // MARK: - Body basics
 
-        guard let snapshot else { return }
-        transition(to: Self.state(for: snapshot, trackingRepresentative: draft.trackingRepresentative))
+    /// The basics as typed, or `nil` while they are incomplete or implausible.
+    ///
+    /// Parsed with `.number` rather than `Double.init(_:)`, so a comma decimal separator is read
+    /// the way the user's locale writes it instead of silently failing.
+    var bodyBasicsFromInputs: BodyBasics? {
+        guard
+            let bodySex,
+            let ageYears = try? Int(ageText, format: .number),
+            let heightCentimetres = try? Double(heightText, format: .number),
+            let weightKilograms = try? Double(weightText, format: .number)
+        else { return nil }
+
+        return BodyBasics(
+            sex: bodySex,
+            ageYears: ageYears,
+            heightCentimetres: heightCentimetres,
+            weightKilograms: weightKilograms
+        )
+    }
+
+    /// Whether anything at all has been typed on the body-basics step.
+    ///
+    /// Drives the difference between "Skip" and an answer that does not parse: a completely empty
+    /// step is a legitimate choice, a half-filled one is worth saying so about.
+    var hasStartedBodyBasics: Bool {
+        bodySex != nil || !ageText.isEmpty || !heightText.isEmpty || !weightText.isEmpty
+    }
+
+    /// Records the basics on the draft, or clears them. Writes nothing — the single write is
+    /// ``finish()``.
+    func applyBodyBasics() {
+        draft.bodyBasics = bodyBasicsFromInputs
     }
 
     /// The single place ``healthState`` changes, so every transition is logged the same way.
     ///
-    /// The label, never the state: `.connected` carries the recorded median, and
-    /// `String(describing:)` on it would write a Health value into the device log.
+    /// The label, never the state: nothing about a Health *value* may reach a `Logger`, and a rule
+    /// that holds for every case is a rule nobody has to re-check when a case gains a payload.
     private func transition(to state: HealthState) {
         healthState = state
         OnboardingLog.logger.info("ONBOARDING state=\(state.logLabel, privacy: .public)")
     }
 
     /// Classifies a snapshot, keeping "we read nothing" separate from "we read something".
-    private static func state(
-        for snapshot: EvidenceSnapshot,
-        trackingRepresentative: Bool
-    ) -> HealthState {
-        let summary = RecordedPatternSummary(
-            snapshot: snapshot,
-            trackingRepresentative: trackingRepresentative
-        )
-
-        // Either today or the fortnight counts as readable: just after midnight there may be
-        // nothing recorded today while a full recorded pattern still exists.
-        guard snapshot.today.hasAnyReading || summary.daysWithAnyReading > 0 else {
+    ///
+    /// Only today's readings count now that there is no fortnight to fall back on (D111): a first
+    /// launch just after midnight can therefore land on `.noReadableData` where it used to report a
+    /// recorded pattern — correctly, because there is nothing readable *yet*, and the allowance rule
+    /// refuses a window under ninety minutes for the same reason.
+    private static func state(for snapshot: EvidenceSnapshot) -> HealthState {
+        guard snapshot.today.hasAnyReading else {
             return .noReadableData
         }
-        return .connected(summary)
+        return .connected(missing: Self.missingKinds(in: snapshot.availability))
+    }
+
+    private static func missingKinds(in availability: EvidenceAvailability) -> Set<HealthKind> {
+        switch availability {
+        case let .readable(missing): missing
+        case .healthUnavailable, .notRequested: []
+        }
     }
 
     // MARK: - Preferences

@@ -66,7 +66,7 @@ struct DemonstrationEvidenceProviderTests {
     @Test("The caller's constraints are the ones the snapshot carries")
     func theCallersConstraintsAreUsed() async throws {
         // Given a scenario that declares no constraints of its own
-        let provider = makeSUT(SyntheticScenarios.typicalDay)
+        let provider = makeSUT(SyntheticScenarios.modestAllowance)
         let constraints = DietaryConstraints(profile: .vegetarian, excludedIngredientIDs: ["ingredient.olive"])
 
         // When it is asked on behalf of someone with a profile and an exclusion

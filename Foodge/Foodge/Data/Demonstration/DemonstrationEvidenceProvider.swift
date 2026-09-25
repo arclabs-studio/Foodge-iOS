@@ -38,11 +38,14 @@ struct DemonstrationEvidenceProvider: HealthEvidenceProvider {
             evaluatedAt: scripted.evaluatedAt,
             timeZoneIdentifier: scripted.timeZoneIdentifier,
             today: scripted.today,
-            history: scripted.history,
             availability: scripted.availability,
             context: context.merged(over: scripted.context),
             constraints: constraints,
-            trackingRepresentative: scripted.trackingRepresentative,
+            // The scenario's own questionnaire and body basics are carried through: they are the
+            // only way `estimatedIntake` and `estimatedResting` can demonstrate an estimated
+            // component, and a live snapshot leaves both `nil`.
+            intake: scripted.intake,
+            body: scripted.body,
             isSynthetic: scripted.isSynthetic
         )
     }

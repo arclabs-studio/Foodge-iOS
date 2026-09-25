@@ -10,26 +10,56 @@ import Foundation
 extension ReasonCode {
     /// One sentence explaining this reason, assembled into the verdict's explanation.
     ///
-    /// `.baselineUnavailable`, `.trackingMarkedUnrepresentative`, `.shortSleep` and
-    /// `.lowReportedEnergy` are written but unreachable this unit — `DinnerCategoryRule` never
-    /// assigns them yet (D62), the same idiom as D54's unwritten `narrationText` column. They stay
-    /// here rather than being left out, so a future caller finds the sentence already reviewed.
+    /// **No sentence here names a number.** The figures are rendered separately, from the
+    /// allowance itself, by the evidence screen — so a reason sentence can never drift out of step
+    /// with the arithmetic it describes. D62's four unreachable codes are gone rather than
+    /// reinstated: every case below is assigned by `CheatMealAllowanceRule`.
     var displayText: LocalizedStringResource {
         switch self {
-        case .aboveRecordedPattern:
+        case .generousAllowance:
             LocalizedStringResource(
-                "Today’s activity came in well above your recorded pattern.",
-                comment: "Verdict reason: today ranked as a treat against the recorded pattern"
+                "Today left you a generous allowance to spend on dinner.",
+                comment: "Verdict reason: the allowance is a large share of the day's maintenance"
             )
-        case .withinRecordedPattern:
+        case .moderateAllowance:
             LocalizedStringResource(
-                "Today’s activity sat within your recorded pattern.",
-                comment: "Verdict reason: today ranked as balanced against the recorded pattern"
+                "Today left you a fair allowance for dinner.",
+                comment: "Verdict reason: the allowance is a moderate share of the day's maintenance"
             )
-        case .belowRecordedPattern:
+        case .slimAllowance:
             LocalizedStringResource(
-                "Today’s activity came in below your recorded pattern.",
-                comment: "Verdict reason: today ranked as light against the recorded pattern"
+                "Today left you a slim allowance for dinner.",
+                comment: "Verdict reason: the allowance is a small share of the day's maintenance"
+            )
+        case .allowanceSpent:
+            LocalizedStringResource(
+                "Today’s meals have already passed what the day added up to.",
+                comment: "Verdict reason: intake exceeds maintenance, so the allowance is negative"
+            )
+        case .restingEnergyEstimated:
+            LocalizedStringResource(
+                "Apple Health had no resting energy today, so this is estimated from your body basics.",
+                comment: "Verdict reason: resting energy came from the Mifflin-St Jeor estimate"
+            )
+        case .intakeEstimated:
+            LocalizedStringResource(
+                "Nothing logged what you ate today, so this uses your own answers.",
+                comment: "Verdict reason: intake came from the questionnaire rather than Health"
+            )
+        case .strongActivityToday:
+            LocalizedStringResource(
+                "You put real work in today, and it counts through the energy you spent.",
+                comment: "Verdict reason: a workout or a high step count was recorded"
+            )
+        case .shortSleep:
+            LocalizedStringResource(
+                "Last night’s sleep was on the short side.",
+                comment: "Verdict reason: sleep duration was short"
+            )
+        case .lowReportedEnergy:
+            LocalizedStringResource(
+                "You said your energy was low today.",
+                comment: "Verdict reason: self-reported energy level was low"
             )
         case .selfReportedMore:
             LocalizedStringResource(
@@ -48,28 +78,8 @@ extension ReasonCode {
             )
         case .checkInSkipped:
             LocalizedStringResource(
-                "There was no recorded pattern or check-in to go on, so this is a provisional call.",
-                comment: "Verdict reason: neither Health nor a self-report was available"
-            )
-        case .baselineUnavailable:
-            LocalizedStringResource(
-                "There wasn’t enough recorded history to build a pattern.",
-                comment: "Verdict reason: not enough recorded days existed to compare against"
-            )
-        case .trackingMarkedUnrepresentative:
-            LocalizedStringResource(
-                "You said your recorded days don’t reflect how you usually live.",
-                comment: "Verdict reason: the recorded pattern was marked unrepresentative"
-            )
-        case .shortSleep:
-            LocalizedStringResource(
-                "Last night’s sleep was on the short side.",
-                comment: "Verdict reason: sleep duration was short"
-            )
-        case .lowReportedEnergy:
-            LocalizedStringResource(
-                "You said your energy was low today.",
-                comment: "Verdict reason: self-reported energy level was low"
+                "There was nothing readable to go on and no check-in, so this is a provisional call.",
+                comment: "Verdict reason: neither an allowance nor a self-report was available"
             )
         }
     }

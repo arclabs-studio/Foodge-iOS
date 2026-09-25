@@ -33,9 +33,9 @@ struct HistoryViewModelTests {
                         basis: .provisional,
                         reasonCodes: [.checkInSkipped],
                         isProvisional: true,
-                        ruleVersion: DinnerCategoryRule.ruleVersion
+                        ruleVersion: CheatMealAllowanceRule.ruleVersion
                     ),
-                    evidence: SyntheticScenarios.typicalDay.snapshot,
+                    evidence: SyntheticScenarios.modestAllowance.snapshot,
                     catalogueVersion: DishCatalogue.version,
                     dishOutcome: .selected(
                         variantID: "dish.pasta.pesto",

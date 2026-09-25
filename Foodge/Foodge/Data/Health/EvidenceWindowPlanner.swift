@@ -9,66 +9,26 @@ import Foundation
 
 /// Works out which spans of time an evaluation is allowed to look at.
 ///
-/// Today is measured from local midnight up to the evaluation instant, and each previous day is
-/// cut at the *same local clock time* — not at the same elapsed number of seconds. Those differ
-/// whenever the clocks change: 4 a.m. on the morning Spain springs forward is three hours after
-/// midnight, not four. Comparing today's partial day against previous full days, or assuming
-/// every day is 86,400 seconds long, is what this type exists to prevent.
+/// Today is measured from local midnight up to the evaluation instant. The previous days went with
+/// D111 — nothing is compared against them any more — but the daylight-saving arithmetic stayed and
+/// now matters more, because the resting-energy estimate is prorated across the local day's real
+/// length (D113). Assuming every day is 86,400 seconds long is what this type exists to prevent.
 enum EvidenceWindowPlanner {
-    /// The window since local midnight, and the matching window on each of the previous
-    /// `historyDays` completed days, oldest first.
-    static func windows(
-        evaluation: Date,
-        calendar: Calendar,
-        historyDays: Int
-    ) -> (today: DateInterval, history: [DateInterval]) {
+    /// The window from local midnight up to the evaluation instant.
+    ///
+    /// Clamped rather than allowed to invert: an evaluation instant before its own local midnight
+    /// is impossible, and a `DateInterval` with a negative duration is a trap for everything
+    /// downstream.
+    static func today(evaluation: Date, calendar: Calendar) -> DateInterval {
         let midnight = calendar.startOfDay(for: evaluation)
-        let today = DateInterval(start: midnight, end: max(midnight, evaluation))
-
-        let clock = calendar.dateComponents([.hour, .minute, .second], from: evaluation)
-
-        let history: [DateInterval] = (1...max(historyDays, 0))
-            .reversed()
-            .compactMap { daysAgo in
-                guard let dayStart = calendar.date(byAdding: .day, value: -daysAgo, to: midnight) else {
-                    return nil
-                }
-                guard let cutoff = cutoff(matching: clock, on: dayStart, calendar: calendar) else {
-                    return nil
-                }
-                return DateInterval(start: dayStart, end: max(dayStart, cutoff))
-            }
-
-        return (today, history)
+        return DateInterval(start: midnight, end: max(midnight, evaluation))
     }
 
-    /// The instant on `dayStart`'s day that shows the same clock time as the evaluation.
+    /// The whole local day `instant` falls in, or `nil` when the calendar cannot say.
     ///
-    /// Midnight is handled directly because searching forward for a time the day already starts
-    /// at would step into the next day. Everything else is resolved by the calendar, which is
-    /// what makes the skipped and repeated hours come out right: a clock time that does not
-    /// exist resolves to the next one that does, and a repeated one to its first occurrence.
-    private static func cutoff(
-        matching clock: DateComponents,
-        on dayStart: Date,
-        calendar: Calendar
-    ) -> Date? {
-        let hour = clock.hour ?? 0
-        let minute = clock.minute ?? 0
-        let second = clock.second ?? 0
-
-        if hour == 0, minute == 0, second == 0 {
-            return dayStart
-        }
-
-        return calendar.date(
-            bySettingHour: hour,
-            minute: minute,
-            second: second,
-            of: dayStart,
-            matchingPolicy: .nextTime,
-            repeatedTimePolicy: .first,
-            direction: .forward
-        )
+    /// This is the denominator the resting-energy proration divides by, so it is a real
+    /// calendar day: 23 hours the morning Spain springs forward, 25 the morning it falls back.
+    static func localDay(containing instant: Date, calendar: Calendar) -> DateInterval? {
+        calendar.dateInterval(of: .day, for: instant)
     }
 }

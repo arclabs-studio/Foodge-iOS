@@ -17,13 +17,15 @@ struct SyntheticScenario: Hashable, Sendable, Identifiable {
     let snapshot: EvidenceSnapshot
 }
 
-/// The fixed set of scenarios that previews, tests and demonstration mode will be fed from.
-///
-/// Nothing consumes them yet: the previews arrive with the onboarding screens on Day 19 and
-/// demonstration mode on Day 24.
+/// The fixed set of scenarios previews, tests and demonstration mode are fed from.
 ///
 /// They are all evaluated at 19:30 on 18 September 2026 in Europe/Madrid, except the
-/// daylight-saving case, so their numbers can be compared against hand-computed expectations.
+/// daylight-saving case, so their figures can be checked against hand-computed expectations.
+///
+/// **Every number here is chosen so the share comes out round.** Maintenance is resting + active
+/// and the share is `(maintenance − intake) / maintenance`, so each scenario's arithmetic is
+/// written out in its own doc comment and `DemonstrationScenarioOutcomeTests` checks the band it
+/// lands in rather than trusting the comment.
 enum SyntheticScenarios {
     static let timeZoneIdentifier = "Europe/Madrid"
 
@@ -44,6 +46,19 @@ enum SyntheticScenarios {
     static let springForwardDate = date(year: 2026, month: 3, day: 29, hour: 3, minute: 10)
 
     static let springForwardClock = FixedClock(now: springForwardDate, calendar: calendar)
+
+    /// The body behind every estimated resting figure here: a 35-year-old man, 175 cm, 70 kg, whose
+    /// Mifflin–St Jeor daily figure is 1623.75 kcal.
+    ///
+    /// Force-unwrapping is forbidden, so an implausible literal would leave the scenario with no
+    /// body rather than crash — and `DemonstrationScenarioOutcomeTests` would fail on the missing
+    /// resting basis rather than pass quietly.
+    static let body = BodyBasics(
+        sex: .male,
+        ageYears: 35,
+        heightCentimetres: 175,
+        weightKilograms: 70
+    )
 
     /// Builds a date from fixed components in ``calendar``.
     ///
@@ -88,82 +103,151 @@ enum SyntheticScenarios {
         )
     }
 
+    /// One invented morning run, for the scenario that demonstrates a strong day.
+    static let morningRun = WorkoutSummary(
+        id: UUID(uuidString: "0B9A1C4E-0001-4000-8000-000000000001") ?? UUID(),
+        activityName: "Running",
+        interval: DateInterval(
+            start: date(year: 2026, month: 9, day: 18, hour: 8, minute: 0),
+            end: date(year: 2026, month: 9, day: 18, hour: 8, minute: 45)
+        )
+    )
+
     // MARK: - Scenarios
 
-    /// 520 kcal against a 400 kcal pattern: comfortably a treat.
-    static let activeDay = SyntheticScenario(
-        id: "activeDay",
+    /// Resting 1200 + active 600 = 1800 maintenance, 990 eaten: an allowance of 810, a share of
+    /// 0.45 — comfortably a treat, with a recorded workout to remark on.
+    static let generousAllowance = SyntheticScenario(
+        id: "generousAllowance",
         clock: clock,
         snapshot: EvidenceSnapshot(
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
             today: HealthAggregates(
-                activeEnergy: energy(520),
-                restingEnergy: energy(1450),
-                steps: steps(11200),
+                activeEnergy: energy(600),
+                restingEnergy: energy(1200),
+                steps: steps(14_000),
                 sleep: sleep(hours: 7, minutes: 40),
-                workouts: [
-                    WorkoutSummary(
-                        id: UUID(uuidString: "0B9A1C4E-0001-4000-8000-000000000001") ?? UUID(),
-                        activityName: "Running",
-                        interval: DateInterval(
-                            start: date(year: 2026, month: 9, day: 18, hour: 8, minute: 0),
-                            end: date(year: 2026, month: 9, day: 18, hour: 8, minute: 45)
-                        )
-                    ),
-                ],
-                dietaryEnergy: nil
+                workouts: [morningRun],
+                dietaryEnergy: energy(990)
             ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.dietaryEnergy]),
+            availability: .readable(missing: []),
             isSynthetic: true
         )
     )
 
-    /// 410 kcal against 400 kcal: inside the band, so balanced.
-    static let typicalDay = SyntheticScenario(
-        id: "typicalDay",
+    /// Resting 1600 + active 400 = 2000 maintenance, 1460 eaten: an allowance of 540, a share of
+    /// 0.27 — an ordinary day, squarely balanced.
+    static let modestAllowance = SyntheticScenario(
+        id: "modestAllowance",
         clock: clock,
         snapshot: EvidenceSnapshot(
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
             today: HealthAggregates(
-                activeEnergy: energy(410),
-                restingEnergy: energy(1440),
+                activeEnergy: energy(400),
+                restingEnergy: energy(1600),
                 steps: steps(8400),
                 sleep: sleep(hours: 7, minutes: 15),
                 workouts: [],
-                dietaryEnergy: nil
+                dietaryEnergy: energy(1460)
             ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.dietaryEnergy]),
+            availability: .readable(missing: []),
             isSynthetic: true
         )
     )
 
-    /// 180 kcal against 400 kcal, with the user confirming the tracking reflects the day.
-    static let restDay = SyntheticScenario(
-        id: "restDay",
+    /// Resting 1350 + active 150 = 1500 maintenance, 1320 eaten: an allowance of 180, a share of
+    /// 0.12 — a quiet day and a heavy lunch, so dinner is light.
+    static let slimAllowance = SyntheticScenario(
+        id: "slimAllowance",
         clock: clock,
         snapshot: EvidenceSnapshot(
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
             today: HealthAggregates(
-                activeEnergy: energy(180),
-                restingEnergy: energy(1430),
+                activeEnergy: energy(150),
+                restingEnergy: energy(1350),
                 steps: steps(3100),
                 sleep: sleep(hours: 8, minutes: 5),
                 workouts: [],
-                dietaryEnergy: nil
+                dietaryEnergy: energy(1320)
             ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.dietaryEnergy]),
-            trackingRepresentative: true,
+            availability: .readable(missing: []),
             isSynthetic: true
         )
     )
 
-    /// Nothing readable at all: the fallback path has to carry the whole experience.
+    /// Resting 1400 + active 200 = 1600 maintenance, 2100 eaten: an allowance of **−500**, a share
+    /// of −0.3125. Light, and a dish is still recommended — a negative result never suppresses
+    /// dinner.
+    static let allowanceSpent = SyntheticScenario(
+        id: "allowanceSpent",
+        clock: clock,
+        snapshot: EvidenceSnapshot(
+            evaluatedAt: evaluationDate,
+            timeZoneIdentifier: timeZoneIdentifier,
+            today: HealthAggregates(
+                activeEnergy: energy(200),
+                restingEnergy: energy(1400),
+                steps: steps(5200),
+                sleep: sleep(hours: 7, minutes: 0),
+                workouts: [],
+                dietaryEnergy: energy(2100)
+            ),
+            availability: .readable(missing: []),
+            isSynthetic: true
+        )
+    )
+
+    /// No `basalEnergyBurned` at all, so Mifflin–St Jeor supplies resting from the body basics:
+    /// 1623.75 × 19.5/24 = 1319.30, plus 400 active = 1719.30 maintenance, 1250 eaten — an
+    /// allowance of 469.30 and a share of 0.27, balanced, labelled as an estimate.
+    static let estimatedResting = SyntheticScenario(
+        id: "estimatedResting",
+        clock: clock,
+        snapshot: EvidenceSnapshot(
+            evaluatedAt: evaluationDate,
+            timeZoneIdentifier: timeZoneIdentifier,
+            today: HealthAggregates(
+                activeEnergy: energy(400),
+                restingEnergy: nil,
+                steps: steps(8400),
+                sleep: sleep(hours: 7, minutes: 15),
+                workouts: [],
+                dietaryEnergy: energy(1250)
+            ),
+            availability: .readable(missing: [.restingEnergy]),
+            body: body,
+            isSynthetic: true
+        )
+    )
+
+    /// No `dietaryEnergy`, so the questionnaire supplies intake: a light breakfast (200) and a
+    /// normal lunch (650) is 850 against resting 1200 + active 600 = 1800 maintenance — an
+    /// allowance of 950, a share of 0.53, a treat labelled as an estimate.
+    static let estimatedIntake = SyntheticScenario(
+        id: "estimatedIntake",
+        clock: clock,
+        snapshot: EvidenceSnapshot(
+            evaluatedAt: evaluationDate,
+            timeZoneIdentifier: timeZoneIdentifier,
+            today: HealthAggregates(
+                activeEnergy: energy(600),
+                restingEnergy: energy(1200),
+                steps: steps(10_500),
+                sleep: sleep(hours: 7, minutes: 30),
+                workouts: [],
+                dietaryEnergy: nil
+            ),
+            availability: .readable(missing: [.dietaryEnergy]),
+            intake: IntakeQuestionnaire(breakfast: .light, lunch: .normal),
+            isSynthetic: true
+        )
+    )
+
+    /// Nothing readable at all: the self-report fallback has to carry the whole experience, because
+    /// a day with no active energy cannot be given a number without inventing one.
     static let noHealthData = SyntheticScenario(
         id: "noHealthData",
         clock: clock,
@@ -171,61 +255,14 @@ enum SyntheticScenarios {
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
             today: .empty,
-            history: [],
             availability: .readable(missing: Set(HealthKind.allCases)),
             isSynthetic: true
         )
     )
 
-    /// A low reading the user has said is not representative, so the pattern must not be used.
-    static let partialTracking = SyntheticScenario(
-        id: "partialTracking",
-        clock: clock,
-        snapshot: EvidenceSnapshot(
-            evaluatedAt: evaluationDate,
-            timeZoneIdentifier: timeZoneIdentifier,
-            today: HealthAggregates(
-                activeEnergy: energy(150),
-                restingEnergy: nil,
-                steps: steps(2600),
-                sleep: nil,
-                workouts: [],
-                dietaryEnergy: nil
-            ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.restingEnergy, .sleep, .dietaryEnergy]),
-            trackingRepresentative: false,
-            isSynthetic: true
-        )
-    )
-
-    /// Energy is recorded on only three days, so the comparison falls back to steps.
-    static let stepsFallback = SyntheticScenario(
-        id: "stepsFallback",
-        clock: clock,
-        snapshot: EvidenceSnapshot(
-            evaluatedAt: evaluationDate,
-            timeZoneIdentifier: timeZoneIdentifier,
-            today: HealthAggregates(
-                activeEnergy: nil,
-                restingEnergy: nil,
-                steps: steps(9000),
-                sleep: sleep(hours: 6, minutes: 50),
-                workouts: [],
-                dietaryEnergy: nil
-            ),
-            history: observations(
-                days: historyDays,
-                energy: [410, 430, 390],
-                steps: typicalStepsAtCutoff
-            ),
-            availability: .readable(missing: [.activeEnergy, .restingEnergy, .dietaryEnergy]),
-            isSynthetic: true
-        )
-    )
-
-    /// A typical day's activity on 5 h 10 min of sleep, which should steer the pick inside the
-    /// category towards something easier without deducting anything.
+    /// The same figures as ``modestAllowance`` on four hours of broken sleep, and the user says
+    /// their energy is low. **The band does not move** — sleep and self-reported energy inform the
+    /// explanation only — so this is a balanced verdict carrying two extra reasons.
     static let shortSleep = SyntheticScenario(
         id: "shortSleep",
         clock: clock,
@@ -233,21 +270,23 @@ enum SyntheticScenarios {
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
             today: HealthAggregates(
-                activeEnergy: energy(410),
-                restingEnergy: energy(1440),
+                activeEnergy: energy(400),
+                restingEnergy: energy(1600),
                 steps: steps(8300),
-                sleep: sleep(hours: 5, minutes: 10, intervalCount: 3),
+                sleep: sleep(hours: 4, minutes: 0, intervalCount: 3),
                 workouts: [],
-                dietaryEnergy: nil
+                dietaryEnergy: energy(1460)
             ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.dietaryEnergy]),
+            availability: .readable(missing: []),
             context: DailyContext(energyLevel: .low),
             isSynthetic: true
         )
     )
 
-    /// An evaluation inside the hour Spain skips, to prove the windows are calendar-aware.
+    /// 03:10 on the 23-hour day, with no basal samples: the prorated estimate is
+    /// 1623.75 × (3 h 10 min / 23 h) = 223.56, not 214.21 against a 24-hour day. Plus 25 kcal
+    /// active that is 248.56 of maintenance, against a questionnaire that says nothing has been
+    /// eaten — an answered zero, so the allowance is the whole of it.
     static let dstSpringForward = SyntheticScenario(
         id: "dstSpringForward",
         clock: springForwardClock,
@@ -262,41 +301,16 @@ enum SyntheticScenarios {
                 workouts: [],
                 dietaryEnergy: nil
             ),
-            history: observations(
-                days: springForwardHistoryDays,
-                energy: springForwardEnergyAtCutoff,
-                steps: []
-            ),
             availability: .readable(missing: [.restingEnergy, .sleep, .dietaryEnergy]),
+            intake: IntakeQuestionnaire(breakfast: .skipped, lunch: .skipped, snacks: .skipped),
+            body: body,
             isSynthetic: true
         )
     )
 
-    /// 180 kcal against 400 kcal, with the per-day check-in not yet asked — unlike ``restDay``
-    /// (confirmed representative) and ``partialTracking`` (marked unrepresentative), this is the
-    /// one low-ratio scenario that reaches `.needsTrackingConfirmation` on first evaluation.
-    static let quietDayUnconfirmed = SyntheticScenario(
-        id: "quietDayUnconfirmed",
-        clock: clock,
-        snapshot: EvidenceSnapshot(
-            evaluatedAt: evaluationDate,
-            timeZoneIdentifier: timeZoneIdentifier,
-            today: HealthAggregates(
-                activeEnergy: energy(180),
-                restingEnergy: energy(1430),
-                steps: steps(3100),
-                sleep: sleep(hours: 8, minutes: 5),
-                workouts: [],
-                dietaryEnergy: nil
-            ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.dietaryEnergy]),
-            isSynthetic: true
-        )
-    )
-
-    /// A balanced-band day whose constraints — vegan, with rice and pasta excluded — leave every
-    /// balanced-family variant blocked, so the dish pick honestly reports no match (D58).
+    /// ``modestAllowance``'s figures with constraints — vegan, rice and pasta excluded — that block
+    /// every balanced dish, so the pick honestly reports no match (D58). **The allowance figure is
+    /// still shown**, which is what makes a no-match night more useful than it used to be.
     static let noCompatibleDish = SyntheticScenario(
         id: "noCompatibleDish",
         clock: clock,
@@ -304,15 +318,14 @@ enum SyntheticScenarios {
             evaluatedAt: evaluationDate,
             timeZoneIdentifier: timeZoneIdentifier,
             today: HealthAggregates(
-                activeEnergy: energy(410),
-                restingEnergy: energy(1440),
+                activeEnergy: energy(400),
+                restingEnergy: energy(1600),
                 steps: steps(8400),
                 sleep: sleep(hours: 7, minutes: 15),
                 workouts: [],
-                dietaryEnergy: nil
+                dietaryEnergy: energy(1460)
             ),
-            history: fullyTrackedHistory,
-            availability: .readable(missing: [.dietaryEnergy]),
+            availability: .readable(missing: []),
             constraints: DietaryConstraints(
                 profile: .vegan,
                 excludedIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id]
@@ -323,15 +336,15 @@ enum SyntheticScenarios {
 
     /// Every scenario, in the order demonstration mode offers them.
     static let all: [SyntheticScenario] = [
-        activeDay,
-        typicalDay,
-        restDay,
+        generousAllowance,
+        modestAllowance,
+        slimAllowance,
+        allowanceSpent,
+        estimatedResting,
+        estimatedIntake,
         noHealthData,
-        partialTracking,
-        stepsFallback,
         shortSleep,
         dstSpringForward,
-        quietDayUnconfirmed,
         noCompatibleDish,
     ]
 }

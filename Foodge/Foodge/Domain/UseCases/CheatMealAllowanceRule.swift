@@ -48,6 +48,18 @@ enum AllowanceUnavailableReason: Hashable, Sendable {
     case windowTooShort
     /// A component covers a different span from the evaluation window.
     case windowMismatch
+
+    /// A label that is safe to log: the rule that refused, never the figures it refused.
+    var logLabel: String {
+        switch self {
+        case .missingActiveEnergy: "missingActiveEnergy"
+        case .noRestingBasis: "noRestingBasis"
+        case .noIntakeBasis: "noIntakeBasis"
+        case .nonPositiveMaintenance: "nonPositiveMaintenance"
+        case .windowTooShort: "windowTooShort"
+        case .windowMismatch: "windowMismatch"
+        }
+    }
 }
 
 enum AllowanceOutcome: Hashable, Sendable {
@@ -76,6 +88,15 @@ enum CheatMealAllowanceRule {
     /// Bumped from `DinnerCategoryRule`'s `1.0.0`, so a saved case always says which rules
     /// produced it.
     static let ruleVersion = "2.0.0"
+
+    /// A day carrying a recorded workout, or at least this many steps, is **remarked on** in the
+    /// explanation. It is never added to the arithmetic: active energy already contains workout and
+    /// step energy, so adding it would double-count (D121).
+    static let strongActivitySteps = 12_000.0
+
+    /// Below this much sleep the explanation says so. Also explanation only — sleep moves no
+    /// figure.
+    static let shortSleepThreshold = Duration.seconds(6 * 3600)
 
     /// Works out the allowance, in a **fixed guard order** so a request that breaks two
     /// preconditions always reports the same one:
@@ -126,6 +147,72 @@ enum CheatMealAllowanceRule {
                 window: request.window
             )
         )
+    }
+
+    /// Turns an allowance into a verdict, with the reason codes that explain it.
+    ///
+    /// Sleep, steps and workouts inform the **explanation**, never the arithmetic. Every reason
+    /// code this function can append is reachable, which is the point: an explanation assembled
+    /// from codes nothing ever assigns is prose pretending to be facts (D62's tolerated gap, not
+    /// reintroduced).
+    static func decide(
+        allowance: EnergyAllowance,
+        today: HealthAggregates,
+        context: DailyContext
+    ) -> VerdictDecision {
+        var reasonCodes: [ReasonCode] = [bandReason(forShare: allowance.share)]
+
+        // A spent allowance gets its own sentence rather than being folded into "slim": having
+        // eaten more than the day spent is a different thing to be told.
+        if allowance.allowanceKilocalories <= 0 {
+            reasonCodes.append(.allowanceSpent)
+        }
+        if allowance.restingIsEstimated {
+            reasonCodes.append(.restingEnergyEstimated)
+        }
+        if allowance.intakeIsEstimated {
+            reasonCodes.append(.intakeEstimated)
+        }
+        if hasStrongActivity(in: today) {
+            reasonCodes.append(.strongActivityToday)
+        }
+        if hasShortSleep(in: today) {
+            reasonCodes.append(.shortSleep)
+        }
+        if context.energyLevel == .low {
+            reasonCodes.append(.lowReportedEnergy)
+        }
+
+        return VerdictDecision(
+            category: category(forShare: allowance.share),
+            basis: .energyBalance(allowance),
+            reasonCodes: reasonCodes,
+            isProvisional: false,
+            ruleVersion: ruleVersion
+        )
+    }
+
+    private static func bandReason(forShare share: Double) -> ReasonCode {
+        switch category(forShare: share) {
+        case .treat: .generousAllowance
+        case .balanced: .moderateAllowance
+        case .light: .slimAllowance
+        }
+    }
+
+    /// A recorded workout, or a high step count. An absent reading is not a quiet day — it is an
+    /// absent reading, and says nothing either way.
+    private static func hasStrongActivity(in today: HealthAggregates) -> Bool {
+        if let workouts = today.workouts, !workouts.isEmpty {
+            return true
+        }
+        guard let steps = today.steps else { return false }
+        return steps.count >= strongActivitySteps
+    }
+
+    private static func hasShortSleep(in today: HealthAggregates) -> Bool {
+        guard let sleep = today.sleep else { return false }
+        return sleep.asleepDuration < shortSleepThreshold
     }
 
     /// The band a share falls in. Inclusive at each lower edge.
