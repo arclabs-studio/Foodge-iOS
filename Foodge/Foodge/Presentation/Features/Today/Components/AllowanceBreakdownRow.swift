@@ -21,35 +21,55 @@ struct AllowanceBreakdownRow: View {
         switch basis {
         case let .energyBalance(allowance):
             AllowanceFigureRow(
-                title: "Resting energy",
+                title: LocalizedStringResource(
+                    "Resting energy",
+                    comment: "Allowance breakdown row: the energy the body spent at rest so far today"
+                ),
                 kilocalories: allowance.restingKilocalories,
                 isEstimated: allowance.restingIsEstimated
             )
             AllowanceFigureRow(
-                title: "Active energy",
+                title: LocalizedStringResource(
+                    "Active energy",
+                    comment: "Allowance breakdown row: the energy movement and workouts spent so far today"
+                ),
                 kilocalories: allowance.activeKilocalories,
                 isEstimated: false
             )
             AllowanceFigureRow(
-                title: "Today’s total",
+                title: LocalizedStringResource(
+                    "Today’s total",
+                    comment: "Allowance breakdown row: resting plus active energy — what the day has spent so far, not an allowance"
+                ),
                 kilocalories: allowance.maintenanceKilocalories,
                 isEstimated: allowance.restingIsEstimated
             )
             AllowanceFigureRow(
-                title: "Eaten so far",
+                title: LocalizedStringResource(
+                    "Eaten so far",
+                    comment: "Allowance breakdown row: the energy eaten so far today"
+                ),
                 kilocalories: allowance.intakeKilocalories,
                 isEstimated: allowance.intakeIsEstimated
             )
             AllowanceFigureRow(
-                title: "Left for dinner",
+                title: LocalizedStringResource(
+                    "Left for dinner",
+                    comment: "Allowance breakdown row: today's total minus what was eaten. Can be negative"
+                ),
                 kilocalories: allowance.allowanceKilocalories,
                 isEstimated: allowance.restingIsEstimated || allowance.intakeIsEstimated
             )
-            LabeledContent(
-                "Share of today",
-                value: allowance.share,
-                format: .percent.precision(.fractionLength(0))
-            )
+            LabeledContent {
+                Text(allowance.share, format: .percent.precision(.fractionLength(0)))
+            } label: {
+                Text(
+                    LocalizedStringResource(
+                        "Share of today",
+                        comment: "Allowance breakdown row: what is LEFT to spend, as a share of the day's total — never the share consumed"
+                    )
+                )
+            }
             Text("These figures are estimates, not nutritional advice.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -70,7 +90,7 @@ struct AllowanceBreakdownRow: View {
 /// estimate label is announced together with its figure rather than as a separate element.
 @MainActor
 struct AllowanceFigureRow: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let kilocalories: Double
     let isEstimated: Bool
 

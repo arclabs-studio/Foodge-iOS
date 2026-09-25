@@ -1930,6 +1930,93 @@ that show on stage), the `noCompatibleDish` device check, the iOS 26 walk, and t
 sweep. D93 no longer appears on that list.
 
 
+## Day 25–26 — the energy-allowance rebuild (WU-EB)
+
+Plan: `docs/migrations/2026-09-25-energy-balance-rebuild.md`. Branch `feature/FOODGE-energy-balance`,
+off the pushed backup `backup/pre-energy-balance` (the last green submittable state, 278/278).
+
+### WU-EB.A ✅ Domain types and the allowance rule, additive only
+
+- **Objective / scope**: land `BodyBasics`, `IntakeEstimate`, `EnergyAllowance`,
+  `BasalMetabolicRate` and `CheatMealAllowanceRule` **beside** the old engine, referenced by nothing,
+  so the hardest arithmetic arrives with tests behind it while the build stays green.
+- **Acceptance**: both band edges, a negative allowance, every named unavailable reason, the fixed
+  guard order, the unanswered-versus-`.skipped` distinction, and DST proration pinned by literals
+  taken from the published Mifflin–St Jeor equation rather than from the implementation.
+- **Evidence**: `8034a3a`. `BuildProject buildForTesting: true` succeeded; `GetBuildLog severity:
+  "warning"` → `totalFound: 0`. `GetTestList` → **285 enabled**, of which 26 are this unit's. The pre-rebuild
+  figure quoted elsewhere is **278 tests run** (WU-25-A), which is a different metric: `GetTestList`
+  counts test functions while a run expands every argument of a parameterized `@Test`, so the two
+  numbers are not comparable and the list count before Pass A was never measured. The two
+  daylight-saving tests each also assert the answer is **not** the 86,400-second answer, so an
+  implementation that divides by a fixed day fails them rather than passing quietly.
+- **Owed**: test **execution**. `RunSomeTests` stalls after install on this machine — four attempts
+  (four suites, four suites on iPhone 17 Pro, one suite, one suite again), each wedged with the
+  `.xcresult` created and no progress for 30+ minutes, while `GetTestList` and `BuildProject` answer
+  normally. The user is running ⌘U by hand instead. **No test in this unit has been observed to
+  pass.**
+
+### WU-EB.B ✅ (build gate) The rule swap — baseline engine out, allowance in
+
+- **Objective / scope**: replace the 14-day comparison with the allowance rule across Domain, Data
+  and Presentation. Catalogue deliberately untouched — still 27 variants.
+- **Acceptance**: zero-warning build on both targets; the deleted rule has no callers left; every
+  `ReasonCode` case is assigned by the rule; the demonstration scenarios each demonstrate their own
+  arithmetic.
+- **Evidence**: `275900a`, 68 files, +1931/−2406. `BuildProject buildForTesting: true` succeeded;
+  `GetBuildLog severity: "warning"` → `totalFound: 0`. `GetTestList` → **265 enabled** (285 minus the
+  baseline calculator suite, the category-rule suite and the eight `compare(_:)` tests, whose
+  arithmetic oracles moved into `CheatMealAllowanceRuleTests`). Deleted: `ActivityBaseline`,
+  `RecordedPatternSummary`, `ActivityBaselineCalculator`, `DinnerCategoryRule`, `VerdictEngine`,
+  `HealthAggregates.value(for:)`, `CalorieProvenance`'s comparison half, `TrackingConfirmationSection`,
+  `RecordedPatternSection`, `RecordedPatternUnavailableRow`, `RecordedActivityRow`,
+  `ActivityMetric+DisplayName`, `SyntheticScenarios+Days`. Added: `BodyBasicsView`,
+  `IntakeCheckInSection`, `AllowanceBreakdownRow`, `SampleDecisions`, `BiologicalSex+DisplayName`,
+  `MealPortion+DisplayName`.
+- **Measured**: HealthKit queries per evaluation fall from **15 to 6** (the 14-window `TaskGroup` is
+  gone). Whether that moves WU-25-A's ~51-second on-device verdict is **not yet measured** — it needs
+  a device run and the `.evaluating` stage timed.
+- **Owed**: test execution (as above); the on-device walk from a **fresh install** (the app must be
+  deleted first — V1 is edited in place per D110); `RenderPreview` for Body Basics, Today, Verdict and
+  Evidence Details at default and AX5 in both languages; and the audit agents.
+
+### WU-EB.D ✅ (build gate) Voice — three string removals
+
+- **Evidence**: `951002f`. `"cheat meal"`, `"cheat day"` and `"guilt free"` removed from
+  `NarrationValidator.bannedPhrases`; `"comida trampa"`, the digit ban, `makesNumericClaim`,
+  `numberWords`, `measurementUnits` and `NarrationPrompt` all untouched, so
+  `NarrationPromptTests.promptContainsNoNumbers` still stands as the justification for the digit ban.
+  Zero-warning build on both targets.
+- **Correction to the plan**: it expected an existing "cheat meal is rejected" test to flip into an
+  acceptance test. **No such fixture existed** — the suite never had a cheat-meal case — so two tests
+  were added instead: `cheatMealFramingIsAccepted` (all three removed phrases now accepted) and
+  `spanishGuiltFramingIsStillRejected` (*comida trampa* and *sin culpa* still refused).
+
+### WU-EB.E 🟦 Localization and final verification
+
+- **Done**: 60 new English keys extracted by the build, then translated into Spanish through the
+  Xcode-native route (`StringCatalogEdit`, four sub-agents of ≤ 15 keys each, per the bundled
+  coordinator skill). Verified programmatically against `HEAD`: 348 keys before and after, **no key
+  added or removed, every `en` value byte-identical**, no `es` entry plural- or device-varied — the
+  D83 failure mode did not recur. The four batches independently converged on *margen* for
+  "allowance" and on the existing *sin datos legibles* precedent. 116 stale keys correctly left
+  alone (D-nothing: `UIStringLocalizationTests.declaredKeys` filters `stale` out).
+- **Owed**: `UIStringLocalizationTests` and `CatalogueNameLocalizationTests` read the **built**
+  bundle, so they must run immediately after a build — and they cannot run at all until the test
+  runner question is settled.
+
+### Pass C — **not started, and recommended for the drop**
+
+The catalogue collapse to ten dishes (D115, D116, D120) is the plan's own droppable pass. The
+argument for dropping it is not the size of the edit but the **verification loop**: its largest piece
+is `DishSelectionTests` (466 lines, 25 tests, every fixture built on `CatalogueEntry`), and with the
+MCP test runner wedged there is no way to iterate red→green on it without a hand-driven ⌘U per
+attempt, roughly 24 hours from the deadline. Passes B + D already ship a coherent product — the
+allowance rule on the existing 27-variant catalogue, with an honest no-match. Cost of dropping:
+no ten-dish catalogue and no editorial `kilocalorieRange`, so dish cards keep showing no calorie
+figure (which is D50's existing, honest behaviour). **User's decision.**
+
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
