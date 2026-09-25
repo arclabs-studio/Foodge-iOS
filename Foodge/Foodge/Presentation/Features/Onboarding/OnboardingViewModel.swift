@@ -63,6 +63,7 @@ final class OnboardingViewModel {
     private(set) var didFinish = false
 
     // MARK: - Body basics, gathered on their own step
+
     //
     // Held as text because that is what a keypad produces, and parsed in one place
     // (``bodyBasicsFromInputs``) so a half-typed answer is simply not a body yet. Nothing is
@@ -180,6 +181,17 @@ final class OnboardingViewModel {
         bodySex != nil || !ageText.isEmpty || !heightText.isEmpty || !weightText.isEmpty
     }
 
+    /// Whether the step still offers a way out that is not "answer all four" (D126).
+    ///
+    /// Deliberately keyed on the *answer*, not on whether typing has begun. Keying it on
+    /// ``hasStartedBodyBasics`` trapped the user: touching one field disabled Continue and hid Skip
+    /// at the same moment, leaving the step escapable only by clearing every field again — while
+    /// its own footer said skipping was fine. Skipping discards the partial answer, which is what
+    /// ``applyBodyBasics()`` already does.
+    var canSkipBodyBasics: Bool {
+        bodyBasicsFromInputs == nil
+    }
+
     /// Records the basics on the draft, or clears them. Writes nothing — the single write is
     /// ``finish()``.
     func applyBodyBasics() {
@@ -205,7 +217,7 @@ final class OnboardingViewModel {
         guard snapshot.today.hasAnyReading else {
             return .noReadableData
         }
-        return .connected(missing: Self.missingKinds(in: snapshot.availability))
+        return .connected(missing: missingKinds(in: snapshot.availability))
     }
 
     private static func missingKinds(in availability: EvidenceAvailability) -> Set<HealthKind> {

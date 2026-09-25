@@ -255,6 +255,28 @@ struct OnboardingViewModelTests {
         #expect(sut.viewModel.bodyBasicsFromInputs == nil)
     }
 
+    @Test("A half-answered step is still escapable, and a complete one needs no escape (D126)")
+    func aHalfAnsweredStepIsStillSkippable() {
+        // Given a user who gives their sex and age and will not give their weight
+        let sut = makeSUT()
+        sut.viewModel.bodySex = .female
+        sut.viewModel.ageText = "34"
+
+        // Then Skip is still offered. Continue is disabled in this state, so keying the skip on
+        // "has typed anything" left the step with no way forward at all.
+        #expect(sut.viewModel.bodyBasicsFromInputs == nil)
+        #expect(sut.viewModel.hasStartedBodyBasics)
+        #expect(sut.viewModel.canSkipBodyBasics)
+
+        // When the remaining figures arrive
+        sut.viewModel.heightText = "165"
+        sut.viewModel.weightText = "62"
+
+        // Then Continue is the way on, and the escape hatch is gone
+        #expect(sut.viewModel.bodyBasicsFromInputs != nil)
+        #expect(sut.viewModel.canSkipBodyBasics == false)
+    }
+
     @Test("Continuing without Health clears a failed attempt and moves on")
     func skippingHealthClearsTheFailureAndAdvances() async {
         // Given an authorization attempt that failed

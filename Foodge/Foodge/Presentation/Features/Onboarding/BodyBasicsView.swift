@@ -61,7 +61,7 @@ struct BodyBasicsView: View {
                 NavigationLink("Continue", value: OnboardingRoute.preferences)
                     .disabled(vm.hasStartedBodyBasics && vm.bodyBasicsFromInputs == nil)
 
-                if !vm.hasStartedBodyBasics {
+                if vm.canSkipBodyBasics {
                     NavigationLink("Skip for now", value: OnboardingRoute.preferences)
                 }
             } footer: {
