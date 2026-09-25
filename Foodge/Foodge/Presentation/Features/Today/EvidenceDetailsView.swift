@@ -7,11 +7,11 @@
 
 import SwiftUI
 
-/// What Foodge actually read, and how it compared to the recorded pattern.
+/// What Foodge actually read, and the allowance it worked out from it.
 ///
-/// A calorie comparison only ever appears once intake completeness can be confirmed — no such
-/// confirmation exists yet this unit, so that section stays honestly absent rather than showing
-/// an unconfirmed number.
+/// Every figure carries its own provenance, and a figure Health could not supply is shown as
+/// missing rather than as zero. The recorded-pattern comparison this screen once showed was
+/// deleted with the 14-day baseline (D111); the allowance breakdown replaced it.
 @MainActor
 struct EvidenceDetailsView: View {
     let revision: SavedRevision

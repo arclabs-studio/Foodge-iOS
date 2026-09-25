@@ -17,8 +17,9 @@ import HealthKit
 ///
 /// - Important: This actor does **not** serialise queries, and must not be read as doing so.
 ///   Swift actors are reentrant: every method here suspends at `result(for:)`, and the next call
-///   is admitted while the first is parked there. That is deliberate — the fourteen historical
-///   windows are meant to overlap — but it means no state may be held across an `await`. The type
+///   is admitted while the first is parked there. That is deliberate — the day's six reads are
+///   issued together and are meant to overlap — but it means no state may be held across an
+///   `await`. The type
 ///   has exactly one stored property, an immutable store, and adding a mutable cache would
 ///   introduce a race that the current design has no way to show you.
 actor HealthKitSampleSource: HealthSampleSource {

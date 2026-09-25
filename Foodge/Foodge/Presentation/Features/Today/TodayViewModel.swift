@@ -142,6 +142,7 @@ final class TodayViewModel {
     var noteText = ""
 
     // MARK: - The intake check-in
+
     //
     // Three separate optionals bound to three pickers, so "not answered" stays distinct from
     // `.skipped` all the way from the control to the rule. They are only consulted when Health has
@@ -162,8 +163,9 @@ final class TodayViewModel {
     @ObservationIgnored private let clock: any EvaluationClock
     @ObservationIgnored private let narrator: any VerdictNarrator
 
-    /// Retained across the tracking-confirmation and self-report pauses, so answering either one
-    /// never reads Health a second time.
+    /// Retained across the intake check-in and self-report pauses, so answering either one never
+    /// reads Health a second time. (The tracking-confirmation pause this once also covered was
+    /// deleted with the recorded baseline — D111.)
     private var pendingSnapshot: EvidenceSnapshot?
     private var pendingDraft: PreferencesDraft?
 
