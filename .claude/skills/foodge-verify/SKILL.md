@@ -27,36 +27,52 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
 
 ```json
 [
-  {"targetName": "FoodgeTests", "testIdentifier": "DinnerCategoryRuleTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "ActivityBaselineCalculatorTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "SleepIntervalUnionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "BasalMetabolicRateTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "BodyBasicsTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CheatMealAllowanceRuleTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "IntakeEstimateTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "EvidenceWindowPlannerTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "SleepIntervalUnionTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "HealthEvidenceReaderTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "ContainerFactoryTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DishCatalogueTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "CatalogueNameLocalizationTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "IngredientOrderingTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CatalogueNameLocalizationTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CalorieProvenanceTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CalorieReferenceCatalogueTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayAppealViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "SettingsViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationValidatorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationPromptTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationTemplateLocalizationTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "ValidatingNarratorTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DeadlineNarratorTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "NarrationPromptTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "FoundationModelsNarratorTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"}
+  {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationScenarioCatalogueTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationScenarioOutcomeTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationEvidenceProviderTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationSessionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "LocalReminderServiceTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "UIStringLocalizationTests"}
 ]
 ```
 
-`RunAllTests` reports **241 passed as of Day 23** (WU-23 added the seven narration suites above;
-the Day 22 figure was 157). Note the count expands every argument of a parameterized `@Test`, so
-it grows faster than the number of test functions. Prefer the curated list over `RunAllTests` for
-a quick loop — `RunAllTests` also runs the XCTest UI bundle. Add new suites here as they land.
+These are **all 33 suites in the target as of WU-EB** (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`),
+which is what the energy-allowance rebuild left behind: `DinnerCategoryRuleTests` and
+`ActivityBaselineCalculatorTests` were **deleted** in Pass B and naming them makes `RunSomeTests`
+fail on an identifier that no longer exists.
+
+`GetTestList` reports **265 enabled** test functions as of WU-EB.B. Do not compare that to
+WU-23's "241 passed" or WU-25-A's "278 run": a *run* expands every argument of a parameterized
+`@Test` while the *list* counts functions, so the two are different metrics. `RunAllTests` is no
+longer a wider net than this list — the XCTest UI bundle was removed in WU-25-A (D2). Add new
+suites here as they land.
 
 ## Destination
 

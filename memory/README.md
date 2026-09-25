@@ -66,6 +66,8 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[swapping-the-container-needs-an-id-not-just-modelcontainer]] — `.modelContainer` alone leaves the live view models alive
 - [[demo-evidence-must-merge-the-callers-context]] — a verbatim snapshot silently deletes the "add context" step
 - [[a-loading-state-tears-down-everything-below-it]] — a failure path routed through `.loading` is invisible to everyone
+- [[a-wedged-runner-decides-which-pass-ships]] — an unclosable verification loop is a scope constraint
+- [[a-disabled-continue-and-a-hidden-skip-flip-together]] — every exit from a screen disabled at once
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

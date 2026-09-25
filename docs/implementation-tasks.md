@@ -152,6 +152,9 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D122 | Intake is resolved in a fixed order — Health `dietaryEnergy`, else the user's answered check-in, else a demonstration's scripted questionnaire — and the questionnaire and body basics actually used are **written onto the snapshot** (`EvidenceSnapshot.attaching(intake:body:)`) before anything is evaluated or saved. The self-report is likewise written into the persisted `DailyContext`. | Three things forced this. (1) Body basics are a stored preference (D117), but a questionnaire is a *per-day answer*, so it cannot be one — the plan's "read from stored preferences" holds for the body and cannot for the questionnaire, which is why a scripted one travels on the snapshot instead and `estimatedIntake` still demonstrates itself. (2) A saved case has to be able to say where an estimated figure came from; without attaching them, `VerdictRevision.evidenceData` would hold a decision whose `intakeIsEstimated` was true beside no questionnaire at all. (3) `DailyContext.selfReportedActivity` existed from the start and **nothing ever wrote it** — a self-reported verdict recorded the answer in `CategoryBasis` but not in the evidence beside it, so a reopened case could not say what had been asked. Found during the rebuild's exploration; fixed by `recordingSelfReport(_:)` and pinned by `TodayViewModelTests` and `DemonstrationScenarioOutcomeTests`. |
 | D123 | `RecordedActivityRow` is **deleted and replaced** by `AllowanceBreakdownRow`, and every preview decision now comes from one `SampleDecisions` namespace instead of a literal per `#Preview`. | The row rendered a ratio, a median and an observation count, none of which exist any more; keeping the name over an allowance breakdown would have left a file whose name described the previous product. Each figure now carries its own provenance label, because "1,319 kcal resting" and "1,319 kcal resting, estimated" are different claims and only one of them is a measurement. `SampleDecisions` exists because the rebuild found the same seven-line `VerdictDecision` literal copied into six preview bodies: each free to drift from the rule, and a preview showing a decision the rule cannot produce is worse than no preview. |
 | D124 | Onboarding gains a **body-basics step** between Health and preferences, and `HealthState.connected` now carries the **missing kinds** instead of a recorded-pattern summary. Skipping the step is a first-class choice. | The recorded-pattern screen had nothing left to show (D111), and what a user actually needs to know at that point is which figures Health could not supply — because that is exactly what the next screen offers to stand in for. Two consequences are recorded rather than discovered later: a first launch **just after midnight** can now report `noReadableData` where it used to report a pattern, which is correct (there is nothing readable *yet*, and the rule refuses a window under ninety minutes for the same reason); and `.connected(missing: [])` is deliberately distinct from `nil`, meaning "connected, nothing missing" rather than "not asked". The step applies its figures on the way out, so the draft holds a whole body or nothing — never three answers and a half. |
+| D125 | **Pass C of the energy-allowance rebuild is dropped.** The catalogue stays at **9 families / 27 variants**; `DishVariant` and `CatalogueEntry` survive, no dish gains an editorial `kilocalorieRange`, and dish cards keep showing no calorie figure. **D115, D116 and D120 are therefore decided-but-unbuilt** — they remain in this log as reasoning about a pass that was not taken, and must not be read as describing shipped code. D120's `DishFamily` naming debt never arises, because the one-dish-per-kind change that would have made the name a misnomer was not made. | The reason is the **verification loop**, not the size of the edit. Pass C's largest piece is `DishSelectionTests` — 466 lines, 25 tests, every fixture built on `CatalogueEntry` — so the collapse would break the whole suite at once and each red→green attempt would need a hand-driven ⌘U, the MCP runner having wedged on four consecutive attempts. The alternative's cost, ~24 h from the deadline, is a catalogue collapse iterated **blind**: a selection algorithm whose recency, exclusion and rotation behaviour is verified by 25 tests, rewritten with no observed test run. Passes B + D already ship a coherent product — the allowance rule over the existing catalogue, with an honest no-match — and dropping Pass C removes nothing a user sees except a calorie figure that D50 already, deliberately, withholds. |
+| D126 | The body-basics **skip** is offered whenever the four figures are incomplete (`canSkipBodyBasics == bodyBasicsFromInputs == nil`), not only while the step is untouched. **Fixes a dead end introduced in Pass B; amends D117, D124.** | `Continue` is disabled while the basics are incomplete and `Skip for now` was shown only while `!hasStartedBodyBasics`, so the two conditions flipped on the *same* keystroke: entering a sex and an age and declining to give a weight left the step with **no way forward at all**, while its own footer still read "Skipping is fine". Escape existed only by clearing all four fields, including resetting the picker to "Not given" — recoverable, but nothing on screen said so. Keying the skip on the *answer* rather than on whether typing had begun costs nothing: skipping already discards a partial answer, because `applyBodyBasics()` writes `bodyBasicsFromInputs`, which is `nil`. Found by `RenderPreview` on the "Half answered" preview in `es`, not by a test — the rule lived in the View, where this project has no test that can reach it. It is now `OnboardingViewModel.canSkipBodyBasics`, covered by `aHalfAnsweredStepIsStillSkippable`, which fails against the old condition. |
+| D127 | Two **user-facing strings** that described the deleted 14-day baseline are rewritten to describe the allowance: `WelcomeView`'s "weighs today against your usual fortnight" → "works out what today has left you to spend", and `SelfReportCheckInSection`'s "There's no usable recorded pattern for today." → "There isn't enough readable data to work out today's allowance." Both re-translated into `es`. **Completes D111 into the UI layer.** | D111 deleted the recorded baseline from the domain, and Pass B swept the screens that *showed* it — but these two strings only *describe* it, so they survived a search for baseline types and kept claiming a feature the app no longer has. The `WelcomeView` one is the first sentence a user or a hackathon judge reads, which makes it a false product claim on the demo's opening screen, not an internal staleness. Found by `arc-audit-hig`, which flagged both as outside WU-EB's diff yet caused by it — correctly: the files were never edited, only invalidated. Neither string carries a numeric specifier, so the one-way plural-variation trap did not apply. The English is the product's own writing and was rewritten here deliberately rather than by a translation agent as a side effect. |
 
 ---
 
@@ -1944,7 +1947,7 @@ off the pushed backup `backup/pre-energy-balance` (the last green submittable st
   guard order, the unanswered-versus-`.skipped` distinction, and DST proration pinned by literals
   taken from the published Mifflin–St Jeor equation rather than from the implementation.
 - **Evidence**: `8034a3a`. `BuildProject buildForTesting: true` succeeded; `GetBuildLog severity:
-  "warning"` → `totalFound: 0`. `GetTestList` → **285 enabled**, of which 26 are this unit's. The pre-rebuild
+  "warning"` → `totalFound: 0`. `GetTestList` → **285 enabled**, of which **41** are this unit's — 6 in `BasalMetabolicRateTests`, 6 in `BodyBasicsTests`, 8 in `IntakeEstimateTests` and 21 in `CheatMealAllowanceRuleTests`, confirmed both by counting `@Test` in the four added files and by the repo-wide `@Test` delta across the commit (244 → 285). **Corrected at the Checkpoint-B review:** this entry and `8034a3a`'s commit message both said **26**, which was a miscount — it is the `func` count inside `CheatMealAllowanceRuleTests.swift` alone. The commit message is immutable history and is left as it stands. The pre-rebuild
   figure quoted elsewhere is **278 tests run** (WU-25-A), which is a different metric: `GetTestList`
   counts test functions while a run expands every argument of a parameterized `@Test`, so the two
   numbers are not comparable and the list count before Pass A was never measured. The two
@@ -2005,16 +2008,83 @@ off the pushed backup `backup/pre-energy-balance` (the last green submittable st
   bundle, so they must run immediately after a build — and they cannot run at all until the test
   runner question is settled.
 
-### Pass C — **not started, and recommended for the drop**
+### Checkpoint B — the close (2026-09-26)
 
-The catalogue collapse to ten dishes (D115, D116, D120) is the plan's own droppable pass. The
-argument for dropping it is not the size of the edit but the **verification loop**: its largest piece
-is `DishSelectionTests` (466 lines, 25 tests, every fixture built on `CatalogueEntry`), and with the
-MCP test runner wedged there is no way to iterate red→green on it without a hand-driven ⌘U per
-attempt, roughly 24 hours from the deadline. Passes B + D already ship a coherent product — the
-allowance rule on the existing 27-variant catalogue, with an honest no-match. Cost of dropping:
-no ten-dish catalogue and no editorial `kilocalorieRange`, so dish cards keep showing no calorie
-figure (which is D50's existing, honest behaviour). **User's decision.**
+Plan: `docs/migrations/2026-09-25-checkpoint-b-close.md`.
+
+- **Build gate — met.** `BuildProject { buildForTesting: true }` succeeded four times across this
+  session (6.5 s, 8.9 s, 7.8 s, 8.2 s), each followed by its own `GetBuildLog { severity:
+  "warning" }` → **`totalFound: 0`**. The last one is after every edit below, including the three
+  files the accessibility auditor changed.
+- **Tests — still owed, and now on the fifth wedge.** `RunSomeTests` against the full curated
+  33-suite list ran **21+ minutes with no result** and was abandoned; an earlier single-suite probe
+  (`EvidenceWindowPlannerTests`, 7 tests, pure `Calendar` arithmetic) behaved identically. Meanwhile
+  `BuildProject` answered in 4–9 s throughout, confirming the wedge is the test runner and not the
+  toolchain. **No test in this rebuild has still been observed to pass.** The count owed is
+  265 enabled + the one added below. Handed to the user for a ⌘U.
+- **Previews — met, 11 renders by me plus the auditor's matrix.** `AllowanceBreakdownRow` at
+  `en`/default, `es`/AX 5, `es`/AX 3 and `es`/default; `BodyBasicsView` "Half answered" at `es`/AX 5
+  and `es`/default; `IntakeCheckInSection` at `es`/default and `es`/AX 5; `EvidenceSectionsView` and
+  `VerdictView` at `es`/default. The accessibility auditor added `en`/AX 5, Increased Contrast and
+  Dark Appearance across the same screens. **Read off the renders, not inferred:** Spanish labels
+  wrap rather than truncate at AX 5 (*Consumido hasta ahora*, *Margen para la cena*); a negative
+  allowance renders as **−500 kcal / −25 %**, so D112's never-floored rule is visibly honoured; and
+  `EvidenceSectionsView`'s figures are internally consistent (1600 + 400 = 2000, − 1460 = 540,
+  540 / 2000 = 27 %).
+- **Device walk — owed.** Device interaction is simulator-only here (D21), so it needs the user's
+  hands, from a **fresh install** (V1 was edited in place, D110). The `.evaluating` timing against
+  WU-25-A's ~51 s is therefore still **unmeasured**; the 15→6 query reduction predicts a large drop
+  and that prediction remains a prediction.
+
+**Audits — four run, `arc-audit-concurrency` · `arc-constitution-review` · `arc-audit-hig` ·
+`arc-audit-accessibility`. Zero BLOCKERs.** Every finding below was verified against the code
+before it was acted on, rather than taken on the agent's word.
+
+| Finding | Source | Disposition |
+|---|---|---|
+| `BodyBasicsView` was a **dead end**: `Continue` disabled and `Skip` hidden on the same keystroke | my own `RenderPreview` at `es`, before the audits | **Fixed — D126**, plus `aHalfAnsweredStepIsStillSkippable`, which fails against the old condition |
+| WU-EB.A's evidence said **26 new tests**; the real figure is **41** | `arc-constitution-review` | **Corrected above.** Verified independently: 6 + 6 + 8 + 21 across the four added files, and a repo-wide `@Test` delta of 244 → 285 |
+| `HealthKitSampleSource`'s doc comment justified its reentrancy by "the fourteen historical windows are meant to overlap" — deleted by D111 | `arc-audit-concurrency` | **Fixed.** Now cites the day's six concurrent reads |
+| `FixtureHealthSampleSource.historyEnergy` / `historyDelays` — delay-injection machinery for an out-of-order reassembly test that D111 deleted, with a comment describing coverage that no longer exists; **no test passed a non-empty value** | `arc-audit-concurrency` | **Removed**, comment with it |
+| `TodayViewModel` and `EvidenceDetailsView` doc comments described the tracking-confirmation flow and the recorded-pattern comparison, both deleted by D111 | `arc-audit-hig` | **Fixed** |
+| **`WelcomeView` told the user Foodge "weighs today against your usual fortnight"** — a feature D111 deleted, on the first screen of the demo | `arc-audit-hig` | **Fixed (D127)**, with `SelfReportCheckInSection`'s "no usable recorded pattern", and both translated into `es` |
+| Negative allowance was built from a pre-formatted `String`, losing the numeric metadata VoiceOver uses to say "minus" rather than read a hyphen | `arc-audit-accessibility` | **Fixed** by the auditor: `Text(_:format:)`, visually byte-identical |
+| `.secondary` footnotes measure ~3.44:1, below the 4.5:1 floor | `arc-audit-accessibility` | **Fixed** by the auditor on six instances, using the established `appBurgundyMuted` (4.73:1 light / 5.66:1 dark, re-measured) |
+
+**Deferred, with reasons, not silently dropped:**
+
+- **The estimates disclaimer renders as a list row, not a `Section` footer** (`arc-audit-hig`, MAJOR).
+  Real and confirmed on the render. Not fixed: the `Text` is emitted only in
+  `AllowanceBreakdownRow`'s `.energyBalance` case, so hoisting it into the caller's footer would
+  show it for the self-reported and provisional cases too. That is a behaviour change, and the same
+  pattern exists in `VerdictView` and `NarrationSection`, so it wants one deliberate pass rather
+  than a rushed edit hours before a demo.
+- **The tab bar still covers the judge's flourish** on the verdict screen — WU-25-A finding 3,
+  already inherited by WU-26-A. Confirmed unchanged: `VerdictView`'s body is a plain `Form` with no
+  bottom `safeAreaInset`. Not a WU-EB regression.
+- **`EvidenceSectionsView`'s Sleep "No readable data" and `ProvenanceRow`'s caption** keep the
+  ~3.44:1 `.secondary`. Both predate WU-EB and sit outside its diff.
+
+### Pass C — dropped (D125)
+
+The catalogue collapse to ten dishes is **not built**. The catalogue ships as **9 families /
+27 variants**; `DishVariant` and `CatalogueEntry` stand; no dish carries an editorial
+`kilocalorieRange`, so dish cards show no calorie figure — D50's existing, honest behaviour, not a
+regression.
+
+The reason is the **verification loop**, not the size of the edit: the pass's largest piece is
+`DishSelectionTests` (466 lines, 25 tests, every fixture built on `CatalogueEntry`), which the
+collapse breaks in one stroke, and with the MCP runner wedged each red→green attempt costs a
+hand-driven ⌘U roughly 24 hours from the deadline. The alternative was a selection algorithm
+rewritten blind.
+
+**D115, D116 and D120 are decided-but-unbuilt.** They stay in the decisions log as the reasoning of
+a pass that was not taken and do **not** describe shipped code. D120's `DishFamily` naming debt does
+not arise: the name is only a misnomer under one-dish-per-kind, which is not what ships.
+
+`CLAUDE.md`'s **Catalogue** paragraph and `DESIGN.md`'s catalogue sections are deliberately
+untouched — they already describe the nine families that ship, which is why they were not edited
+during Pass B.
 
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
