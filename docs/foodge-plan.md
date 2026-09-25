@@ -138,43 +138,65 @@ Each evaluation receives a dated snapshot containing:
 
 - Available Health aggregates and their provenance.
 - Optional user-reported replacements or context.
-- A comparison baseline.
+- The intake questionnaire and body basics behind any estimated figure.
 - Dietary constraints and preferences.
-- Evidence availability and any tracking concerns.
+- Evidence availability, listing the kinds that produced no readable data.
 - A fixed evaluation time and timezone.
 
 Missing values remain missing. Never convert absent samples into zero activity or zero intake.
 
 Use HealthKit statistics for cumulative activity rather than summing raw overlapping samples. Do not add workout calories to active energy again. For sleep, count the union of asleep intervals; do not add “in bed” and individual sleep stages together. [Health queries with Swift concurrency](https://developer.apple.com/documentation/healthkit/running-queries-with-swift-concurrency)
 
-### Activity baseline
+### Today's energy allowance
 
-Use these implementation defaults:
+The verdict comes from **today**, not from a comparison against previous days. The 14-day recorded
+baseline was removed in the energy-allowance rebuild (decision D111 in the ledger); nothing is
+compared against a personal median any more.
 
-1. Examine the previous 14 completed local calendar days.
-2. Compare each day’s accumulated activity at the same local time as today’s evaluation.
-3. Require at least seven nonmissing, finite, nonnegative observations.
-4. Use their median, which must be strictly positive.
-5. Prefer active energy; use steps when energy cannot supply a usable comparison.
-6. If tracking has been marked unrepresentative, do not use that comparison.
+1. `maintenance = resting energy + active energy`, both accumulated from local midnight to the
+   evaluation instant.
+2. `allowance = maintenance − intake`. **Never floored at zero** — a negative allowance is a valid,
+   returned value.
+3. `share = allowance / maintenance`. The share is what the category bands read, so the rule scales
+   with body size instead of with an absolute kilocalorie figure.
 
-Label this **“your recorded pattern.”** Recorded samples do not establish complete physiological measurement.
+**Resting energy** comes from Health `basalEnergyBurned` where it exists. Where it does not, it is
+estimated with Mifflin–St Jeor from the user's body basics — sex, age, height, mass — **prorated by
+the real length of the local day**, which is 23 hours the morning the clocks go forward and 25 the
+morning they go back. A day is never assumed to be 86,400 seconds.
 
-Use calendar-aware intervals for daylight-saving and timezone changes. Do not compare today’s partial day with previous full days or assume every day contains 86,400 seconds.
+**Intake** comes from Health `dietaryEnergy` where it exists. Where it does not, a three-meal
+questionnaire (breakfast, lunch, snacks × skipped / light / normal / heavy) supplies an estimate
+from editorial figures. A recorded total **replaces** an estimate and never adds to it. An
+unanswered meal is not a zero: `skipped` is an answer worth zero, unanswered is no basis at all.
+
+Every figure carries its provenance to the screen, and an estimated one is labelled as an estimate
+wherever it is shown. These are estimates, not measurements, and never nutritional advice.
+
+No allowance is produced — and the rule says which of these it was, by name — when there is no
+readable active energy, no resting basis, no intake basis, a maintenance figure of zero or less,
+less than ninety minutes elapsed since local midnight, or components covering different spans.
+
+Use calendar-aware intervals for daylight-saving and timezone changes.
 
 ### Category decision table
 
 | Evidence | Category |
 |---|---|
-| Today exceeds 125% of the usable baseline | Capricho / Treat |
-| Today is between 75% and 125%, inclusive | Equilibrado / Balanced |
-| Today is below 75%, and the user confirms tracking represents the day | Ligero / Light |
-| Usable measurements unavailable; user reports more/usual/less activity | Corresponding Treat/Balanced/Light category, labelled self-reported |
-| Evidence unavailable and check-in skipped | Provisional Balanced verdict |
+| `share` at or above 0.35 | Capricho / Treat |
+| `share` from 0.20 up to but not including 0.35 | Equilibrado / Balanced |
+| `share` below 0.20, negative included | Ligero / Light |
+| No allowance possible; user reports more/usual/less activity | Corresponding Treat/Balanced/Light category, labelled self-reported |
+| No allowance possible and check-in skipped | Provisional Balanced verdict |
 
-Before issuing a low-activity verdict, ask whether the recorded activity reflects the day. If tracking was incomplete, use the fallback check-in.
+Each band is inclusive at its lower edge. A day with no readable active energy is never given a
+number: it goes to the self-report check-in, because inventing one would be the same lie as claiming
+Health refused permission.
 
-Sleep, workouts and daily context refine the explanation and the choice within the category. Shorter sleep or low reported energy favours an easier dinner; it does not deduct calories or punish the user.
+Sleep, workouts, step count and daily context refine the **explanation** and the choice within the
+category. They never move a figure: active energy already contains workout and step energy, so
+adding either would count it twice. Shorter sleep or low reported energy favours an easier dinner;
+it deducts nothing and never punishes the user.
 
 ### Dish catalogue
 
@@ -211,15 +233,15 @@ Keep three quantities separate:
 - Recorded resting energy.
 - Recorded dietary intake.
 
-A numerical comparison is available only when expenditure components are present for the same cutoff and intake has been confirmed complete for that period. A manually supplied intake total **replaces** the Health total; it is not added to it.
+They are combined only by the allowance rule above, and only when every component covers the identical window. An estimate — a Mifflin resting figure, or a questionnaire intake — is used where Health has nothing, and it **replaces** the recorded value rather than adding to it. Every estimate is labelled as one on screen.
 
 The calculation is:
 
-**Recorded active + recorded resting − confirmed recorded intake**
+**(resting + active) − intake**, expressed as a share of `resting + active`
 
-Label it as a comparison of recorded values, not a remaining food allowance or a full-day energy requirement. Negative values do not suppress dinner suggestions.
+This section is the one place the rebuild **inverted** the original rule: the figure *is* now presented as what is left to spend on dinner, because that is the product. It is therefore stated as an estimate everywhere it appears, and the explanation says plainly that these are prototype heuristics and not nutritional advice. Negative values are returned, shown, and never suppress a dinner suggestion.
 
-For a dish, display calories only when the user chooses a known portion reference or supplies a known value and source. A generic burger has no automatic calorie value.
+For a dish, display a **verified** calorie value only when the user chooses a known portion reference or supplies a known value and source. A generic burger has no verified calorie value. An editorial kilocalorie range for a dish, if the catalogue carries one, is indicative only, is labelled as such, and is never rendered as a verified reference.
 
 The initial reference set can use these verified Spanish product portions:
 
@@ -231,7 +253,7 @@ The initial reference set can use these verified Spanish product portions:
 
 These were checked September 17, 2026. They exclude drinks and sides. Preserve country, product, portion, URL and verification date. Do not apply them to other burgers or imply endorsement.
 
-Numerical context does not override the agreed activity-category rule.
+Numerical context does not override the agreed category rule — it *is* the category rule now, and nothing else may quietly adjust the band it produces.
 
 ### Appeals
 
