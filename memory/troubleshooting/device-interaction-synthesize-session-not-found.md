@@ -62,6 +62,39 @@ back directly. Two caveats worth remembering for next time:
   with actual Health data sidesteps this entirely, which is a second reason physical device beat
   chasing a healthy simulator here.
 
+## Update, 2026-09-25 (WU-25-A) — now it also holds a phantom lock, and how the walk got done
+
+The same failure, plus a new half: after the dead `Synthesize`, the device stays **locked by the
+session that no longer exists**. `EndSession` says *"Session doesn't exist anymore"* while every new
+key is refused with *"The target device is already in use by a different session with key
+'<the dead one>'"*. Gone and locking at once.
+
+Seven attempts in one session across three arrangements — subagent opens its own session; main agent
+opens it and hands the key to a subagent that has loaded the `device-interaction` skill (the
+arrangement the tool's own response text demands); and no `InstallAndRun` at all, app pre-launched
+from `RunProject`, straight to `Synthesize`. Also ineffective: quitting Simulator.app, a full Xcode
+quit and relaunch, ending every stale key first, changing device. **Two attempts remains the right
+budget — this update is the evidence that more is waste.**
+
+Two side-traps met while chasing it:
+
+- The eligible-device list prints every simulator with the **SDK** version (27.0), not its runtime,
+  so an iOS 26.5 device looks like a 27.0 one and a real device can look absent. Ground truth is
+  `~/Library/Developer/CoreSimulator/Devices/<uuid>/device.plist` (`runtime`, `state`: 3 = booted).
+- Device interaction only ever offered 27.0 devices here, so an **iOS 26 walk is manual by nature**
+  even when everything else works.
+
+**What closed the gap: a recorded hand walk, read with ffmpeg.** The user walked the ritual on the
+physical iPhone and screen-recorded it; `ffprobe` for duration, then
+`ffmpeg -vf "fps=1,scale=130:-1,tile=9x8"` contact sheets to find the interesting spans, then a
+full-resolution `crop` to read anything exactly. Frame index × interval times events to the second —
+that is how a **51-second `.evaluating` stage** got measured.
+
+That walk found four defects that a green preview matrix, `arc-audit-hig`, `arc-audit-accessibility`
+and `arc-constitution-review` had all missed — including the floating tab bar rendering on top of
+the flourish, which **previews structurally cannot show, because a preview has no tab bar**. Treat a
+passing render matrix as evidence about a view, never about a screen.
+
 ## See also
 
 - [[../decisions/physical-device-verification-uses-runproject-not-device-interaction]] if that

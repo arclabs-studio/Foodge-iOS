@@ -136,6 +136,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D106 | A **no-match night shows no flourish at all** — not the model line (already impossible), not the reviewed template. `NarrationSection` takes the `dishOutcome` and renders nothing when it is `.noMatch`, through the new `PersistedDishOutcome.showsFlourish`. | Every template speaks of a dish that was found: a Balanced no-match printed “Tonight’s leading candidate is on the table” with no candidate on it. WU-24-B.3 recorded it as a finding and left the choice open. The alternative was a fourth template for the no-match case, which costs new English copy plus a new Spanish key two days from freeze, and would have to say something cheerful about a night where the honest answer is that nothing matched. Suppression says less and claims nothing. Cost: `CaseDetailView`’s flourish stops being unconditional, so History shows a case with no flourish section for the first time — acceptable, because that is exactly what a no-match is. The model half needed no change: `TodayViewModel.narrateIfNeeded()` already guards on `.selected`. |
 | D107 | The live store's **files** are protected, not merely the directory that holds them. `ContainerFactory.makeProtected(in:using:)` hardens the directory **before** the container is created, then sets `.protectionKey` on `Foodge.store` and its `-wal`/`-shm` sidecars afterwards. **This amends D29**, which claimed the sidecars were covered. | `arc-audit-security` (WU-25-A) found the ordering inverted: `makeLive()` created the directory, then the container, and hardened the directory last. A file's protection class is fixed when the file is created, inherited from its directory, and `setAttributes` is not recursive — so the store and both sidecars kept the container default (`CompleteUntilFirstUserAuthentication`), one class weaker than D29 committed to, permanently. D29's backup half was true and verified by hand (`com.apple.metadata:com_apple_backup_excludeItem` present on all three files in the simulator containers); its protection half was false and untested, because `ContainerFactoryTests` never called `makeLive()`. The post-creation pass is not redundant with the ordering fix: it is what corrects an app already installed under the old ordering, which would otherwise keep the weaker class for the life of the install. `.completeUnlessOpen` stands unchanged for D29's original reason. |
 | D108 | D99's deferred retype of `SyntheticScenario.id` from `String` to `DemonstrationScenarioID` is **deferred past the freeze**, not done in WU-25-A. | User-settled. The gap is untyped, not unsafe: the ten ids already match the enum letter for letter, `SyntheticScenarios.scenario(for:)` is an exhaustive switch that is total by construction, and nothing force-unwraps. Against that, the retype touches every scenario definition and the demonstration entry path two days from a hackathon deadline, with the only benefit being compile-time spelling. Day 25's own brief is *fix defects only*. |
+| D109 | **D93 is answered: `@Query` does re-read.** Confirming *Eliminar los datos locales* dismissed the Settings sheet, reset the visible reminder toggle, and returned the root view to onboarding — with no relaunch. The within-session latch and the `@Query`-backed root therefore agree, and `AppRootView` needs nothing further. | Evidenced on the physical iPhone, 25 Sep 2026, from an unbroken screen recording (`15:13`, video t≈4:08→4:12): the Settings sheet, then `Bienvenida / "Se abre la sesión."`, with no launch screen and no process restart between them. It could not be answered through the Xcode MCP — its device-interaction session layer is wedged on this machine (see WU-25-A) — so the user drove the device and the recording is the oracle. This closes the question `AppRootView` has carried since WU-19-D. |
 
 ---
 
@@ -1868,10 +1869,50 @@ Xcode restart. Consequences:
 clone before the 26.5 run reproduced it on a second device. The run destination names the
 simulator; it is not the device the tests execute on.
 
+**The walk happened after all — driven by hand, on the physical iPhone.** With device interaction
+unusable, the user walked the ritual on the device and recorded it (4m 20s, 1180×2556, 60fps). The
+recording is the oracle for everything below; frame times are given as video offset with the device
+clock in brackets. What worked: onboarding through Health connection, preferences, tonight's
+context, the verdict, the appeal (craving → *Tacos de ternera* accepted and recorded as an appeal,
+the verdict itself correctly left standing), evidence details, Settings, a demonstration, and the
+deletion. The comparison was honest and matched the rule: `Hoy 41` against `Mediana habitual 54` is
+**76 %**, inside 75–125 % → **Equilibrado**, with `Energía alimentaria` and `Sueño` both reported as
+*Sin datos legibles* rather than zero.
+
+**Five findings, none of them fixed in this unit — they are Day 26's input.**
+
+1. **HealthKit authorization failed on the first request** (t≈0:20 [15:09]). *"Foodge no pudo
+   completar la solicitud de acceso a Salud."* with *Intentar de nuevo*; the retry brought up
+   Apple's own sheet and succeeded. The failure path behaved honestly, but it fired on the happy
+   path. Unexplained — worth a look before the demo, since the first run is what a judge sees.
+2. **The verdict took ~51 seconds** (t=1:57→2:48 [15:10:41→15:11:32]). *"El juez está valorando las
+   pruebas de esta noche…"* held for **51 s**. This is the `.evaluating` stage — evidence read,
+   decision, save — not narration: the flourish was already on screen the moment the verdict
+   rendered. The most serious finding on the list; a demonstration audience sees a minute of
+   spinner. The 15 same-clock-time window queries across the Health types, on a phone with real
+   data, are the obvious suspect, but this needs measuring rather than guessing.
+3. **The floating tab bar covers the flourish** (t=2:52 onward [15:11]). On the verdict screen the
+   last section renders *under* the Hoy/Historial bar: *"El tribunal h⟦…⟧s. La candidata⟦…⟧ya está
+   sobre la mesa."* is unreadable at rest. The `Form` is not getting a bottom inset for the floating
+   tab bar. Note that neither the preview render matrix nor `arc-audit-hig` caught this — previews
+   have no tab bar.
+4. **Exiting a demonstration leaves Today showing the pre-verdict form** (t≈3:44 [15:12]). Back on
+   the live session, Today offered *Pedir veredicto* again although tonight's verdict had been
+   recorded minutes earlier; tapping it returned Equilibrado immediately, so the case was in the
+   store. Check against `reopeningReturnsTheSavedDecision` — the test passes, so if this is real it
+   is in `onAppear` ordering after the session swap (D98's teardown), not in the store.
+5. **D93 is answered — it updates live.** Recorded as **D109**.
+
+**Not exercised on the device.** The demonstration run was *Un día activo* (→ Capricho, Hamburguesa
+de ternera), not `noCompatibleDish`, so **D106's no-match-shows-no-flourish is still only
+preview-verified** on device. The performance numbers beyond finding 2 — launch to first frame, the
+narration budget, D81's reopen-with-no-model-call — remain owed: Xcode's console captured only the
+launch line before the session expired, and the walk produced no retained log.
+
 **Next.** WU-26-A — release candidate, clean-checkout validation, `README.md` (still a one-line
-stub), demo rehearsal, submission package. It inherits: the iOS 26 walk, **D93**, and the
-performance sweep, all three needing a working device-interaction session or a human at the
-simulator.
+stub), demo rehearsal, submission package. It inherits the five findings above (2 and 3 are the ones
+that show on stage), the `noCompatibleDish` device check, the iOS 26 walk, and the performance
+sweep. D93 no longer appears on that list.
 
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
@@ -1880,7 +1921,7 @@ simulator.
 |---|---|---|---|
 | 24 | WU-24-B | Evening reminder (single local notification, generic content), complete ES/EN copy, feature freeze | Reminder tests green |
 | 25 | WU-25-A | Accessibility, privacy, regression and performance verification. Defect fixes only | ⚠️ Audits returned no blockers; the on-device walk, D93 and the performance sweep are owed to Day 26 |
-| 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package | Clean checkout builds and runs |
+| 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package. **Inherits WU-25-A's five device findings** — the ~51 s verdict and the tab bar over the flourish are the two that show on stage | Clean checkout builds and runs; findings 2 and 3 fixed or consciously accepted |
 | 27 | — | Contingency buffer and final verification; user submits by 21:00 Europe/Madrid | Submitted |
 
 If time tightens, cut decorative variants and AI flourish variety first. Preserve Health
