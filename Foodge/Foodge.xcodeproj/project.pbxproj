@@ -14,19 +14,11 @@
 			remoteGlobalIDString = C03CF242305DEB2000ED5F02;
 			remoteInfo = Foodge;
 		};
-		C03CF25B305DEB2200ED5F02 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = C03CF23B305DEB2000ED5F02 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C03CF242305DEB2000ED5F02;
-			remoteInfo = Foodge;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		C03CF243305DEB2000ED5F02 /* Foodge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foodge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C03CF250305DEB2200ED5F02 /* FoodgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C03CF25A305DEB2200ED5F02 /* FoodgeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoodgeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -38,11 +30,6 @@
 		C03CF253305DEB2200ED5F02 /* FoodgeTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = FoodgeTests;
-			sourceTree = "<group>";
-		};
-		C03CF25D305DEB2200ED5F02 /* FoodgeUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FoodgeUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -58,11 +45,6 @@
 			files = (
 			);
 		};
-		C03CF257305DEB2200ED5F02 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			files = (
-			);
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -71,7 +53,6 @@
 			children = (
 				C03CF245305DEB2000ED5F02 /* Foodge */,
 				C03CF253305DEB2200ED5F02 /* FoodgeTests */,
-				C03CF25D305DEB2200ED5F02 /* FoodgeUITests */,
 				C03CF244305DEB2000ED5F02 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -81,7 +62,6 @@
 			children = (
 				C03CF243305DEB2000ED5F02 /* Foodge.app */,
 				C03CF250305DEB2200ED5F02 /* FoodgeTests.xctest */,
-				C03CF25A305DEB2200ED5F02 /* FoodgeUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -128,27 +108,6 @@
 			productReference = C03CF250305DEB2200ED5F02 /* FoodgeTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		C03CF259305DEB2200ED5F02 /* FoodgeUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C03CF268305DEB2200ED5F02 /* Build configuration list for PBXNativeTarget "FoodgeUITests" */;
-			buildPhases = (
-				C03CF256305DEB2200ED5F02 /* Sources */,
-				C03CF257305DEB2200ED5F02 /* Frameworks */,
-				C03CF258305DEB2200ED5F02 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				C03CF25C305DEB2200ED5F02 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				C03CF25D305DEB2200ED5F02 /* FoodgeUITests */,
-			);
-			name = FoodgeUITests;
-			productName = FoodgeUITests;
-			productReference = C03CF25A305DEB2200ED5F02 /* FoodgeUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -163,10 +122,6 @@
 						CreatedOnToolsVersion = 27.0;
 					};
 					C03CF24F305DEB2200ED5F02 = {
-						CreatedOnToolsVersion = 27.0;
-						TestTargetID = C03CF242305DEB2000ED5F02;
-					};
-					C03CF259305DEB2200ED5F02 = {
 						CreatedOnToolsVersion = 27.0;
 						TestTargetID = C03CF242305DEB2000ED5F02;
 					};
@@ -189,7 +144,6 @@
 			targets = (
 				C03CF242305DEB2000ED5F02 /* Foodge */,
 				C03CF24F305DEB2200ED5F02 /* FoodgeTests */,
-				C03CF259305DEB2200ED5F02 /* FoodgeUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -201,11 +155,6 @@
 			);
 		};
 		C03CF24E305DEB2200ED5F02 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			files = (
-			);
-		};
-		C03CF258305DEB2200ED5F02 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -223,11 +172,6 @@
 			files = (
 			);
 		};
-		C03CF256305DEB2200ED5F02 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			files = (
-			);
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -235,11 +179,6 @@
 			isa = PBXTargetDependency;
 			target = C03CF242305DEB2000ED5F02 /* Foodge */;
 			targetProxy = C03CF251305DEB2200ED5F02 /* PBXContainerItemProxy */;
-		};
-		C03CF25C305DEB2200ED5F02 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C03CF242305DEB2000ED5F02 /* Foodge */;
-			targetProxy = C03CF25B305DEB2200ED5F02 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -514,62 +453,6 @@
 			};
 			name = Release;
 		};
-		C03CF269305DEB2200ED5F02 /* Debug configuration for PBXNativeTarget "FoodgeUITests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4W652PD582;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.arclabs.FoodgeUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				TEST_TARGET_NAME = Foodge;
-				XROS_DEPLOYMENT_TARGET = 27.0;
-			};
-			name = Debug;
-		};
-		C03CF26A305DEB2200ED5F02 /* Release configuration for PBXNativeTarget "FoodgeUITests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 4W652PD582;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.arclabs.FoodgeUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_STRICT_CONCURRENCY = complete;
-				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = 1;
-				TEST_TARGET_NAME = Foodge;
-				XROS_DEPLOYMENT_TARGET = 27.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -594,14 +477,6 @@
 			buildConfigurations = (
 				C03CF266305DEB2200ED5F02 /* Debug configuration for PBXNativeTarget "FoodgeTests" */,
 				C03CF267305DEB2200ED5F02 /* Release configuration for PBXNativeTarget "FoodgeTests" */,
-			);
-			defaultConfigurationName = Release;
-		};
-		C03CF268305DEB2200ED5F02 /* Build configuration list for PBXNativeTarget "FoodgeUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C03CF269305DEB2200ED5F02 /* Debug configuration for PBXNativeTarget "FoodgeUITests" */,
-				C03CF26A305DEB2200ED5F02 /* Release configuration for PBXNativeTarget "FoodgeUITests" */,
 			);
 			defaultConfigurationName = Release;
 		};
