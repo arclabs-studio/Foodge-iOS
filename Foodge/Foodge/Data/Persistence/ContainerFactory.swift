@@ -16,6 +16,7 @@ import SwiftData
 enum ContainerFactory {
     private static let directoryName = "Foodge"
     private static let storeFileName = "Foodge.store"
+    private static let storeSidecarSuffixes = ["-wal", "-shm"]
 
     static var schema: Schema {
         Schema(versionedSchema: FoodgeSchemaV1.self)
@@ -24,8 +25,27 @@ enum ContainerFactory {
     /// The real on-disk container.
     static func makeLive(fileManager: FileManager = .default) throws -> ModelContainer {
         let directory = try storeDirectory(using: fileManager)
-        let container = try make(at: directory.appending(path: storeFileName))
+        return try makeProtected(in: directory, using: fileManager)
+    }
+
+    /// Creates the store inside `directory`, hardening around it in the order that actually works.
+    ///
+    /// A file's protection class is fixed when the file is created, inherited from the directory
+    /// it is created in, and `setAttributes` is not recursive. So the directory is hardened
+    /// *before* the container writes anything, and each store file is then set explicitly — the
+    /// second pass is what corrects an app installed before this ordering existed, which would
+    /// otherwise keep the container default for the life of the install.
+    ///
+    /// Internal rather than private so a test can drive it against a temporary directory instead
+    /// of the real Application Support container.
+    static func makeProtected(
+        in directory: URL,
+        using fileManager: FileManager = .default
+    ) throws -> ModelContainer {
         try harden(directory, using: fileManager)
+        let storeURL = directory.appending(path: storeFileName)
+        let container = try make(at: storeURL)
+        try protectStoreFiles(at: storeURL, using: fileManager)
         return container
     }
 
@@ -64,13 +84,14 @@ enum ContainerFactory {
         return directory
     }
 
-    /// Excludes the store from backups and protects it at rest.
+    /// Excludes the store directory from backups and sets its protection class.
     ///
-    /// Applied to the directory so the database's sidecar files are covered too. The protection
-    /// level is `.completeUnlessOpen` rather than `.complete` deliberately: a database the app
-    /// already has open must keep working if the screen locks mid-write, and `.complete` would
-    /// fail those writes. Everything still stays unreadable while the device is locked and the
-    /// app is not running.
+    /// Applied to the directory, which is what files created inside it inherit from — it does not
+    /// reach files that already exist, which is why `protectStoreFiles(at:using:)` runs after
+    /// creation as well. The level is `.completeUnlessOpen` rather than `.complete` deliberately:
+    /// a database the app already has open must keep working if the screen locks mid-write, and
+    /// `.complete` would fail those writes. A store that is not open stays unreadable while the
+    /// device is locked.
     private static func harden(_ directory: URL, using fileManager: FileManager) throws {
         var directory = directory
         var values = URLResourceValues()
@@ -81,5 +102,19 @@ enum ContainerFactory {
             [.protectionKey: FileProtectionType.completeUnlessOpen],
             ofItemAtPath: directory.path(percentEncoded: false)
         )
+    }
+
+    /// Sets the protection class on the database file and on its write-ahead log and shared
+    /// memory sidecars, each of which holds the same Health-derived content as the store itself.
+    private static func protectStoreFiles(at storeURL: URL, using fileManager: FileManager) throws {
+        let storePath = storeURL.path(percentEncoded: false)
+        let paths = [storePath] + storeSidecarSuffixes.map { storePath + $0 }
+
+        for path in paths where fileManager.fileExists(atPath: path) {
+            try fileManager.setAttributes(
+                [.protectionKey: FileProtectionType.completeUnlessOpen],
+                ofItemAtPath: path
+            )
+        }
     }
 }

@@ -5,6 +5,7 @@
 //  Created by ARC Labs Studio on 21/09/2026.
 //
 
+import Accessibility
 import SwiftUI
 
 /// Tonight's dinner, the category it landed in, and why.
@@ -13,6 +14,10 @@ struct VerdictView: View {
     @Bindable var vm: TodayViewModel
     @State private var showingAppeal = false
     @State private var showingAlternative = false
+
+    private var saveFailureMessage: LocalizedStringResource {
+        "Foodge couldn’t save this verdict. Nothing has been lost — try again."
+    }
 
     var body: some View {
         Group {
@@ -31,6 +36,16 @@ struct VerdictView: View {
         }
         .sheet(isPresented: $showingAppeal) {
             AppealSheetView(vm: vm)
+        }
+        // The first failure pushes `.verdict` onto the path, so VoiceOver announces a screen
+        // change — but that reads the navigation title, not what went wrong, and a failed *retry*
+        // re-enters `.saveFailed` with the row already on screen and no push at all (WCAG 4.1.3).
+        // `logLabel` is the change key because `Stage` carries a draft and an error and is
+        // deliberately not `Equatable`; the retry passes through `.evaluating`, so a second
+        // failure is a real change of label and does announce.
+        .onChange(of: vm.stage.logLabel) { _, _ in
+            guard case .saveFailed = vm.stage else { return }
+            AccessibilityNotification.Announcement(String(localized: saveFailureMessage)).post()
         }
     }
 
@@ -69,7 +84,7 @@ struct VerdictView: View {
                     // `.secondary` measures ~3.4:1 against the row background in standard-contrast
                     // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `AppBurgundyMuted` is
                     // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
-                    Text("Foodge couldn’t save this verdict. Nothing has been lost — try again.")
+                    Text(saveFailureMessage)
                         .foregroundStyle(.appBurgundyMuted)
                     Button("Retry save") {
                         Task { await vm.retrySave() }

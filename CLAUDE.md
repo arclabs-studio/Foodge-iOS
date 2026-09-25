@@ -52,7 +52,7 @@ rather than proceeding as if the full doctrine were in effect.
 |---|---|
 | Xcode | 27.0 (27A266a), Swift 6.4 compiler, **Swift 6 language mode** |
 | Deployment | iOS 26.0 minimum, iPhone only. Validated on iOS 27 so far; iOS 26 still owed |
-| Targets | `Foodge` (app), `FoodgeTests` (Swift Testing), `FoodgeUITests` (XCTest) |
+| Targets | `Foodge` (app), `FoodgeTests` (Swift Testing). UI verification is manual — there is no UI-test bundle |
 | Signing | Team `4W652PD582`, bundle `com.arclabs.Foodge`, automatic |
 | Storage | Local SwiftData, versioned schema V1, in-memory store for demo mode |
 | AI | Optional on-device Foundation Models; the app must work fully without it |

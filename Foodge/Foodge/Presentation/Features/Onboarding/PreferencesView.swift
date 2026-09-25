@@ -5,6 +5,7 @@
 //  Created by ARC Labs Studio on 19/09/2026.
 //
 
+import Accessibility
 import SwiftUI
 
 /// What the user will eat, what they like, and how much time they usually have.
@@ -19,6 +20,10 @@ import SwiftUI
 @MainActor
 struct PreferencesView: View {
     @Bindable var vm: OnboardingViewModel
+
+    private var saveFailureMessage: LocalizedStringResource {
+        "Foodge couldn’t save your choices. Nothing has been lost — try again."
+    }
 
     var body: some View {
         Form {
@@ -53,13 +58,20 @@ struct PreferencesView: View {
                     // `.secondary` measures ~3.4:1 against the row background in standard-contrast
                     // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `AppBurgundyMuted` is
                     // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
-                    Text("Foodge couldn’t save your choices. Nothing has been lost — try again.")
+                    Text(saveFailureMessage)
                         .foregroundStyle(.appBurgundyMuted)
                 }
             }
         }
         .navigationTitle("Preferences")
         .navigationBarTitleDisplayMode(.inline)
+        // Nothing navigates here: the row simply appears inside the form the user is already on,
+        // so VoiceOver has no reason to visit it (WCAG 4.1.3). `finish()` passes through
+        // `.saving`, so a failed retry is a real state change and announces again.
+        .onChange(of: vm.saveState) { _, newValue in
+            guard case .failed = newValue else { return }
+            AccessibilityNotification.Announcement(String(localized: saveFailureMessage)).post()
+        }
     }
 }
 

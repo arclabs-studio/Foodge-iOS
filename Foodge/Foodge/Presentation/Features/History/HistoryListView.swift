@@ -5,12 +5,17 @@
 //  Created by ARC Labs Studio on 23/09/2026.
 //
 
+import Accessibility
 import SwiftUI
 
 /// Every day Foodge has ruled on, most recent first.
 @MainActor
 struct HistoryListView: View {
     @Bindable var vm: HistoryViewModel
+
+    private var loadFailureMessage: LocalizedStringResource {
+        "Couldn’t load history"
+    }
 
     var body: some View {
         Group {
@@ -35,7 +40,7 @@ struct HistoryListView: View {
                 }
             case .error:
                 ContentUnavailableView {
-                    Label("Couldn’t load history", systemImage: "exclamationmark.triangle")
+                    Label(loadFailureMessage, systemImage: "exclamationmark.triangle")
                 } description: {
                     Text("Something went wrong reading your saved cases.")
                 } actions: {
@@ -47,6 +52,15 @@ struct HistoryListView: View {
         }
         .navigationTitle("History")
         .task { await vm.load() }
+        // The tab swaps its content in place, so VoiceOver gets no signal that the list failed
+        // to load (WCAG 4.1.3). `logLabel` is the change key because `Stage` carries the cases
+        // themselves and is deliberately not `Equatable`. `load()` does not return to `.loading`
+        // first, so a failed "Try again" from `.error` is not a change of label and stays
+        // unannounced — the visible row does not change either.
+        .onChange(of: vm.stage.logLabel) { _, _ in
+            guard case .error = vm.stage else { return }
+            AccessibilityNotification.Announcement(String(localized: loadFailureMessage)).post()
+        }
     }
 }
 

@@ -32,7 +32,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | # | Decision | Rationale |
 |---|---|---|
 | D1 | Project template created with `storageType: None`; SwiftData is added by hand. | The template's `Item` model and `.modelContainer(for:)` boilerplate is dead code. We need a `VersionedSchema` V1, an in-memory demo container and `modelContainer(_:onSetup:)`. |
-| D2 | `testingSystem: Swift Testing`. The UI-test bundle stays XCTest and carries only the template smoke test this session. | Constitution: Swift Testing for unit/integration, XCTest for UI automation. |
+| D2 | `testingSystem: Swift Testing`. The UI-test bundle stays XCTest and carries only the template smoke test this session. | Constitution: Swift Testing for unit/integration, XCTest for UI automation. **Superseded in WU-25-A:** the `FoodgeUITests` bundle was removed from the project; the sentence above describes the state up to that point. UI verification is manual and visual (`docs/foodge-plan.md` §5). |
 | D3 | Module default actor isolation is `nonisolated`; every View and ViewModel is explicitly `@MainActor`. | Plan §4 overrides the MainActor-by-default convention used in FavRes. |
 | D4 | `HealthKitSampleSource` is an `actor` owning `HKHealthStore`, mapping HealthKit results to `Sendable` values inside the actor. | Updated after review: `HKHealthStore` **is** `Sendable` (annotated `NS_SWIFT_SENDABLE` in the iOS 27 SDK, and documented as conforming), and `HealthAuthorizationService` already depends on that to be a `Sendable` struct. The actor therefore stands on its real merit rather than on sendability: it serialises query state and keeps the fan-out of 15 windows off the main actor. |
 | D5 | The test seam is the `HealthSampleSource` protocol (raw per-window sums, raw asleep intervals, workout list). `HealthEvidenceReader` composes a source, an injected `Calendar` and pure domain aggregators. | Sleep union, absent-vs-zero and workout non-double-counting are then testable in the unit target with no HealthKit present. |
@@ -134,6 +134,8 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D105 | **Entering a demonstration touches `state` only on success.** The planned `CourtLoadingView` entry is dropped, `AppLaunch.State.Loading` with it; `TodayFlowView` no longer dismisses the Settings sheet before starting one (it still does before leaving one, which cannot fail). The Settings footer also branches on whether a demonstration is running. | `arc-audit-accessibility` found that the planned shape made a failed start **invisible to everyone**, not merely unannounced. `FoodgeApp` switches on `state`, so passing through `.loading(.demonstration)` and back to `.ready` tore down `AppRootView` → `MainTabView` → `TodayFlowView` and everything they hold in `@State`. On the success path that teardown is the entire point (D98); on the failure path it discarded an in-progress verdict flow for nothing **and** took the failure message with it, since the rebuilt `TodayFlowView` starts with `isShowingSettings = false` and `demonstrationFailure` is read nowhere else. `aFailedDemonstrationStartLeavesTheLiveSessionRunning` passed throughout — it asserts on `AppLaunch`, and the defect was in the view layer above it. Cost of the fix: no loading screen while the in-memory container opens (one container plus one seed write — there was little to show), the "Setting up the demonstration…" key becomes stale, and the success path now tears down a presented sheet, which is checked for presentation warnings on the simulator. Rejected: re-presenting Settings after the teardown, which cannot observe the transition it would need and lands the user at the Settings root rather than the scenario list. The user chose this option over that and over shipping it as a known gap. `arc-audit-hig` separately rated the unbranched footer MAJOR: an invitation to start a demonstration sat under the control that ends one. |
 | D104 | `AppLaunch` gains two injectable openers: the live container (`@MainActor () throws -> ModelContainer`, defaulting to `ContainerFactory.makeLive`) and the demonstration session (defaulting to `DemonstrationSessionFactory.make`). | The first is what makes entering and exiting a demonstration — and the previously untested `storeUnavailable` path — provable without touching the real Application Support store; without it, `DemonstrationSessionTests`' central claim ("nothing a demonstration writes reaches the live store") could only be asserted against the tester's own device. The second exists because opening an in-memory container does not fail on request, so "a failed demonstration leaves the live session running, with the failure reported as a failed demonstration rather than a broken store" has no other way to be reached. |
 | D106 | A **no-match night shows no flourish at all** — not the model line (already impossible), not the reviewed template. `NarrationSection` takes the `dishOutcome` and renders nothing when it is `.noMatch`, through the new `PersistedDishOutcome.showsFlourish`. | Every template speaks of a dish that was found: a Balanced no-match printed “Tonight’s leading candidate is on the table” with no candidate on it. WU-24-B.3 recorded it as a finding and left the choice open. The alternative was a fourth template for the no-match case, which costs new English copy plus a new Spanish key two days from freeze, and would have to say something cheerful about a night where the honest answer is that nothing matched. Suppression says less and claims nothing. Cost: `CaseDetailView`’s flourish stops being unconditional, so History shows a case with no flourish section for the first time — acceptable, because that is exactly what a no-match is. The model half needed no change: `TodayViewModel.narrateIfNeeded()` already guards on `.selected`. |
+| D107 | The live store's **files** are protected, not merely the directory that holds them. `ContainerFactory.makeProtected(in:using:)` hardens the directory **before** the container is created, then sets `.protectionKey` on `Foodge.store` and its `-wal`/`-shm` sidecars afterwards. **This amends D29**, which claimed the sidecars were covered. | `arc-audit-security` (WU-25-A) found the ordering inverted: `makeLive()` created the directory, then the container, and hardened the directory last. A file's protection class is fixed when the file is created, inherited from its directory, and `setAttributes` is not recursive — so the store and both sidecars kept the container default (`CompleteUntilFirstUserAuthentication`), one class weaker than D29 committed to, permanently. D29's backup half was true and verified by hand (`com.apple.metadata:com_apple_backup_excludeItem` present on all three files in the simulator containers); its protection half was false and untested, because `ContainerFactoryTests` never called `makeLive()`. The post-creation pass is not redundant with the ordering fix: it is what corrects an app already installed under the old ordering, which would otherwise keep the weaker class for the life of the install. `.completeUnlessOpen` stands unchanged for D29's original reason. |
+| D108 | D99's deferred retype of `SyntheticScenario.id` from `String` to `DemonstrationScenarioID` is **deferred past the freeze**, not done in WU-25-A. | User-settled. The gap is untyped, not unsafe: the ten ids already match the enum letter for letter, `SyntheticScenarios.scenario(for:)` is an exhaustive switch that is total by construction, and nothing force-unwraps. Against that, the retype touches every scenario definition and the demonstration entry path two days from a hackathon deadline, with the only benefit being compile-time spelling. Day 25's own brief is *fix defects only*. |
 
 ---
 
@@ -1718,12 +1720,166 @@ only. It inherits the flourish/no-match decision above, and the `@Query`-after-`
 question D93 left open.
 
 
+## Day 25 — accessibility, privacy, regression and performance verification (WU-25-A)
+
+### WU-25-A ⚠️ Defect fixes green; the on-device walk and D93 are owed
+
+**Objective / scope.** Fix defects only — no new features, no restructuring. Close WU-24-B.3's
+owed run, rule on the no-match flourish, act on the security and constitution audits, run the
+accessibility/HIG/concurrency audits, pass on iOS 26, and answer D93.
+
+**Phase 0 — inherited debt.** The `FoodgeUITests` target and folder were removed (the project
+ships no UI-test bundle; UI verification is manual and visual, now stated in
+`docs/foodge-plan.md` §5 and in `CLAUDE.md`). The shared scheme lost in that edit was recovered
+and committed. WU-24-B.3's owed run closed at **277/277**, zero warnings, iPhone 18 Pro (27.0).
+
+**Phase 1 — D106, the no-match flourish.** `NarrationSection` takes the `dishOutcome` and renders
+nothing at all when it is `.noMatch`, through the new `PersistedDishOutcome.showsFlourish`.
+**278/278** green. Verified on the simulator with the flourish toggle ON, so the check was not
+vacuous: on `noCompatibleDish` the verdict screen's only section was `Why`, and History's case
+detail showed `Why / Sources / Recorded activity / Sleep / Recorded` with no flourish.
+
+**Phase 2 — the privacy defect (D107).** `arc-audit-security` returned **0 BLOCKER, 2 MAJOR,
+1 MINOR**, everything else clean against the *built* product: `NSHealthShareUsageDescription`
+present in both configurations, entitlements exactly `healthkit` / `application-identifier` /
+`team-identifier` / `get-task-allow`, no ATS override, no secrets, no network, demonstration
+isolation real and covered by a test with an independent oracle, note-injection fencing sound.
+
+- **MAJOR, real defect.** `makeLive()` created the directory, then the store, and hardened the
+  directory last — so `Foodge.store`, `-wal` and `-shm` kept the container default protection
+  class permanently. Fixed by `makeProtected(in:using:)`: harden first, then set `.protectionKey`
+  on all three files. Recorded as **D107**, which also amends D29.
+- **MAJOR, evidence problem.** D29 claimed the sidecars were protected; the backup half was true
+  and hand-verified, the protection half was false and untested. D107 corrects it, and the
+  `harden` doc comment now says only what holds.
+- **MINOR.** `HistoryViewModel.Stage.logLabel` emitted `loaded(<count>)`; a count is
+  Health-derived and reveals usage cadence in a sysdiagnose. Now a bare `"loaded"`. The audit
+  traced the **ViewModel layer's** 17 logger call sites and found no other deviation there.
+  `arc-constitution-review` then caught that wording overclaiming: there are **27** call sites in
+  the app, the other 10 sitting in Data and App (`AppLaunch`, `AppRootView`, `ValidatingNarrator`,
+  `FoundationModelsNarrator`, `DeadlineNarrator`, `PersistenceActor`). It checked those itself —
+  two interpolate a `logLabel` (`NarrationAvailability`, `NarrationValidator`), both bare enum
+  case names — and found them clean. No live defect; the claim, not the code, was wrong.
+
+**Evidence for D107, and the test that was deleted.** A test asserting
+`attributesOfItem(atPath:)[.protectionKey] == .completeUnlessOpen` on the three files was written
+and run: it **failed on correct code** — the simulator returned `nil` for all three, because data
+protection is not enforced there. Keeping it would have been an environment trap of exactly the
+kind that cost this project two hours the same day, so it was deleted. The claim is instead
+evidenced on the **physical iPhone** (D21's route: `RunProject` + `GetConsoleOutput`, temporary
+bare-label probe, removed immediately):
+
+```
+[persistence] PROBE file=store      state=complete-unless-open
+[persistence] PROBE file=store-wal  state=complete-unless-open
+[persistence] PROBE file=store-shm  state=complete-unless-open
+```
+
+That install pre-dated the fix, so the run also proves the upgrade-correction path: the
+post-creation pass is what raises an already-created store to the right class.
+
+**Phase 3 — constitution review.** `arc-constitution-review`: **0 BLOCKER, 3 MAJOR, 2 MINOR**. It
+re-verified the build claim itself (`totalFound: 0`) and judged the new `showsFlourish` test
+genuinely falsifiable. Acted on: `PersistedDishOutcome+Flourish.swift` moved to
+`Presentation/Localization/` beside the sixteen other cross-feature display extensions (History
+was reaching into Today's folder for shared logic); `CLAUDE.md`'s Targets row and ledger **D2**
+both corrected. Recorded, deliberately not fixed: the third hand-typed copy of two preview
+fixtures in `NarrationSection` (exposing the private `HistorySeedCases` is unrequested
+restructuring two days from freeze), and D99's `SyntheticScenario.id` retype, now **D108**.
+
+**Phase 4 — the remaining audits.**
+
+- `arc-audit-concurrency`: **0 findings, 0 blockers**. Confirmed `SWIFT_DEFAULT_ACTOR_ISOLATION =
+  nonisolated`, `SWIFT_STRICT_CONCURRENCY = complete`, `SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`,
+  `SWIFT_VERSION = 6.0` across all four configurations; no `nonisolated(unsafe)`,
+  `@unchecked Sendable`, `@preconcurrency`, GCD, Combine or continuation bridging anywhere.
+- `arc-audit-hig`: **compliant, 0 violations**. Also checked D106's ledger wording against the
+  code and found no overclaim.
+- `arc-audit-accessibility`: **0 BLOCKER, 1 MAJOR, 1 MINOR**. The D106 change itself introduced no
+  regression — with the section gone, nothing announces a flourish that is not there. The MAJOR
+  was pre-existing and systemic: five failure rows appear in place, with no navigation and no
+  focus change, and never announced (**WCAG 4.1.3**), while five other sites in the repo already
+  do it correctly. **All five were fixed** (user-settled) using the existing in-repo pattern and
+  reusing the already-translated strings, so the String Catalog is untouched:
+  `VerdictView` `.saveFailed`, `PreferencesView`, `AppealFailedSection`,
+  `TodayBeforeVerdictView` `.evidenceUnavailable`, `HistoryListView` `.error`.
+  `Stage` is deliberately not `Equatable`, so `logLabel` is the `onChange` key where one is used.
+  Two narrow gaps remain and are honest rather than hidden: a repeated appeal failure and a
+  repeated History load failure produce no state change at all — for sighted users either — so
+  neither re-announces. Closing that needs an intermediate stage, which is more than a defect fix.
+  The MINOR was a doc comment in `DinnerCategory+FlourishTemplate` describing a path D106 removed;
+  corrected.
+- `arc-constitution-review`, run a second time on the finished uncommitted diff: **0 BLOCKER,
+  1 MAJOR, 1 MINOR** — both against *this ledger block*, not the code (the logger-scope overclaim
+  above, now corrected). It confirmed no probe code survives in `ContainerFactory.swift`, that
+  D107 and D108 describe what the code does, that the five accessibility fixes' comments disclose
+  their own gaps honestly, and that the owed items are stated as owed with no partial credit
+  anywhere. It marked the test counts and the device console output as claims it could not
+  re-verify from a read-only pass — they are this session's `RunAllTests` and `GetConsoleOutput`
+  results, quoted above.
+
+**Phase 5 — verification runs.**
+
+| Destination | Build | Warnings | Tests |
+|---|---|---|---|
+| iPhone 18 Pro (27.0), before the a11y fixes | green | `totalFound: 0` | **278/278** |
+| iPhone 17 Pro (26.5) | green | `totalFound: 0` | **275/278** — 3 known, see below |
+| iPhone 18 Pro (27.0), final code | green | `totalFound: 0` | **278/278** |
+
+**Render matrix** (previews, iPhone 18 Pro): `NarrationSection` (all three previews),
+`VerdictView`, `CaseDetailView` (dish-match and no-match), `PreferencesView`,
+`AppealFailedSection` — each at default, and at dark and AX5 where the preview supports the
+variant. No clipping, overlap or truncation. The "No match — renders nothing" preview renders **genuinely empty** in both light and
+dark: no header, no text, no residual chrome, which is what D106 asks for.
+
+**The three iOS 26.5 failures are environmental, and proven so.** All three are
+`NarrationTemplateLocalizationTests`, whose key is `String(localized:)` and therefore only
+resolves to the English String Catalog key when the *host process* runs English. Xcode runs tests
+on a per-device `XCTestDevices` clone whose language is frozen at clone time: the 26.5 clone reads
+`AppleLanguages ["es-ES", "en-ES"]`, the 27.0 clone `["en-ES", "es-ES"]` — same binary, 278/278 on
+one and 275/278 on the other. Editing the clone's `.GlobalPreferences.plist` and re-running
+changed nothing; booting rewrites it. **Recorded, deliberately not fixed** (user-settled): the
+suite depends on an English-resolving host, and changing it two days from freeze is not a defect
+fix. Moving the clone aside and letting Xcode re-clone is the only lever found.
+
+**Owed — the on-device walk and D93.** Not done, and not claimed. The Xcode MCP's
+device-interaction session layer is wedged on this machine: a session starts, then the first
+`DeviceInteractionSynthesize` against it returns *"Session not found"*, while
+`DeviceInteractionEndSession` says *"Session doesn't exist anymore"* and every new key is refused
+with *"already in use by a different session"*. Reproduced across **seven attempts** and three
+distinct approaches — subagent-started sessions, a session started by the main agent and handed to
+a subagent loaded with the `device-interaction` skill (the arrangement the tool's own response
+demands), and a run with no `InstallAndRun` at all. It survived quitting Simulator and a full
+Xcode restart. Consequences:
+
+- The **iOS 26 manual walk** did not happen. iOS 26.5 evidence is the build, the 275/278 run and
+  the app launching and running on the 26.5 device via `RunProject`; the ritual was not walked
+  there. Separately: iOS 26.5 is not reachable through device interaction at all — its
+  eligible-device list only ever contains 27.0 simulators — so that walk is manual by nature.
+  `CLAUDE.md`'s "iOS 26 still owed" line therefore **stays**.
+- **D93 is still open.** Whether `AppRootView` and History re-read after `PersistenceActor`'s
+  separate `ModelContext` erases the records, without a relaunch, is unanswered. The destructive
+  flow was deliberately never run blind.
+- The **performance numbers** (launch to first frame, `.evaluating` duration, the narration
+  budget, D81's reopen-with-no-model-call) are owed with it: they come from console lines that
+  only appear once the ritual is driven.
+
+**Trap recorded, for the machine as much as the project.** Two hours went to the `XCTestDevices`
+clone before the 26.5 run reproduced it on a second device. The run destination names the
+simulator; it is not the device the tests execute on.
+
+**Next.** WU-26-A — release candidate, clean-checkout validation, `README.md` (still a one-line
+stub), demo rehearsal, submission package. It inherits: the iOS 26 walk, **D93**, and the
+performance sweep, all three needing a working device-interaction session or a human at the
+simulator.
+
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
 |---|---|---|---|
 | 24 | WU-24-B | Evening reminder (single local notification, generic content), complete ES/EN copy, feature freeze | Reminder tests green |
-| 25 | WU-25-A | Accessibility, privacy, regression and performance verification. Defect fixes only | All audits no blockers |
+| 25 | WU-25-A | Accessibility, privacy, regression and performance verification. Defect fixes only | ⚠️ Audits returned no blockers; the on-device walk, D93 and the performance sweep are owed to Day 26 |
 | 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package | Clean checkout builds and runs |
 | 27 | — | Contingency buffer and final verification; user submits by 21:00 Europe/Madrid | Submitted |
 

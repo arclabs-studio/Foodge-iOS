@@ -22,11 +22,12 @@ final class HistoryViewModel {
         case loaded([SavedCase])
         case error(FoodgeError)
 
-        /// A label that is safe to log — the count for `.loaded`, never the cases themselves.
+        /// A bare state label, safe to log. Not even the number of cases: a count is derived
+        /// from Health-backed data and would reveal usage cadence in a sysdiagnose.
         var logLabel: String {
             switch self {
             case .loading: "loading"
-            case let .loaded(cases): "loaded(\(cases.count))"
+            case .loaded: "loaded"
             case .error: "error"
             }
         }

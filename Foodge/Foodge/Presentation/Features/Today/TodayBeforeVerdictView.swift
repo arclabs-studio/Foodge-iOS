@@ -5,6 +5,7 @@
 //  Created by ARC Labs Studio on 21/09/2026.
 //
 
+import Accessibility
 import SwiftUI
 
 /// Today, before a verdict has been asked for: optional context, the check-ins the category rule
@@ -12,6 +13,10 @@ import SwiftUI
 @MainActor
 struct TodayBeforeVerdictView: View {
     @Bindable var vm: TodayViewModel
+
+    private var evidenceFailureMessage: LocalizedStringResource {
+        "Foodge couldn’t finish reading today’s evidence."
+    }
 
     private var isEvaluating: Bool {
         if case .evaluating = vm.stage {
@@ -77,7 +82,7 @@ struct TodayBeforeVerdictView: View {
                     }
                 case .evidenceUnavailable:
                     Section {
-                        Text("Foodge couldn’t finish reading today’s evidence.")
+                        Text(evidenceFailureMessage)
                         Button("Try again") {
                             Task { await vm.requestVerdict() }
                         }
@@ -108,6 +113,14 @@ struct TodayBeforeVerdictView: View {
         }
         .navigationTitle("Today")
         .task { await vm.onAppear() }
+        // The row replaces the check-in section in place, with no navigation, so VoiceOver has
+        // no reason to land on it (WCAG 4.1.3). `logLabel` is the change key because `Stage`
+        // carries a draft and an error and is deliberately not `Equatable`; "Try again" passes
+        // through `.evaluating`, so a second failure announces too.
+        .onChange(of: vm.stage.logLabel) { _, _ in
+            guard case .evidenceUnavailable = vm.stage else { return }
+            AccessibilityNotification.Announcement(String(localized: evidenceFailureMessage)).post()
+        }
     }
 }
 

@@ -12,11 +12,11 @@ extension DinnerCategory {
     /// state, and stays the state for every failure: Apple Intelligence off, unsupported, still
     /// downloading, refused, too slow, or rejected by ``NarrationValidator``.
     ///
-    /// **Keyed by category only, with no dish-name interpolation**, deliberately. A category-keyed
-    /// template renders correctly for a `.noMatch` outcome, where no dish name exists at all, and
-    /// for a historical case whose stored `variantID` a later catalogue no longer resolves —
+    /// **Keyed by category only, with no dish-name interpolation**, deliberately: a historical
+    /// case whose stored `variantID` a later catalogue no longer resolves still renders —
     /// `DishCatalogue.displayName(forVariantID:)` falls back to the raw id, and a raw id must never
-    /// reach prose.
+    /// reach prose. Since D106 this is never asked for a `.noMatch` outcome at all: `NarrationSection`
+    /// renders nothing there, because every template speaks of a dish that was found.
     ///
     /// These are editorial lines in the judge's voice. Nothing here claims a nutritional fact,
     /// names a number, or comments on the person.
