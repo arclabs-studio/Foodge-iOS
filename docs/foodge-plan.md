@@ -337,7 +337,7 @@ Schedule one optional local evening notification. Its content is generic and con
 
 ## 5. Verification and acceptance criteria
 
-Tests use independent expected outcomes, not values recomputed with production helpers. Use Swift Testing for unit and integration tests, and XCTest for UI automation.
+Tests use independent expected outcomes, not values recomputed with production helpers. Use Swift Testing for unit and integration tests. **The project ships no UI-test target**: automated UI testing is out of scope, and the `FoodgeUITests` bundle was removed on 25 Sep 2026. Everything in the UI row below is verified manually and visually instead — SwiftUI previews across locale, appearance and Dynamic Type, plus a walk through the flow on the simulator.
 
 | Area | Required scenarios |
 |---|---|
@@ -350,7 +350,7 @@ Tests use independent expected outcomes, not values recomputed with production h
 | Appeals | Compatible craving, compatible variant, different-category choice and unsupported dish. |
 | Persistence | Reopening, revisions, appeal linkage, failed-save recovery and local deletion. |
 | AI | Unavailable, disabled, refusal, malformed output, numerical invention, note injection, timeout and stale response. |
-| UI | First launch, Health-unavailable path, verdict, appeal, history, settings and reminder navigation. |
+| UI *(manual/visual, not automated)* | First launch, Health-unavailable path, verdict, appeal, history, settings and reminder navigation. |
 
 Target at least 80% app coverage, with complete coverage of critical decision branches. Coverage is supporting evidence, not a substitute for meaningful tests.
 
