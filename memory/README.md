@@ -68,6 +68,8 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[a-loading-state-tears-down-everything-below-it]] — a failure path routed through `.loading` is invisible to everyone
 - [[a-wedged-runner-decides-which-pass-ships]] — an unclosable verification loop is a scope constraint
 - [[a-disabled-continue-and-a-hidden-skip-flip-together]] — every exit from a screen disabled at once
+- [[an-auditors-fix-stops-at-its-own-diff]] — a diff-scoped audit cannot close an app-wide floor
+- [[a-preview-named-after-a-state-it-never-showed]] — a self-resetting view cannot be driven from outside
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
@@ -76,6 +78,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[sf-symbol-checkmark-hijacks-voiceover-selection]] — a symbol *name* the OS itself recognizes, no modifier stops it
 - [[swiftdata-unique-does-not-throw-on-save]] — `@Attribute(.unique)` merges silently, it never throws
 - [[localization-tests-cannot-pass-on-a-physical-device]] — `#filePath` is the build machine's path
+- [[the-wedged-runner-was-a-stale-test-operation]] — probe with one test; the refusal arrives in seconds
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer

@@ -161,6 +161,9 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D131 | `MainTabView` adopts `.tabBarMinimizeBehavior(.onScrollDown)`. | The floating Liquid Glass tab bar overlays the scroll content, which the device rehearsal measured rather than eyeballed: on the verdict screen the estimates disclaimer overlapped the bar's band by **46 pt** and the flourish header sat entirely inside it, while the `.evidenceUnavailable` state put **Try again**'s hit point squarely under the pill. The content *can* be scrolled clear (20 pt of clearance at full scroll), so the bottom inset was never missing — the platform's own answer to the resting position is to minimize the bar on a downward scroll, which keeps it reachable instead of hiding it. WU-25-A finding 3 closes here. |
 | D132 | Two **diagnostic** log lines are added, both labels and numbers only: `TODAY evidence=read ms=`/`TODAY evaluating=finished into= ms=` (monotonic `ContinuousClock`), and `ONBOARDING health=requestFailed at=<authorization\|evidence> error=<domain>#<code>`. | Two of WU-25-A's five device findings were unexplained *because nothing measured them*. The ~51 s verdict was hand-timed off a screen recording with no attribution between the Health read, the rule and the save; and `requestFailed` covers both Apple's authorization sheet failing and the first read afterwards failing, with no way to tell which fired on the first-run failure a judge would see. A duration is not a Health value and neither is an error's domain and code, so both are safe at `privacy: .public`; the error's *message* is deliberately not logged, because a framework description can name the query and therefore the Health type. This is the instrument the 15→6 query reduction needs before its predicted improvement can be called measured. |
 | D133 | The `noReadableData` sentence on the Apple Health screen is rewritten: *"Health didn't return anything readable for these days."* → *"Foodge asked Health for access. Nothing readable came back for today."*, re-translated into `es`. **Completes D111 in one more string, and answers a rehearsal finding.** | Two bugs in one sentence, both found by walking a **fresh install** rather than by reading code. *These days* is the deleted fourteen-day window still talking (D111, D127): only **today** is ever at stake now, so the plural described a feature the app does not have — on the onboarding screen a hackathon judge sees. And the screen said nothing at all about the request having completed: after granting all six topics in Apple's own sheet, the user was returned to an unchanged **Connect Apple Health** button with no sign it had worked, which reads as a failure. The replacement states what Foodge actually knows — it asked, and nothing readable came back for today — and still claims **no grant**, because HealthKit cannot report one and D35's rule holds: absence may only be claimed after a read that came back, and a denial may never be claimed at all. |
+| D134 | Every remaining `.foregroundStyle(.secondary)` on **text** in `Presentation` becomes `.appBurgundyMuted` — 17 call sites across 13 files — and `CaseDetailView`'s *"These are prototype product heuristics"* disclaimer moves from a Section row into the Section footer, matching `VerdictView`'s copy of the same sentence. | The accessibility auditor measured `.secondary` at **~3.44:1** against a Form row background in standard-contrast light, below WCAG 1.4.3's 4.5:1 floor, and fixed **six** sites in WU-EB and one in WU-26-A — each time inside the work unit's own diff. The Checkpoint B close then recorded that *two* gaps remained and named them. A repo-wide grep on Day 27 found **17**, because an audit scoped to a changeset cannot close an invariant that holds app-wide: History's list and detail, all four appeal sections, the demonstration scenario list, the self-report check-in, the provenance rows and the onboarding Health screen were never in any audited diff. The sweep converts body-size text as well as footnotes — the criterion does not distinguish them, and leaving the "less bad" ones would hand the next reader the same ambiguity. No `*Style` is written for native `LabeledContent` here, on the grounds that restyling a native control to chase a ratio is the parallel-struct mistake the doctrine forbids — a premise **D135 then overturned**. Note the claim is about writing a style: two of the 17 sites (`HealthConnectionView`, `ProvenanceRow`) do recolor `Text` nodes that sit *inside* a `LabeledContent` value closure, so "left alone entirely" would have been the wrong word. No test is added — a test asserting a color literal would pass whenever the code compiles, which `swift-testing-doctrine` says to delete. The evidence is the render and the auditor's measurement. |
+| D135 | **D134's `LabeledContent` carve-out is reversed.** A `ReadableValueLabeledContentStyle` is applied once at `AppRootView`. It rebuilds the row through `LabeledContent` and sets the foreground style **on `configuration.content`** — the value slot only — so labels, headers and footers keep the platform's hierarchy. (Setting the foreground style's *second level* was the first attempt and was rejected: it dropped the value's secondary treatment entirely and rendered every figure at full `primary`. It is recorded in the unit's evidence as a rejected attempt, not as the mechanism.) | D134 left native `LabeledContent` values alone on the grounds that restyling a native control is the parallel-struct mistake the doctrine forbids. The accessibility auditor then measured them: SwiftUI's own value slot is **3.44:1** in standard-contrast light against the same Form row — the identical ratio the sweep had just fixed everywhere else, leaving `ProvenanceRow` showing "410 kcal" at 3.44:1 directly above a timestamp at 4.73:1, in one cell. The carve-out's premise was wrong, not its principle: the doctrine forbids a **parallel struct**, and writing a `*Style` is the route it names instead. `LabeledContent(configuration)` inside `makeBody` is Apple's documented initializer for a style that modifies rather than replaces the current one (confirmed through `DocumentationSearch` before it was written, not from memory), so the platform keeps ownership of the layout. Applied at the root because the floor is a property of every screen — the same reasoning as D134. The cost, stated because it is real: component `#Preview`s do not sit under `AppRootView`, so they render the unstyled value and **under-represent the app**; the verification therefore has to be the running app, not a preview. The alternative was to accept a documented native gap, which would have left the constitution's 4.5:1 floor knowingly unmet on the evidence screen a judge is shown. |
+| D136 | The fresh appeal is begun by the **Appeal button** in `VerdictView` — state first, then the sheet — and `AppealSheetView`'s `.onAppear { vm.beginAppeal() }` is removed. | The `.onAppear` reset carried a comment asserting it ran *before* any caller's `.task` continuations. It does not, and the file's own previews were the disproof: **five of the six** drove themselves to a later stage (`proposeCraving`, `beginFreeText`, `submitFreeText`) and **every one of them rendered the craving list**, because the reset landed last and wiped what they had set. Verified by rendering, not by reading: "Compatible variant found" and "Recorded" both showed the craving list before the change and their named states after it — the first time those sections have been seen in a preview at all. So every "verified by preview" claim about an appeal stage before today was made against a screen that was not showing the stage. Behaviour is unchanged: `appealStage` already defaults to `.choosingCraving`, so a first presentation is identical, and re-opening after a recorded appeal still resets — the button is simply a deterministic place to do it, where `.onAppear` was a racy one. Found by `arc-audit-accessibility` as a comment that claimed more than the code did (2 previews); the other three came out of checking the claim rather than taking it. |
 
 ---
 
@@ -2293,6 +2296,137 @@ during Pass B.
 - **Owed**: the test suite run (⌘U), the interactive iOS 26 walk (not reachable from this tool),
   and the Xcode approval for a literal clean-checkout build.
 
+## Day 27 — contingency and final verification (WU-27-A)
+
+### WU-27-A 🟦 The contrast floor closed repo-wide, and the disclaimer placement made consistent
+
+- **Objective / scope**: close WCAG 1.4.3 across the whole Presentation layer rather than inside
+  one more work unit's diff, and finish the disclaimer-placement pass WU-EB asked for. No product
+  rule changes, no new strings, no String Catalog edit — not one sentence was added or reworded.
+- **What the grep found, which is the point of the unit.** WU-EB's accessibility auditor fixed six
+  `.secondary` text sites and WU-26-A's pass fixed one, and both Checkpoint notes then recorded
+  that **two** gaps remained, naming them. A repo-wide
+  `grep -rn "foregroundStyle(.secondary)" Foodge/Foodge` found **17**, across **13** files:
+  `HistoryListView`, `CaseDetailView` (×3), `ProvenanceRow` (×2), `EvidenceSectionsView`,
+  `AppealCompatibleSection` (×2), `AppealNoMatchSection`, `AppealRecordedSection`,
+  `SelfReportCheckInSection`, `CategoryHeaderSection`, `DishSummaryRow`, `EvidenceDetailsView`,
+  `DemonstrationScenariosView`, `HealthConnectionView`. An audit scoped to a changeset cannot close
+  an invariant that holds app-wide — recorded as **D134**, with the lesson in
+  `memory/decisions/an-auditors-fix-stops-at-its-own-diff.md`.
+- **The same grep is the closing evidence**: after the sweep it returns **0** matches in
+  `Foodge/Foodge`. That is a number, not "the auditor fixed the ones it saw".
+- **One HIG inconsistency fixed with it.** `VerdictView` carries *"These are prototype product
+  heuristics, not nutritional advice."* as a `Section` footer (WU-26-A's deliberate pass);
+  `CaseDetailView` carried the identical sentence as a row inside the card. Now a footer in both,
+  with the date-carrying combined header left as it was.
+- **Build gate — met.** `BuildProject { buildForTesting: true }` green twice (8.9 s, 5.8 s), each
+  followed by `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. The second pair is after
+  the `CaseDetailView` footer move, the last edit in the unit.
+- **Previews — read off the render, not inferred.** `EvidenceSectionsView` at `es`/default (the
+  read-time captions are burgundy now; the arithmetic is still internally consistent — 1600 + 400 =
+  2000, − 1460 = 540, 540 / 2000 = 27 %) and at `en`/Dark/**AX 5** (captions legible on the dark
+  card, no truncation); `HistoryListView` "Populated" at `es` (category column reads as an accent
+  beside the date, still clearly subordinate); `CaseDetailView` "Dish match" at `es` **before and
+  after** the footer move, which is what shows the disclaimer leaving the card.
+  **`NarrationSection` at Dark — the render WU-26-A listed as owed — is done here**: flourish and
+  caption both legible, the caption outside the card.
+- **No test is added, deliberately.** A test asserting a `Color` literal or a modifier would pass
+  whenever the code compiles, which `swift-testing-doctrine` says to delete rather than write. The
+  oracle for a contrast ratio is a measurement, and the measuring instrument is the accessibility
+  auditor plus the render — both recorded above.
+
+- **`arc-audit-accessibility` — 0 BLOCKER, and it re-measured rather than agreed.** It computed
+  sRGB relative luminance itself for all four `AppBurgundyMuted` variants against the real
+  backgrounds these 17 sites sit on (12 in a `Form` → `secondarySystemGroupedBackground`,
+  `HistoryListView` in a plain `List` → `systemBackground`): **4.73:1** light, **5.68:1** dark (WU-EB recorded 5.66:1 for the same color; the difference is two measurement passes rounding, not two colors — **5.68:1** is the current figure and the one the style's doc comment carries),
+  **6.85:1** light + Increased Contrast, **8.16:1** dark + Increased Contrast. It confirmed
+  `.secondary` at **3.44:1** light — so the ratio this project has been quoting since WU-EB is
+  accurate, not an overclaim — checked all 17 "(D134)" comments against the lines beneath them,
+  and re-ran the closing grep itself. No site was changed that should not have been.
+- **Its measurement pass found the gap D134 had written off, and D135 closes it.** SwiftUI's own
+  `LabeledContent` value slot measures the same **3.44:1**, which left `ProvenanceRow` rendering
+  "410 kcal" at 3.44:1 directly above a timestamp this very unit had fixed to 4.73:1 — in one
+  cell. Fixed by a `LabeledContentStyle` applied once at `AppRootView` (**D135**).
+  **The first version of that style was wrong and the simulator is what showed it**: rebuilding
+  through `LabeledContent(configuration)` and setting the foreground style's second level dropped
+  the value's secondary treatment entirely, so every figure rendered at full `primary` — passing
+  the floor while flattening the label/value hierarchy. Read off a device screenshot of the
+  evidence screen in demonstration mode, not inferred. The style now colors
+  `configuration.content` directly; `ProvenanceRow`'s preview renders the value muted and the
+  label primary, with the timestamp below it unchanged.
+- **D135 confirmed in the running app, not only in a preview.** Installed on iPhone 17 Pro
+  (27.0) and walked to **Evidence details** in demonstration mode ("A generous allowance",
+  verdict Treat / Beef burger). Read off the screenshot: every trailing value — `600 kcal`,
+  `1200 kcal`, `14000`, `990 kcal`, `1,200 Cal`, `600 Cal`, `1,800 Cal`, `990 Cal` — renders in
+  the muted brand red while the labels stay near-black, so the hierarchy survives and the floor
+  is met. This was necessary rather than belt-and-braces: component previews do not sit under
+  `AppRootView`, so nothing but the app itself could show this. **The free-text opt-out is the
+  one part not confirmed on device** — the installed binary predates it, and the field is inside
+  the appeal sheet; it is verified by the build and by reading, and is listed here as such.
+- **Two findings from the walk, neither a WU-27-A regression, both recorded rather than fixed.**
+  (1) The tab bar again overlaps the last visible row at rest — this time "Eaten so far" — which
+  is D131's accepted trade, unchanged. (2) **Units read inconsistently on one screen**: Sources
+  shows `1200 kcal` (built by hand as `"\(Int(...)) kcal"`, so the unit is neither grouped nor
+  localized) while Tonight's allowance shows `1,200 Cal` (a real formatter). Both are correct
+  numbers; they just do not look like the same screen, and the hand-built one puts a unit outside
+  the String Catalog. Not fixed here: it changes displayed copy and the Spanish with it, and the
+  test suite cannot be run on this machine to check the localization tests — it needs a decision
+  and a ⌘U, not a rushed edit hours before the demo.
+
+- **One deliberate opt-out, found by asking what else is a `LabeledContent`.** Eleven files mention
+  `LabeledContent`; **eight** actually display one (the other three are `AppRootView`, which applies
+  the style, the style's own file, and `SelectableRow`, whose comment names it while the code is
+  a plain `HStack`). Two of the eight hold something that is not a secondary reading: `AppealFreeTextSection` puts a
+  `TextField` in the value slot, and `IngredientExclusionsLinkSection` puts its count inside a
+  `NavigationLink`. The text field is opted back out with `.labeledContentStyle(.automatic)` —
+  what a user types is their own text and stays `primary`. The link's count is left styled: it
+  is a value, and it reads as one. `SelectableRow` was checked too and does **not** use
+  `LabeledContent` (its comment mentions it; the code is a plain `HStack`, for an accessibility
+  reason recorded there).
+
+- **The appeal previews were the bigger find (D136).** The auditor reported a comment in
+  `AppealSheetView` claiming an ordering guarantee the code does not make, affecting 2 previews.
+  Checking the claim instead of taking it made it **five of six**: every preview that drove itself
+  past the craving list rendered the craving list anyway, because `.onAppear { vm.beginAppeal() }`
+  landed last. `AppealCompatibleSection` and `AppealRecordedSection` had never actually been seen
+  in a preview. The reset moved to `VerdictView`'s Appeal button; both previews now render the
+  state they are named after — verified by re-rendering each one before and after.
+- **Build gate after all of it — met.** Green at 8.0 s, 5.2 s and 10.9 s, each followed by
+  `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**.
+
+- **`arc-constitution-review`: 0 BLOCKER, 2 MAJOR, 3 MINOR — every one an evidence problem, all
+  five acted on.** It re-derived the numbers rather than accepting them (grep → 17 sites / 13
+  files / 0 remaining, build gate confirmed live through its own `GetBuildLog`), and traced
+  D136's single production path itself before agreeing the behaviour claim held.
+
+  | Finding | Disposition |
+  |---|---|
+  | **MAJOR** — D135's row in the decisions table described the **rejected** mechanism ("only the second level of the foreground style"), not the shipped one. A reader trusting the log alone would have rebuilt the broken version | **Fixed.** The row now says the style sets the foreground style on `configuration.content`, with the second-level attempt named as rejected |
+  | **MAJOR** — nothing pinned D136. The "no test added" rationale is sound for a color change and **not** for a moved state transition; no existing test touched `beginAppeal()` at all | **Fixed.** `beginAppealResetsARecordedAppeal` records an appeal, calls `beginAppeal()`, and requires `.choosingCraving` with the recorded appeal still present. It fails against a `beginAppeal()` that stopped resetting — the one case where the old and new placements could differ. **Compiled, not run** — the runner is wedged (below), so this test is owed a ⌘U like the rest |
+  | **MINOR** — D134's rationale said native `LabeledContent` values "stay untouched", but two of its own 17 sites recolor `Text` inside a value closure | **Fixed.** The claim now says what it meant: no `*Style` was written |
+  | **MINOR** — the dark-mode ratio read 5.66:1 in two documents and 5.68:1 in two others, all dated today | **Reconciled** to 5.68:1 as the current measurement, with the older figure named as the same color measured twice |
+  | **MINOR** — "eleven files use `LabeledContent`" counted the style's own file and a comment-only mention | **Corrected** to eleven mentions, eight real display sites |
+
+  Left standing, and worth a later reader's attention: the style's reach into **sheet** content
+  (Settings, the appeal sheet) is argued from SwiftUI's environment propagation and confirmed by
+  grep to have no competing override — it is **not** shown by a render. The evidence screen is.
+
+- **The wedged test runner: one cause found and cleared, and it was not sufficient.** A
+  **single-test** `RunSomeTests` came back instantly rather than hanging:
+  `Could not start the scheme operation: There is already a test running.` `ps` showed a
+  simulator-side `testmanagerd` (iOS 27.0 runtime) alive since **09:38** that day and a test
+  bundle in `DerivedData/Foodge-…/Logs/Test/` from **09:57** — a test operation from an earlier
+  session Xcode still considered in progress. `StopProject` does **not** clear it
+  (`"No app is currently running."` — it stops the *run*, not the *test*). The user pressed Stop
+  in Xcode and the stale task reported `Test execution was cancelled by a user interaction`.
+  **After that a run does start — and still does not return:** `RunAllTests` sat at **11 m 28 s**
+  with no result and was stopped, and a fresh run of **one** test exceeded **120 s** as well,
+  while `BuildProject` answered in 5–11 s throughout the same period. So the stale operation was
+  *a* blocker, not *the* blocker, and the standing conclusion is unchanged: **⌘U by hand is the
+  only path that has ever produced a result here** (2.17 s for 271 tests at the Checkpoint B
+  close). Recorded this way because the first version of this paragraph, written when the refusal
+  message appeared, said the cause had been found — the probe that followed showed it had not.
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |
@@ -2300,7 +2434,7 @@ during Pass B.
 | 24 | WU-24-B | Evening reminder (single local notification, generic content), complete ES/EN copy, feature freeze | Reminder tests green |
 | 25 | WU-25-A | Accessibility, privacy, regression and performance verification. Defect fixes only | ⚠️ Audits returned no blockers; the on-device walk, D93 and the performance sweep are owed to Day 26 |
 | 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package. **Inherits WU-25-A's five device findings** — the ~51 s verdict and the tab bar over the flourish are the two that show on stage | ✅ Findings 1–4 closed, measured or instrumented (D129–D133); README written; fresh-install rehearsal walked end to end; clean checkout validated by comparison; `main` brought up to date through PR #2. Owed: the suite run (⌘U — the MCP runner is wedged) and an interactive iOS 26 walk (not reachable from this tooling) |
-| 27 | — | Contingency buffer and final verification; user submits by 21:00 Europe/Madrid | Submitted |
+| 27 | WU-27-A | Contingency buffer and final verification; user submits by 21:00 Europe/Madrid | 🟦 WCAG 1.4.3 closed repo-wide — 17 `.secondary` text sites swapped, the closing grep returns **0** (D134); `CaseDetailView`'s disclaimer made a footer like `VerdictView`'s; build green with `totalFound: 0` warnings; the Dark `NarrationSection` render WU-26-A owed is done. Still owed: the suite run — **the MCP runner is blocked by a stale test operation, not by the toolchain** (see below) — and an interactive iOS 26 walk |
 
 If time tightens, cut decorative variants and AI flourish variety first. Preserve Health
 correctness, fallback behaviour, native interaction, accessibility and the complete
