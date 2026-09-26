@@ -1,0 +1,42 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Foodge"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Foodge"
+          }
+        }
+      }
+    },
+    "NSHealthShareUsageDescription" : {
+      "comment" : "Privacy - Health Share Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Foodge reads your activity, sleep and dietary energy from Health so it can judge tonight's dinner from real evidence. It only reads; it never writes to Health."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Foodge lee tu actividad, tu sueño y tu energía alimentaria desde Salud para poder juzgar la cena de esta noche a partir de pruebas reales. Solo lee; nunca escribe en Salud."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}
