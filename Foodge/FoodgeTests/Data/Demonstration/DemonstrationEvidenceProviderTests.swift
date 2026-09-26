@@ -12,7 +12,7 @@ import Testing
 /// The merge rule that keeps the walkthrough's "add context" step alive (D101).
 ///
 /// The oracle is the scenario's own declaration in `SyntheticScenarios` — `shortSleep` ships
-/// `energyLevel: .low` and 410 kcal — against what the provider hands back when asked with
+/// `energyLevel: .low` and 400 kcal active — against what the provider hands back when asked with
 /// something different.
 @Suite("Demonstration evidence provider", .tags(.unit))
 struct DemonstrationEvidenceProviderTests {
@@ -40,7 +40,7 @@ struct DemonstrationEvidenceProviderTests {
         #expect(snapshot.context.energyLevel == .normal)
         #expect(snapshot.context.note == note)
         // And nothing Health-derived moved: the scenario's own reading and its label are intact
-        #expect(snapshot.today.activeEnergy?.kilocalories == 410)
+        #expect(snapshot.today.activeEnergy?.kilocalories == 400)
         #expect(snapshot.isSynthetic)
     }
 
@@ -66,7 +66,7 @@ struct DemonstrationEvidenceProviderTests {
     @Test("The caller's constraints are the ones the snapshot carries")
     func theCallersConstraintsAreUsed() async throws {
         // Given a scenario that declares no constraints of its own
-        let provider = makeSUT(SyntheticScenarios.typicalDay)
+        let provider = makeSUT(SyntheticScenarios.modestAllowance)
         let constraints = DietaryConstraints(profile: .vegetarian, excludedIngredientIDs: ["ingredient.olive"])
 
         // When it is asked on behalf of someone with a profile and an exclusion

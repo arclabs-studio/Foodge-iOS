@@ -14,7 +14,6 @@ import Testing
 /// back nil".
 @Suite("Narration validator", .tags(.unit, .domain, .critical))
 struct NarrationValidatorTests {
-
     // MARK: - Acceptance
 
     @Test("A clean English flourish is accepted, normalized")
@@ -163,6 +162,62 @@ struct NarrationValidatorTests {
         ]
     )
     func bannedPhrasesAreRejected(candidate: String) {
+        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
+    }
+
+    @Test(
+        "Cheat-meal framing is accepted in English (D118)",
+        arguments: [
+            "The court grants one cheat meal.",
+            "Consider it a cheat day, by order of the bench.",
+            "A guilt free verdict, for once.",
+        ]
+    )
+    func cheatMealFramingIsAccepted(candidate: String) {
+        // The inverse of `bannedPhrasesAreRejected`, and the reason D119's change is exactly three
+        // string removals: the product is a judge granting a cheat meal, and a validator that
+        // refused the words could never let it say so. This test fails if any of the three is put
+        // back into `bannedPhrases`.
+        #expect(NarrationValidator.validate(candidate, note: nil) == .accepted(candidate))
+    }
+
+    @Test(
+        "Exempting \"guilt free\" does not unban guilt itself (D128)",
+        arguments: [
+            "A guilty pleasure, says the court.",
+            "The guilt is yours to carry.",
+            "Sin culpa alguna.",
+            "Un pecado delicioso.",
+        ]
+    )
+    func theGuiltExemptionDoesNotReachActualGuiltFraming(candidate: String) {
+        // The exemption excises "guilt free" before the banned sweep, so the risk it creates is
+        // that it swallows the bare "guilt" ban with it. Each of these contains a guilt word that
+        // is *not* part of the exempt phrase, and each must still be refused — otherwise the
+        // exemption has quietly reopened exactly what D118 keeps banned.
+        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
+    }
+
+    @Test("The hyphenated spelling is exempt too, because the word scan strips the hyphen")
+    func theHyphenatedGuiltFreeSpellingIsAccepted() {
+        // "guilt-free" and "guilt free" reach the banned sweep as the same words, so an exemption
+        // written for one must cover the other. This is the spelling D119's rationale actually
+        // named — "a guilt-free burger".
+        let candidate = "A guilt-free burger, by order of the bench."
+        #expect(NarrationValidator.validate(candidate, note: nil) == .accepted(candidate))
+    }
+
+    @Test(
+        "The Spanish guilt framing stays banned even though the English is allowed",
+        arguments: [
+            "Hoy toca comida trampa.",
+            "Una cena sin culpa.",
+        ]
+    )
+    func spanishGuiltFramingIsStillRejected(candidate: String) {
+        // *Comida trampa* is not the Spanish for a cheat meal in this product's voice: *trampa* is
+        // cheating-as-transgression. The Spanish copy says *capricho*, and this is what stops a
+        // well-meaning future edit from "matching" the English relaxation (D118).
         #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
     }
 

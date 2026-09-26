@@ -19,18 +19,10 @@ struct NarrationPromptTests {
     ) -> VerdictDecision {
         VerdictDecision(
             category: category,
-            basis: .recorded(
-                ratio: 1.02,
-                baseline: ActivityBaseline(
-                    metric: .activeEnergy,
-                    median: 400,
-                    observationCount: 14,
-                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                )
-            ),
-            reasonCodes: [.withinRecordedPattern],
+            basis: .energyBalance(SampleDecisions.moderateAllowance),
+            reasonCodes: [.moderateAllowance],
             isProvisional: isProvisional,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     }
 

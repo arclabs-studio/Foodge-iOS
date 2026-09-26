@@ -137,6 +137,25 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D107 | The live store's **files** are protected, not merely the directory that holds them. `ContainerFactory.makeProtected(in:using:)` hardens the directory **before** the container is created, then sets `.protectionKey` on `Foodge.store` and its `-wal`/`-shm` sidecars afterwards. **This amends D29**, which claimed the sidecars were covered. | `arc-audit-security` (WU-25-A) found the ordering inverted: `makeLive()` created the directory, then the container, and hardened the directory last. A file's protection class is fixed when the file is created, inherited from its directory, and `setAttributes` is not recursive — so the store and both sidecars kept the container default (`CompleteUntilFirstUserAuthentication`), one class weaker than D29 committed to, permanently. D29's backup half was true and verified by hand (`com.apple.metadata:com_apple_backup_excludeItem` present on all three files in the simulator containers); its protection half was false and untested, because `ContainerFactoryTests` never called `makeLive()`. The post-creation pass is not redundant with the ordering fix: it is what corrects an app already installed under the old ordering, which would otherwise keep the weaker class for the life of the install. `.completeUnlessOpen` stands unchanged for D29's original reason. |
 | D108 | D99's deferred retype of `SyntheticScenario.id` from `String` to `DemonstrationScenarioID` is **deferred past the freeze**, not done in WU-25-A. | User-settled. The gap is untyped, not unsafe: the ten ids already match the enum letter for letter, `SyntheticScenarios.scenario(for:)` is an exhaustive switch that is total by construction, and nothing force-unwraps. Against that, the retype touches every scenario definition and the demonstration entry path two days from a hackathon deadline, with the only benefit being compile-time spelling. Day 25's own brief is *fix defects only*. |
 | D109 | **D93 is answered: `@Query` does re-read.** Confirming *Eliminar los datos locales* dismissed the Settings sheet, reset the visible reminder toggle, and returned the root view to onboarding — with no relaunch. The within-session latch and the `@Query`-backed root therefore agree, and `AppRootView` needs nothing further. | Evidenced on the physical iPhone, 25 Sep 2026, from an unbroken screen recording (`15:13`, video t≈4:08→4:12): the Settings sheet, then `Bienvenida / "Se abre la sesión."`, with no launch screen and no process restart between them. It could not be answered through the Xcode MCP — its device-interaction session layer is wedged on this machine (see WU-25-A) — so the user drove the device and the recording is the oracle. This closes the question `AppRootView` has carried since WU-19-D. |
+| D110 | Schema V1 is edited **in place** for the energy-balance rebuild: no `FoodgeSchemaV2`, no migration stage. The app is unreleased, so the store is discarded by a dev reinstall rather than migrated, and old saved cases are unrecoverable. **Extends D10.** | Four reasons, and the third is the one that decides it. (1) D10 already establishes dev-reinstall-while-unreleased, and `FoodgeSchemaV1`'s own doc comment says so. (2) `FoodgeMigrationPlan.stages` is empty today, so the project already depends on inference or a reinstall for any model change. (3) `VerdictRevision.decisionData` and `evidenceData` are opaque `Data`: their SwiftData schema does not change **at all** when the JSON shape inside them changes, so a migration stage cannot help — only a JSON rewrite could, and that is hours spent protecting zero real users. (4) A container that refuses to open already surfaces as `AppLaunch.State.storeUnavailable` → `StoreUnavailableView`, so the worst case is a screen, not a crash. Consequence accepted: the app must be deleted from the simulator **and** the device before the first run after Pass B. |
+| D111 | The 14-day recorded baseline is **removed**. The verdict comes from today's energy balance, not from a comparison against the user's own recorded pattern. | The baseline engine is built, tested and green (278/278), but it is not the product: it answers "was today unusual for you?" when the original idea was "how much have you got to spend tonight?". Supersession is uneven and is recorded precisely rather than as a list, because a ledger entry must not claim more than the code does. **Fully superseded:** D6 (the 15-window history `TaskGroup`), D12 (`CategoryOutcome` / `.needsTrackingConfirmation`), D23 (energy→steps metric preference), D24 (`ActivityBaseline.window`), D32 (`UserPreferences.trackingRepresentative`), D55 (`VerdictEngine` left without a conformer — the protocol is deleted outright), D56 (the "No" answer discarding the comparison). **Partly superseded:** D5 — the `HealthSampleSource` seam, the sleep union and absent-vs-zero all survive; only the history composition dies. D16 — the even-count median dies; the previous-day-18:00 sleep window survives. **Moot rather than superseded:** D13, a Day-19 scheduling note. |
+| D112 | Allowance = `(resting + active) − intake`, banded by **share of maintenance**, not by an absolute kcal figure: `share >= 0.35` → Treat, `>= 0.20` → Balanced, else Light. Inclusive at each band's lower edge. | An absolute threshold ("600 kcal spare means a burger") is wrong for both a 50 kg and a 100 kg user at once, and the rule has to scale with body size or it is nonsense for most people. The inclusive-lower-edge convention is stated once here and pinned by test at both boundaries, mirroring the old table's "75 %–125 %, both inclusive" — a boundary convention left to each call site is how two call sites disagree. |
+| D113 | Maintenance uses Health `basalEnergyBurned` where readable; absent that, Mifflin–St Jeor from `BodyBasics`, **prorated by the calendar day's real length** rather than by 86,400 s. **D7 survives and now carries more weight.** | Resting energy is the larger half of maintenance, so dropping it when Health cannot supply it would make the share meaningless on exactly the devices without a watch. Proration is where this rebuild can silently go wrong: `86_400` is the obvious wrong denominator and passes nine tests in ten, so on a 23-hour spring-forward day 03:10 is `3.1667/23` of the day, not `3.1667/24`. The `Calendar` is injected, matching `DishSelection`'s precedent; `.autoupdatingCurrent` appears nowhere. The literal-valued DST test is written **before** `BasalMetabolicRate`. |
+| D114 | Intake may be *estimated* from a questionnaire. `RestingEnergy` and `DailyIntake` are both two-case `recorded`/`estimated` enums, so provenance is readable at every call site rather than carried alongside as a flag. **Amends D48, D49.** | D49 already made "replaces, never adds" a type-level guarantee for manual intake; this extends the same shape to an estimate and to resting energy, which D48/D49 never covered. A `Bool` beside a `Double` is the version of this that lets a call site render an estimate as if it were a reading — the enum makes that unrepresentable. Absence stays the absence of the enum (`RestingEnergy?` is `nil`), never a zero case, exactly as `HealthAggregates` already models its six optionals. |
+| D115 | The catalogue collapses to **10 dishes, one per kind, no variants**. `DishVariant` and `CatalogueEntry` are deleted; `Dish` absorbs the variant's fields. **Pass C only — this pass is droppable, and D115/D116/D120 apply only if it is taken.** | 27 variants across 9 families is three burgers where the user experiences one dinner, and the variant layer is what forces D41's two-level recency and D42's "different variant, same family" alternative to exist at all. Supersession, again recorded accurately rather than copied from the plan, which overstated it: **superseded** — D41 (two-level recency collapses to two-and-the-same-thing) and D42 (the distinct-alternative fallback becomes "the next ranked dish"). **Survives** — D36 (catalogue as a pure `Domain/Catalogue/` namespace, unchanged in shape), D40 (rotation mod the **full** catalogue count, now mod 10, which visibly cycles every 10 days), and D63 (`negotiateAppeal` sharing `select`'s ranking body — the reason it exists is duplication, which the collapse does not touch). The known cost is the exclusions cliff: with three dishes per tier, "bread" kills burger and wrap at once. Mitigated by keeping the honest `.noMatch` (D43, D58) with no silent relaxation, by core-components-only ingredient lists, and by a live "N of 10 dishes still available" counter on the exclusions screen. |
+| D116 | Dishes carry an **editorial** `kilocalorieRange`. This is explicitly not a verified figure: `CalorieReference` remains the only type allowed to claim one, and **D50's rule survives** — no catalogue dish is wired to a `calorieReferenceID`, still enforced by regression test (renamed `noCatalogueDishIsWiredToAReference`). | This partly reverses the "a generic burger has no calorie value" rule, and the reversal has to be visible or the product lies: an allowance in kcal with no dish figures beside it is an allowance the user cannot spend. The two kinds of number therefore stay different types with different copy — a verified portion reference names a specific product in a specific market (D50), an editorial range describes a home-style dish and says so. The copy must call the ranges indicative. |
+| D117 | Onboarding gains body basics (sex, age, height, mass), stored in `UserPreferences` as four optionals with a computed `bodyBasics: BodyBasics?` that returns `nil` unless all four parse. **Reverses the plan's "no unused weight / BMI" restriction.** | That restriction existed because the data was decorative: asking for someone's weight to display nothing is the kind of question this product should not ask. Under D113 the data is load-bearing — it is the only way to compute maintenance on a phone with no basal samples — so the objection no longer applies. `BodyBasics.init?` is failable on implausible answers (age 13–120, height 120–230 cm, mass 30–300 kg), mirroring `Note`'s validating-failable pattern: an unanswered questionnaire and a nonsense one both mean "no estimate is possible", never a nonsense BMR. The all-four-or-`nil` computed property is the same idiom as `dinnerRoutineRawValue`. |
+| D118 | The voice rule is replaced: **cheat-meal framing is allowed in English**, and allowance figures may appear in deterministic Presentation copy. Jokes about a person's body, discipline or worth, and any instruction to skip a meal, stay banned. **Spanish uses *capricho*, never *comida trampa*** — which stays in `bannedPhrases`. | The original ban made the product's own premise unsayable: a judge granting a cheat meal could not name one. What the ban was actually protecting against is narrower — guilt, compensation, bodies, discipline, and skipping a meal — and all of that stays. *Comida trampa* is not the Spanish for the newly allowed framing: *trampa* is cheating-as-transgression and carries exactly the guilt the ban exists for, so the Spanish voice says *capricho* and the phrase stays banned. |
+| D119 | The narration numeric ban is narrowed by **exactly three string removals** from `NarrationValidator.bannedPhrases`: `"cheat meal"`, `"cheat day"` and `"guilt free"`. `makesNumericClaim`, the digit ban, `numberWords`, `measurementUnits` and `NarrationPrompt` are all untouched. | The plan's D119 fixed the count at three and named two; `"guilt free"` is recorded here as the third because it is the phrase the newly allowed voice needs ("a guilt-free burger") while `"guilt"`, `"guilty"`, `"culpa"`, `"pecado"` and the rest of the guilt group remain banned as actual guilt framing. Everything numeric stays because the worst available regression for this product is a model inventing a kcal figure the user then trusts: the prompt contains no number of any kind, pinned by `NarrationPromptTests.promptContainsNoNumbers` (`Foodge/FoodgeTests/Data/Narration/NarrationPromptTests.swift:65`), which is the entire justification for the digit ban and stays exactly as it is. The flourish may name the category and the dish — those words were never banned — and may never state a number. Allowance figures go only into deterministic Presentation copy, never into the model prompt. `NarrationValidatorTests`' "cheat meal is rejected" test flips to an acceptance test; the rest of that suite is untouched. |
+| D120 | `DishFamily` keeps its name although one dish per kind makes it a slight misnomer. Logged as naming debt, to be settled after the deadline. | Renaming touches ~25 files, three persisted columns and four localization files for zero behavioural gain, two days from the deadline. Same reasoning as D108: the gap is cosmetic, not unsafe. `PersistedDishOutcome.variantID` → `dishID` is done because it is one type, but the SwiftData column renames in `VerdictRevision` and `Appeal` are skipped on the same trade — an hour saved for a stale name. |
+| D121 | The two contextual reason codes get **explicit thresholds**: `.strongActivityToday` fires on a recorded workout **or** ≥ 12,000 steps, `.shortSleep` below 6 hours of union sleep. Both are explanation only — they append a reason code and move no figure. | The plan said "workouts non-empty or high steps" without saying what high is, and a rule with an unnamed threshold is a rule each call site invents for itself. 12,000 is chosen as clearly-more-than-a-typical-day (the old fixtures' median was ~8,200) without needing an athlete; 6 hours is the figure the sleep copy already implied. Both live as `static let` on `CheatMealAllowanceRule` so the number and the sentence that explains it cannot drift apart. **Neither touches the arithmetic** — active energy already contains workout and step energy, so adding either would double-count, which is the project's own non-negotiable. An absent reading fires nothing: no sleep record is not a short night. |
+| D122 | Intake is resolved in a fixed order — Health `dietaryEnergy`, else the user's answered check-in, else a demonstration's scripted questionnaire — and the questionnaire and body basics actually used are **written onto the snapshot** (`EvidenceSnapshot.attaching(intake:body:)`) before anything is evaluated or saved. The self-report is likewise written into the persisted `DailyContext`. | Three things forced this. (1) Body basics are a stored preference (D117), but a questionnaire is a *per-day answer*, so it cannot be one — the plan's "read from stored preferences" holds for the body and cannot for the questionnaire, which is why a scripted one travels on the snapshot instead and `estimatedIntake` still demonstrates itself. (2) A saved case has to be able to say where an estimated figure came from; without attaching them, `VerdictRevision.evidenceData` would hold a decision whose `intakeIsEstimated` was true beside no questionnaire at all. (3) `DailyContext.selfReportedActivity` existed from the start and **nothing ever wrote it** — a self-reported verdict recorded the answer in `CategoryBasis` but not in the evidence beside it, so a reopened case could not say what had been asked. Found during the rebuild's exploration; fixed by `recordingSelfReport(_:)` and pinned by `TodayViewModelTests` and `DemonstrationScenarioOutcomeTests`. |
+| D123 | `RecordedActivityRow` is **deleted and replaced** by `AllowanceBreakdownRow`, and every preview decision now comes from one `SampleDecisions` namespace instead of a literal per `#Preview`. | The row rendered a ratio, a median and an observation count, none of which exist any more; keeping the name over an allowance breakdown would have left a file whose name described the previous product. Each figure now carries its own provenance label, because "1,319 kcal resting" and "1,319 kcal resting, estimated" are different claims and only one of them is a measurement. `SampleDecisions` exists because the rebuild found the same seven-line `VerdictDecision` literal copied into six preview bodies: each free to drift from the rule, and a preview showing a decision the rule cannot produce is worse than no preview. |
+| D124 | Onboarding gains a **body-basics step** between Health and preferences, and `HealthState.connected` now carries the **missing kinds** instead of a recorded-pattern summary. Skipping the step is a first-class choice. | The recorded-pattern screen had nothing left to show (D111), and what a user actually needs to know at that point is which figures Health could not supply — because that is exactly what the next screen offers to stand in for. Two consequences are recorded rather than discovered later: a first launch **just after midnight** can now report `noReadableData` where it used to report a pattern, which is correct (there is nothing readable *yet*, and the rule refuses a window under ninety minutes for the same reason); and `.connected(missing: [])` is deliberately distinct from `nil`, meaning "connected, nothing missing" rather than "not asked". The step applies its figures on the way out, so the draft holds a whole body or nothing — never three answers and a half. |
+| D125 | **Pass C of the energy-allowance rebuild is dropped.** The catalogue stays at **9 families / 27 variants**; `DishVariant` and `CatalogueEntry` survive, no dish gains an editorial `kilocalorieRange`, and dish cards keep showing no calorie figure. **D115, D116 and D120 are therefore decided-but-unbuilt** — they remain in this log as reasoning about a pass that was not taken, and must not be read as describing shipped code. D120's `DishFamily` naming debt never arises, because the one-dish-per-kind change that would have made the name a misnomer was not made. | The reason is the **verification loop**, not the size of the edit. Pass C's largest piece is `DishSelectionTests` — 466 lines, 25 tests, every fixture built on `CatalogueEntry` — so the collapse would break the whole suite at once and each red→green attempt would need a hand-driven ⌘U, the MCP runner having wedged on four consecutive attempts. The alternative's cost, ~24 h from the deadline, is a catalogue collapse iterated **blind**: a selection algorithm whose recency, exclusion and rotation behaviour is verified by 25 tests, rewritten with no observed test run. Passes B + D already ship a coherent product — the allowance rule over the existing catalogue, with an honest no-match — and dropping Pass C removes nothing a user sees except a calorie figure that D50 already, deliberately, withholds. |
+| D126 | The body-basics **skip** is offered whenever the four figures are incomplete (`canSkipBodyBasics == bodyBasicsFromInputs == nil`), not only while the step is untouched. **Fixes a dead end introduced in Pass B; amends D117, D124.** | `Continue` is disabled while the basics are incomplete and `Skip for now` was shown only while `!hasStartedBodyBasics`, so the two conditions flipped on the *same* keystroke: entering a sex and an age and declining to give a weight left the step with **no way forward at all**, while its own footer still read "Skipping is fine". Escape existed only by clearing all four fields, including resetting the picker to "Not given" — recoverable, but nothing on screen said so. Keying the skip on the *answer* rather than on whether typing had begun costs nothing: skipping already discards a partial answer, because `applyBodyBasics()` writes `bodyBasicsFromInputs`, which is `nil`. Found by `RenderPreview` on the "Half answered" preview in `es`, not by a test — the rule lived in the View, where this project has no test that can reach it. It is now `OnboardingViewModel.canSkipBodyBasics`, covered by `aHalfAnsweredStepIsStillSkippable`, which fails against the old condition. |
+| D127 | Two **user-facing strings** that described the deleted 14-day baseline are rewritten to describe the allowance: `WelcomeView`'s "weighs today against your usual fortnight" → "works out what today has left you to spend", and `SelfReportCheckInSection`'s "There's no usable recorded pattern for today." → "There isn't enough readable data to work out today's allowance." Both re-translated into `es`. **Completes D111 into the UI layer.** | D111 deleted the recorded baseline from the domain, and Pass B swept the screens that *showed* it — but these two strings only *describe* it, so they survived a search for baseline types and kept claiming a feature the app no longer has. The `WelcomeView` one is the first sentence a user or a hackathon judge reads, which makes it a false product claim on the demo's opening screen, not an internal staleness. Found by `arc-audit-hig`, which flagged both as outside WU-EB's diff yet caused by it — correctly: the files were never edited, only invalidated. Neither string carries a numeric specifier, so the one-way plural-variation trap did not apply. The English is the product's own writing and was rewritten here deliberately rather than by a translation agent as a side effect. |
+| D128 | `"guilt free"` is made **genuinely** sayable in English by an explicit exemption: `NarrationValidator.exemptPhrases` is excised from the word scan before the banned-phrase sweep. `"guilt"`, `"guilty"`, `"culpa"`, `"pecado"` and the rest of the guilt group stay banned, and Spanish is deliberately **not** exempted. **Completes D119, which did not work.** | D119 recorded three string removals from `bannedPhrases` and claimed the third allowed "a guilt-free burger". It did not: `"guilt"` is banned separately and matches the same words, so removing `"guilt free"` from the list changed nothing and the phrase stayed refused — the removal was **inert**, and D119's own rationale is internally contradictory, asking for `"guilt free"` allowed *while* `"guilt"` remained banned. Caught by the first real test run: `cheatMealFramingIsAccepted` failed on exactly that one of its three arguments. The user chose the allowance over the ban, so the exemption is now real rather than claimed. The asymmetry is deliberate and matches D118: *sin culpa* is literally "guilt free" and stays banned, because Spanish carries the guilt framing the ban exists for. Verified by executing the validator against 12 candidates — the 4 allowed spellings accepted, the 8 guilt/earning/compensation phrasings still rejected — and pinned by `theGuiltExemptionDoesNotReachActualGuiltFraming` and `theHyphenatedGuiltFreeSpellingIsAccepted`. |
 
 ---
 
@@ -1913,6 +1932,185 @@ launch line before the session expired, and the walk produced no retained log.
 stub), demo rehearsal, submission package. It inherits the five findings above (2 and 3 are the ones
 that show on stage), the `noCompatibleDish` device check, the iOS 26 walk, and the performance
 sweep. D93 no longer appears on that list.
+
+
+## Day 25–26 — the energy-allowance rebuild (WU-EB)
+
+Plan: `docs/migrations/2026-09-25-energy-balance-rebuild.md`. Branch `feature/FOODGE-energy-balance`,
+off the pushed backup `backup/pre-energy-balance` (the last green submittable state, 278/278).
+
+### WU-EB.A ✅ Domain types and the allowance rule, additive only
+
+- **Objective / scope**: land `BodyBasics`, `IntakeEstimate`, `EnergyAllowance`,
+  `BasalMetabolicRate` and `CheatMealAllowanceRule` **beside** the old engine, referenced by nothing,
+  so the hardest arithmetic arrives with tests behind it while the build stays green.
+- **Acceptance**: both band edges, a negative allowance, every named unavailable reason, the fixed
+  guard order, the unanswered-versus-`.skipped` distinction, and DST proration pinned by literals
+  taken from the published Mifflin–St Jeor equation rather than from the implementation.
+- **Evidence**: `8034a3a`. `BuildProject buildForTesting: true` succeeded; `GetBuildLog severity:
+  "warning"` → `totalFound: 0`. `GetTestList` → **285 enabled**, of which **41** are this unit's — 6 in `BasalMetabolicRateTests`, 6 in `BodyBasicsTests`, 8 in `IntakeEstimateTests` and 21 in `CheatMealAllowanceRuleTests`, confirmed both by counting `@Test` in the four added files and by the repo-wide `@Test` delta across the commit (244 → 285). **Corrected at the Checkpoint-B review:** this entry and `8034a3a`'s commit message both said **26**, which was a miscount — it is the `func` count inside `CheatMealAllowanceRuleTests.swift` alone. The commit message is immutable history and is left as it stands. The pre-rebuild
+  figure quoted elsewhere is **278 tests run** (WU-25-A), which is a different metric: `GetTestList`
+  counts test functions while a run expands every argument of a parameterized `@Test`, so the two
+  numbers are not comparable and the list count before Pass A was never measured. The two
+  daylight-saving tests each also assert the answer is **not** the 86,400-second answer, so an
+  implementation that divides by a fixed day fails them rather than passing quietly.
+- **Owed**: test **execution**. `RunSomeTests` stalls after install on this machine — four attempts
+  (four suites, four suites on iPhone 17 Pro, one suite, one suite again), each wedged with the
+  `.xcresult` created and no progress for 30+ minutes, while `GetTestList` and `BuildProject` answer
+  normally. The user is running ⌘U by hand instead. **No test in this unit has been observed to
+  pass.**
+
+### WU-EB.B ✅ (build gate) The rule swap — baseline engine out, allowance in
+
+- **Objective / scope**: replace the 14-day comparison with the allowance rule across Domain, Data
+  and Presentation. Catalogue deliberately untouched — still 27 variants.
+- **Acceptance**: zero-warning build on both targets; the deleted rule has no callers left; every
+  `ReasonCode` case is assigned by the rule; the demonstration scenarios each demonstrate their own
+  arithmetic.
+- **Evidence**: `275900a`, 68 files, +1931/−2406. `BuildProject buildForTesting: true` succeeded;
+  `GetBuildLog severity: "warning"` → `totalFound: 0`. `GetTestList` → **265 enabled** (285 minus the
+  baseline calculator suite, the category-rule suite and the eight `compare(_:)` tests, whose
+  arithmetic oracles moved into `CheatMealAllowanceRuleTests`). Deleted: `ActivityBaseline`,
+  `RecordedPatternSummary`, `ActivityBaselineCalculator`, `DinnerCategoryRule`, `VerdictEngine`,
+  `HealthAggregates.value(for:)`, `CalorieProvenance`'s comparison half, `TrackingConfirmationSection`,
+  `RecordedPatternSection`, `RecordedPatternUnavailableRow`, `RecordedActivityRow`,
+  `ActivityMetric+DisplayName`, `SyntheticScenarios+Days`. Added: `BodyBasicsView`,
+  `IntakeCheckInSection`, `AllowanceBreakdownRow`, `SampleDecisions`, `BiologicalSex+DisplayName`,
+  `MealPortion+DisplayName`.
+- **Measured**: HealthKit queries per evaluation fall from **15 to 6** (the 14-window `TaskGroup` is
+  gone). Whether that moves WU-25-A's ~51-second on-device verdict is **not yet measured** — it needs
+  a device run and the `.evaluating` stage timed.
+- **Owed**: test execution (as above); the on-device walk from a **fresh install** (the app must be
+  deleted first — V1 is edited in place per D110); `RenderPreview` for Body Basics, Today, Verdict and
+  Evidence Details at default and AX5 in both languages; and the audit agents.
+
+### WU-EB.D ✅ (build gate) Voice — three string removals
+
+- **Evidence**: `951002f`. `"cheat meal"`, `"cheat day"` and `"guilt free"` removed from
+  `NarrationValidator.bannedPhrases`; `"comida trampa"`, the digit ban, `makesNumericClaim`,
+  `numberWords`, `measurementUnits` and `NarrationPrompt` all untouched, so
+  `NarrationPromptTests.promptContainsNoNumbers` still stands as the justification for the digit ban.
+  Zero-warning build on both targets.
+- **Correction to the plan**: it expected an existing "cheat meal is rejected" test to flip into an
+  acceptance test. **No such fixture existed** — the suite never had a cheat-meal case — so two tests
+  were added instead: `cheatMealFramingIsAccepted` (all three removed phrases now accepted) and
+  `spanishGuiltFramingIsStillRejected` (*comida trampa* and *sin culpa* still refused).
+
+### WU-EB.E 🟦 Localization and final verification
+
+- **Done**: 60 new English keys extracted by the build, then translated into Spanish through the
+  Xcode-native route (`StringCatalogEdit`, four sub-agents of ≤ 15 keys each, per the bundled
+  coordinator skill). Verified programmatically against `HEAD`: 348 keys before and after, **no key
+  added or removed, every `en` value byte-identical**, no `es` entry plural- or device-varied — the
+  D83 failure mode did not recur. The four batches independently converged on *margen* for
+  "allowance" and on the existing *sin datos legibles* precedent. 116 stale keys correctly left
+  alone (D-nothing: `UIStringLocalizationTests.declaredKeys` filters `stale` out).
+- **Owed**: `UIStringLocalizationTests` and `CatalogueNameLocalizationTests` read the **built**
+  bundle, so they must run immediately after a build — and they cannot run at all until the test
+  runner question is settled.
+
+### Checkpoint B — the close (2026-09-26)
+
+Plan: `docs/migrations/2026-09-25-checkpoint-b-close.md`.
+
+- **Build gate — met.** `BuildProject { buildForTesting: true }` succeeded four times across this
+  session (6.5 s, 8.9 s, 7.8 s, 8.2 s), each followed by its own `GetBuildLog { severity:
+  "warning" }` → **`totalFound: 0`**. The last one is after every edit below, including the three
+  files the accessibility auditor changed.
+- **Tests — RUN AND GREEN, by hand.** The MCP runner never unwedged (the full 33-suite list sat
+  **21+ minutes** with no result, a single cheap suite behaved identically, while `BuildProject`
+  answered in 4–9 s throughout — so the wedge is the runner, not the toolchain). The user ran ⌘U
+  instead, and that took **2.170 seconds**, which is the measure of how badly the MCP path was
+  misleading this project.
+
+  **First run, on `iPhone de CR` (a physical device): 268 tests, 33 suites, 11 failures.**
+  **Second run, on `iPhone 17 Pro (27.0)`: 268 passing.** Eight of the eleven were the destination,
+  and one of those is structural rather than incidental — see the table below. The two real defects
+  it caught are D128 and the stale 410 oracle.
+
+  Count note: `GetTestList` reports **270** enabled functions after D128's two new tests (265 at
+  WU-EB.B, +2 from `951002f`, +3 from this close). The green run reported 268, so it predates those
+  last two by one commit. Their subject — the guilt-free exemption — was instead verified by
+  **executing the validator** against 12 candidates through `RunCodeSnippet`: the 4 allowed
+  spellings accepted, the 8 guilt/earning/compensation phrasings still rejected. Recorded as what
+  it is rather than rounded up to a clean green.
+- **Previews — met, 11 renders by me plus the auditor's matrix.** `AllowanceBreakdownRow` at
+  `en`/default, `es`/AX 5, `es`/AX 3 and `es`/default; `BodyBasicsView` "Half answered" at `es`/AX 5
+  and `es`/default; `IntakeCheckInSection` at `es`/default and `es`/AX 5; `EvidenceSectionsView` and
+  `VerdictView` at `es`/default. The accessibility auditor added `en`/AX 5, Increased Contrast and
+  Dark Appearance across the same screens. **Read off the renders, not inferred:** Spanish labels
+  wrap rather than truncate at AX 5 (*Consumido hasta ahora*, *Margen para la cena*); a negative
+  allowance renders as **−500 kcal / −25 %**, so D112's never-floored rule is visibly honoured; and
+  `EvidenceSectionsView`'s figures are internally consistent (1600 + 400 = 2000, − 1460 = 540,
+  540 / 2000 = 27 %).
+- **Device walk — owed.** Device interaction is simulator-only here (D21), so it needs the user's
+  hands, from a **fresh install** (V1 was edited in place, D110). The `.evaluating` timing against
+  WU-25-A's ~51 s is therefore still **unmeasured**; the 15→6 query reduction predicts a large drop
+  and that prediction remains a prediction.
+
+**Audits — four run, `arc-audit-concurrency` · `arc-constitution-review` · `arc-audit-hig` ·
+`arc-audit-accessibility`. Zero BLOCKERs.** Every finding below was verified against the code
+before it was acted on, rather than taken on the agent's word.
+
+| Finding | Source | Disposition |
+|---|---|---|
+| `BodyBasicsView` was a **dead end**: `Continue` disabled and `Skip` hidden on the same keystroke | my own `RenderPreview` at `es`, before the audits | **Fixed — D126**, plus `aHalfAnsweredStepIsStillSkippable`, which fails against the old condition |
+| WU-EB.A's evidence said **26 new tests**; the real figure is **41** | `arc-constitution-review` | **Corrected above.** Verified independently: 6 + 6 + 8 + 21 across the four added files, and a repo-wide `@Test` delta of 244 → 285 |
+| `HealthKitSampleSource`'s doc comment justified its reentrancy by "the fourteen historical windows are meant to overlap" — deleted by D111 | `arc-audit-concurrency` | **Fixed.** Now cites the day's six concurrent reads |
+| `FixtureHealthSampleSource.historyEnergy` / `historyDelays` — delay-injection machinery for an out-of-order reassembly test that D111 deleted, with a comment describing coverage that no longer exists; **no test passed a non-empty value** | `arc-audit-concurrency` | **Removed**, comment with it |
+| `TodayViewModel` and `EvidenceDetailsView` doc comments described the tracking-confirmation flow and the recorded-pattern comparison, both deleted by D111 | `arc-audit-hig` | **Fixed** |
+| **`WelcomeView` told the user Foodge "weighs today against your usual fortnight"** — a feature D111 deleted, on the first screen of the demo | `arc-audit-hig` | **Fixed (D127)**, with `SelfReportCheckInSection`'s "no usable recorded pattern", and both translated into `es` |
+| Negative allowance was built from a pre-formatted `String`, losing the numeric metadata VoiceOver uses to say "minus" rather than read a hyphen | `arc-audit-accessibility` | **Fixed** by the auditor: `Text(_:format:)`, visually byte-identical |
+| `.secondary` footnotes measure ~3.44:1, below the 4.5:1 floor | `arc-audit-accessibility` | **Fixed** by the auditor on six instances, using the established `appBurgundyMuted` (4.73:1 light / 5.66:1 dark, re-measured) |
+
+**The eleven failures, and what each actually was:**
+
+| Failure | Verdict |
+|---|---|
+| `cheatMealFramingIsAccepted` — one of three arguments | **Real defect.** D119's third removal was **inert**: `"guilt free"` was deleted from `bannedPhrases` while `"guilt"` stayed banned and matched the same words, so the phrase was still refused and the ledger claimed a capability the code never had. Fixed by a real exemption — **D128** |
+| `theCallersContextOverridesTheScenarios` | **Real defect.** Stale oracle: asserted the `shortSleep` scenario ships 410 kcal active; Pass B rewrote `SyntheticScenarios` and it ships **400**. Test and doc comment corrected |
+| `everyDeclaredUIStringShipsASpanishTranslation` | **Cannot pass on a device, by construction.** It reads the catalogue through `URL(fileURLWithPath: #filePath)` — the build machine's path. A simulator shares the Mac's filesystem; a device has no `/Users/…` tree, so `declaredKeys` falls back to `[]` and the test fails its own precondition. Simulator-only, permanently |
+| `everyCategoryShipsASpanishTemplate` ×3, `spanishTemplatesAreDistinct`, `spanishTemplatesPassTheValidator` | **Destination.** Not missing translations: all three flourish templates carry Spanish in the source catalogue, none `stale`, and all three are present in the **built** `es.lproj/Localizable.strings` of *both* `Debug-iphonesimulator` and `Debug-iphoneos` (349 keys each). Whatever `Bundle.main` resolved to on the device run, it was not the freshly built app |
+| `anOrdinaryDayProratesAgainstTwentyFourHours`, `springForwardProratesAgainstAShorterDay`, `fallBackProratesAgainstALongerDay` | **Destination.** Each failed on its day-length precondition. Executing Foundation on the simulator returns exactly **86,400 / 82,800 / 90,000 s** for those three Madrid dates — precisely what the tests assert. Green on the correct destination |
+
+**The lesson, recorded because it cost this unit its whole verification budget:** the runner was
+never the only problem. Running on the wrong destination invalidated three tests *by construction*
+and produced eight failures that looked like regressions and were not.
+
+**Deferred, with reasons, not silently dropped:**
+
+- **The estimates disclaimer renders as a list row, not a `Section` footer** (`arc-audit-hig`, MAJOR).
+  Real and confirmed on the render. Not fixed: the `Text` is emitted only in
+  `AllowanceBreakdownRow`'s `.energyBalance` case, so hoisting it into the caller's footer would
+  show it for the self-reported and provisional cases too. That is a behaviour change, and the same
+  pattern exists in `VerdictView` and `NarrationSection`, so it wants one deliberate pass rather
+  than a rushed edit hours before a demo.
+- **The tab bar still covers the judge's flourish** on the verdict screen — WU-25-A finding 3,
+  already inherited by WU-26-A. Confirmed unchanged: `VerdictView`'s body is a plain `Form` with no
+  bottom `safeAreaInset`. Not a WU-EB regression.
+- **`EvidenceSectionsView`'s Sleep "No readable data" and `ProvenanceRow`'s caption** keep the
+  ~3.44:1 `.secondary`. Both predate WU-EB and sit outside its diff.
+
+### Pass C — dropped (D125)
+
+The catalogue collapse to ten dishes is **not built**. The catalogue ships as **9 families /
+27 variants**; `DishVariant` and `CatalogueEntry` stand; no dish carries an editorial
+`kilocalorieRange`, so dish cards show no calorie figure — D50's existing, honest behaviour, not a
+regression.
+
+The reason is the **verification loop**, not the size of the edit: the pass's largest piece is
+`DishSelectionTests` (466 lines, 25 tests, every fixture built on `CatalogueEntry`), which the
+collapse breaks in one stroke, and with the MCP runner wedged each red→green attempt costs a
+hand-driven ⌘U roughly 24 hours from the deadline. The alternative was a selection algorithm
+rewritten blind.
+
+**D115, D116 and D120 are decided-but-unbuilt.** They stay in the decisions log as the reasoning of
+a pass that was not taken and do **not** describe shipped code. D120's `DishFamily` naming debt does
+not arise: the name is only a misnomer under one-dish-per-kind, which is not what ships.
+
+`CLAUDE.md`'s **Catalogue** paragraph and `DESIGN.md`'s catalogue sections are deliberately
+untouched — they already describe the nine families that ship, which is why they were not edited
+during Pass B.
 
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)

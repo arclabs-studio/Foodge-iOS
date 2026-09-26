@@ -5,8 +5,8 @@
 //  Created by ARC Labs Studio on 19/09/2026.
 //
 
-import Foundation
 @testable import Foodge
+import Foundation
 
 /// A scripted stand-in for HealthKit.
 ///
@@ -42,15 +42,6 @@ actor FixtureHealthSampleSource: HealthSampleSource {
     private let available: Bool
     private let todayStart: Date
     private let today: Today
-    /// Active energy for each historical window, keyed by the window's start.
-    private let historyEnergy: [Date: Double]
-    /// How long a historical window takes to come back.
-    ///
-    /// Without this the fixture never suspends, completion order tracks submission order, and a
-    /// test claiming to prove readings cannot be shuffled onto the wrong day would pass against
-    /// a plain serial loop. Delaying the *first* window the longest forces results to arrive out
-    /// of order, so the reassembly is actually put under test.
-    private let historyDelays: [Date: Duration]
 
     /// How many times the reader asked for data. `isAvailable()` is not counted — it is the
     /// question that decides whether anything should be asked at all.
@@ -59,29 +50,23 @@ actor FixtureHealthSampleSource: HealthSampleSource {
     init(
         available: Bool = true,
         todayStart: Date = .distantPast,
-        today: Today = Today(),
-        historyEnergy: [Date: Double] = [:],
-        historyDelays: [Date: Duration] = [:]
+        today: Today = Today()
     ) {
         self.available = available
         self.todayStart = todayStart
         self.today = today
-        self.historyEnergy = historyEnergy
-        self.historyDelays = historyDelays
     }
 
-    nonisolated func isAvailable() -> Bool { available }
+    nonisolated func isAvailable() -> Bool {
+        available
+    }
 
     func cumulativeSum(of kind: QuantityKind, in window: DateInterval) async throws -> Double? {
         dataCallCount += 1
 
-        guard window.start == todayStart else {
-            // A historical window. Only active energy is scripted; steps stay missing.
-            if let delay = historyDelays[window.start] {
-                try await Task.sleep(for: delay)
-            }
-            return kind == .activeEnergy ? historyEnergy[window.start] : nil
-        }
+        // Only today's window is scripted. D111 deleted the historical windows, so any other
+        // window has nothing readable behind it — which is what "missing" means here.
+        guard window.start == todayStart else { return nil }
 
         switch kind {
         case .activeEnergy: return today.activeEnergy
@@ -91,12 +76,12 @@ actor FixtureHealthSampleSource: HealthSampleSource {
         }
     }
 
-    func asleepIntervals(in window: DateInterval) async throws -> [DateInterval]? {
+    func asleepIntervals(in _: DateInterval) async throws -> [DateInterval]? {
         dataCallCount += 1
         return today.sleep
     }
 
-    func workouts(in window: DateInterval) async throws -> [WorkoutSummary]? {
+    func workouts(in _: DateInterval) async throws -> [WorkoutSummary]? {
         dataCallCount += 1
         return today.workouts
     }

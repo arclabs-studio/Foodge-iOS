@@ -23,7 +23,7 @@ struct FoundationModelsNarratorTests {
             basis: .provisional,
             reasonCodes: [.checkInSkipped],
             isProvisional: true,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     }
 

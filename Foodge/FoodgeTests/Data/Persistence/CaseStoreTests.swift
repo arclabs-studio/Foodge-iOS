@@ -33,7 +33,6 @@ struct CaseStoreTests {
             evaluatedAt: TestCalendar.date(2026, 9, day, hour, minute),
             timeZoneIdentifier: "Europe/Madrid",
             today: .empty,
-            history: [],
             availability: .readable(missing: [])
         )
     }

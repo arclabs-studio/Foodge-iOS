@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// What Foodge actually read, and how it compared to the recorded pattern.
+/// What Foodge actually read, and the allowance it added up to.
 ///
 /// Shared between `EvidenceDetailsView` (today's flow) and `CaseDetailView` (History) so the two
 /// screens stay provably identical in how they present Health evidence — one place formats it,
@@ -46,8 +46,8 @@ struct EvidenceSectionsView: View {
                 )
             }
 
-            Section("Recorded activity") {
-                RecordedActivityRow(basis: basis, todayValue: recordedMetricValue)
+            Section("Tonight’s allowance") {
+                AllowanceBreakdownRow(basis: basis)
             }
 
             Section("Sleep") {
@@ -64,26 +64,13 @@ struct EvidenceSectionsView: View {
             }
         }
     }
-
-    private var recordedMetricValue: Double? {
-        guard case let .recorded(_, baseline) = basis else { return nil }
-        return today.value(for: baseline.metric)
-    }
 }
 
 #Preview(traits: .sampleData) {
     Form {
         EvidenceSectionsView(
-            evidence: SyntheticScenarios.typicalDay.snapshot,
-            basis: .recorded(
-                ratio: 1.02,
-                baseline: ActivityBaseline(
-                    metric: .activeEnergy,
-                    median: 400,
-                    observationCount: 14,
-                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                )
-            )
+            evidence: SyntheticScenarios.modestAllowance.snapshot,
+            basis: .energyBalance(SampleDecisions.moderateAllowance)
         )
     }
 }

@@ -62,7 +62,7 @@ struct DemonstrationSessionTests {
                 basis: .selfReported(.usual),
                 reasonCodes: [.selfReportedUsual],
                 isProvisional: false,
-                ruleVersion: DinnerCategoryRule.ruleVersion
+                ruleVersion: CheatMealAllowanceRule.ruleVersion
             ),
             evidence: scenario.snapshot,
             catalogueVersion: DishCatalogue.version,
@@ -80,7 +80,7 @@ struct DemonstrationSessionTests {
         // Given a live session over a real store, and a demonstration running on top of it
         let (launch, liveURL) = makeSUT()
         await launch.load()
-        await launch.startDemonstration(.typicalDay)
+        await launch.startDemonstration(.modestAllowance)
         let demo = try readySession(launch)
         #expect(demo.isDemonstration)
 
@@ -89,7 +89,7 @@ struct DemonstrationSessionTests {
             PreferencesDraft(dietProfile: .vegan, onboardingCompletedAt: SyntheticScenarios.evaluationDate)
         )
         _ = try await demo.dependencies.caseStore.recordRevision(
-            revisionDraft(for: SyntheticScenarios.typicalDay)
+            revisionDraft(for: SyntheticScenarios.modestAllowance)
         )
 
         // Then a completely separate container opened on the live file finds nothing at all
@@ -105,15 +105,15 @@ struct DemonstrationSessionTests {
         await launch.load()
         let live = try readySession(launch)
         _ = try await live.dependencies.caseStore.recordRevision(
-            revisionDraft(for: SyntheticScenarios.activeDay)
+            revisionDraft(for: SyntheticScenarios.generousAllowance)
         )
         let liveCasesBefore = try await live.dependencies.caseStore.allCases()
 
         // When a demonstration runs, records its own verdict, and is exited
-        await launch.startDemonstration(.restDay)
+        await launch.startDemonstration(.slimAllowance)
         let demo = try readySession(launch)
         _ = try await demo.dependencies.caseStore.recordRevision(
-            revisionDraft(for: SyntheticScenarios.restDay)
+            revisionDraft(for: SyntheticScenarios.slimAllowance)
         )
         launch.exitDemonstration()
 
@@ -152,7 +152,7 @@ struct DemonstrationSessionTests {
         // Given a running demonstration
         let (launch, _) = makeSUT()
         await launch.load()
-        await launch.startDemonstration(.activeDay)
+        await launch.startDemonstration(.generousAllowance)
         let dependencies = try readyDependencies(launch)
 
         // Then every seam that could touch Health or the notification centre is the stubbed one.
@@ -178,7 +178,7 @@ struct DemonstrationSessionTests {
         let live = try readySession(launch)
 
         // When a scenario is started
-        await launch.startDemonstration(.typicalDay)
+        await launch.startDemonstration(.modestAllowance)
 
         // Then the live session is still the one running, and the failure is reported as a failed
         // demonstration rather than as a broken store
@@ -201,12 +201,12 @@ struct DemonstrationSessionTests {
             }
         )
         await launch.load()
-        await launch.startDemonstration(.typicalDay)
+        await launch.startDemonstration(.modestAllowance)
         #expect(launch.demonstrationFailure == .storeUnavailable)
 
         // When a second attempt succeeds and is then exited
         gate.shouldFail = false
-        await launch.startDemonstration(.typicalDay)
+        await launch.startDemonstration(.modestAllowance)
         #expect(launch.demonstrationFailure == nil)
         launch.exitDemonstration()
 

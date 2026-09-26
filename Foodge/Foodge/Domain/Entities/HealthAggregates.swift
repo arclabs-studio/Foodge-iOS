@@ -84,14 +84,4 @@ struct HealthAggregates: Hashable, Codable, Sendable {
         workouts: nil,
         dietaryEnergy: nil
     )
-
-    /// Today's reading of one activity metric — the single place "which field backs this metric"
-    /// is decided, so a caller comparing today against an `ActivityBaseline` and a caller merely
-    /// displaying it can never drift into two different answers.
-    func value(for metric: ActivityMetric) -> Double? {
-        switch metric {
-        case .activeEnergy: activeEnergy?.kilocalories
-        case .steps: steps?.count
-        }
-    }
 }

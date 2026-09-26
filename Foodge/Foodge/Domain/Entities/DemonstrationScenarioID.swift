@@ -16,16 +16,20 @@ import Foundation
 ///
 /// **Declaration order is the offer order.** It matches `SyntheticScenarios.all` one for one, and
 /// `DemonstrationScenarioCatalogueTests` fails if the two ever drift apart.
+///
+/// All ten cases were replaced with the rebuild (D111): the four that demonstrated the recorded
+/// pattern have nothing left to demonstrate, and the four allowance bands are what a verdict now
+/// turns on.
 enum DemonstrationScenarioID: String, CaseIterable, Hashable, Sendable, Identifiable {
-    case activeDay
-    case typicalDay
-    case restDay
+    case generousAllowance
+    case modestAllowance
+    case slimAllowance
+    case allowanceSpent
+    case estimatedResting
+    case estimatedIntake
     case noHealthData
-    case partialTracking
-    case stepsFallback
     case shortSleep
     case dstSpringForward
-    case quietDayUnconfirmed
     case noCompatibleDish
 
     var id: String { rawValue }

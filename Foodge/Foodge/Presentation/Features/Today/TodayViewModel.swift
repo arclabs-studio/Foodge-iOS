@@ -11,10 +11,11 @@ import OSLog
 /// Drives the Today flow: reopening a saved case without regenerating it, gathering optional
 /// context, requesting a verdict, and recording the one revision that results.
 ///
-/// Nothing is written until a verdict is actually reached. `VerdictEngine` has no conformer this
-/// unit — its `decideCategory(for snapshot:)` signature cannot receive
-/// `PreferencesDraft.trackingRepresentative`, which `ActivityBaselineCalculator` needs, so this
-/// view model calls `ActivityBaselineCalculator`/`DinnerCategoryRule.decide` directly (D55).
+/// Nothing is written until a verdict is actually reached. The verdict itself comes from
+/// `CheatMealAllowanceRule`: this view model's job is to assemble the request from three sources
+/// the rule cannot reach — today's Health readings, the stored body basics and the intake check-in —
+/// and to decide nothing itself. `VerdictEngine` was deleted with D111 rather than reshaped; it had
+/// no conformer and nothing left to abstract.
 @MainActor
 @Observable
 final class TodayViewModel {
@@ -22,9 +23,8 @@ final class TodayViewModel {
     enum Stage: Sendable {
         case gathering
         case evaluating
-        /// Waiting on "does the recorded activity reflect today?".
-        case needsTrackingConfirmation
-        /// Waiting on the self-report check-in — no usable recorded comparison exists.
+        /// Waiting on the self-report check-in — no allowance could be computed, and a day with no
+        /// readable active energy cannot be given a number without inventing one.
         case needsSelfReport
         case verdict(SavedRevision)
         case evidenceUnavailable
@@ -37,7 +37,6 @@ final class TodayViewModel {
             switch self {
             case .gathering: "gathering"
             case .evaluating: "evaluating"
-            case .needsTrackingConfirmation: "needsTrackingConfirmation"
             case .needsSelfReport: "needsSelfReport"
             case .verdict: "verdict"
             case .evidenceUnavailable: "evidenceUnavailable"
@@ -142,23 +141,33 @@ final class TodayViewModel {
     /// ``requestVerdict()`` — never a hand-built `Binding<Note?>`.
     var noteText = ""
 
+    // MARK: - The intake check-in
+
+    //
+    // Three separate optionals bound to three pickers, so "not answered" stays distinct from
+    // `.skipped` all the way from the control to the rule. They are only consulted when Health has
+    // no `dietaryEnergy`: a recorded total replaces an estimate, never adds to it.
+
+    var breakfast: MealPortion?
+    var lunch: MealPortion?
+    var snacks: MealPortion?
+
+    /// What the pickers currently say.
+    var intakeQuestionnaire: IntakeQuestionnaire {
+        IntakeQuestionnaire(breakfast: breakfast, lunch: lunch, snacks: snacks)
+    }
+
     @ObservationIgnored private let evidence: any HealthEvidenceProvider
     @ObservationIgnored private let preferences: any PreferencesStore
     @ObservationIgnored private let caseStore: any CaseStore
     @ObservationIgnored private let clock: any EvaluationClock
     @ObservationIgnored private let narrator: any VerdictNarrator
 
-    /// Retained across the tracking-confirmation and self-report pauses, so answering either one
-    /// never reads Health a second time.
+    /// Retained across the intake check-in and self-report pauses, so answering either one never
+    /// reads Health a second time. (The tracking-confirmation pause this once also covered was
+    /// deleted with the recorded baseline — D111.)
     private var pendingSnapshot: EvidenceSnapshot?
     private var pendingDraft: PreferencesDraft?
-    /// The recorded comparison a "Yes" can still finish with.
-    ///
-    /// Cleared on "No" (D56): the comparison is discarded entirely rather than re-entered into
-    /// `DinnerCategoryRule.decide` with `trackingRepresentative: false`, which
-    /// `decideFromRecording` treats identically to `nil` and would hand back
-    /// `.needsTrackingConfirmation` again, forever.
-    private var pendingComparison: (today: Double, baseline: ActivityBaseline)?
 
     init(
         evidence: any HealthEvidenceProvider,
@@ -188,7 +197,6 @@ final class TodayViewModel {
             evaluatedAt: clock.now,
             timeZoneIdentifier: clock.calendar.timeZone.identifier,
             today: .empty,
-            history: [],
             availability: .notRequested
         )
 
@@ -221,9 +229,9 @@ final class TodayViewModel {
             note: Note(noteText)
         )
 
-        let snapshot: EvidenceSnapshot
+        let read: EvidenceSnapshot
         do {
-            snapshot = try await evidence.snapshot(
+            read = try await evidence.snapshot(
                 at: clock.now,
                 calendar: clock.calendar,
                 context: context,
@@ -237,86 +245,101 @@ final class TodayViewModel {
             return
         }
 
+        // The two estimate inputs are attached here, before anything is evaluated or saved, so the
+        // snapshot a case is reopened from says which figures were estimates and from what.
+        let snapshot = read.attaching(
+            intake: resolvedQuestionnaire(scripted: read.intake),
+            body: draft.bodyBasics
+        )
         pendingSnapshot = snapshot
-        await evaluateRecordedComparison(in: snapshot, trackingRepresentative: draft.trackingRepresentative)
+
+        await evaluateAllowance(in: snapshot)
     }
 
-    /// Tries the recorded comparison first. Only a usable one is handed to
-    /// `DinnerCategoryRule.decide`: an unusable one pauses for a self-report instead of letting
-    /// the rule fall straight through to a provisional verdict the user was never asked about.
-    private func evaluateRecordedComparison(in snapshot: EvidenceSnapshot, trackingRepresentative: Bool) async {
-        let baselineResult = ActivityBaselineCalculator.baseline(
-            from: snapshot.history,
-            trackingRepresentative: trackingRepresentative
-        )
-
-        guard
-            let baseline = try? baselineResult.get(),
-            let today = snapshot.today.value(for: baseline.metric)
-        else {
-            pendingComparison = nil
-            transition(to: .needsSelfReport)
-            return
+    /// The questionnaire the rule should use: the user's own answers, or the scenario's when a
+    /// demonstration scripted them and the user has answered nothing.
+    ///
+    /// Body basics come from stored preferences instead, which is why a demonstration seeds them
+    /// (D100/D117). A questionnaire cannot: it is a per-day answer, not a preference, so a scripted
+    /// one has to travel on the snapshot.
+    private func resolvedQuestionnaire(scripted: IntakeQuestionnaire?) -> IntakeQuestionnaire? {
+        let answered = intakeQuestionnaire
+        if answered.isAnswered {
+            return answered
         }
+        return scripted
+    }
 
-        pendingComparison = (today, baseline)
-        let outcome = DinnerCategoryRule.decide(
-            today: today,
-            baseline: baseline,
-            trackingRepresentative: nil,
-            selfReport: nil
+    /// Assembles the allowance request and rules on it, or pauses for the self-report when the
+    /// request has no usable basis.
+    ///
+    /// Every unusable case ends in the same place — the self-report check-in — but the **reason** is
+    /// logged by name, because "no resting basis" and "too early in the day" are different problems
+    /// and the log is the only place that distinction survives. The reason label is a case name,
+    /// never a Health figure.
+    private func evaluateAllowance(in snapshot: EvidenceSnapshot) async {
+        let window = EvidenceWindowPlanner.today(evaluation: snapshot.evaluatedAt, calendar: clock.calendar)
+
+        let request = AllowanceRequest(
+            activeEnergy: snapshot.today.activeEnergy,
+            resting: restingEnergy(in: snapshot, window: window),
+            intake: dailyIntake(in: snapshot),
+            window: window
         )
 
-        switch outcome {
-        case .needsTrackingConfirmation:
-            transition(to: .needsTrackingConfirmation)
-        case let .verdict(decision):
+        switch CheatMealAllowanceRule.allowance(request) {
+        case let .allowance(allowance):
+            let decision = CheatMealAllowanceRule.decide(
+                allowance: allowance,
+                today: snapshot.today,
+                context: snapshot.context
+            )
             await finish(decision: decision, snapshot: snapshot)
+        case let .unavailable(reason):
+            TodayLog.logger.info("TODAY allowance=unavailable reason=\(reason.logLabel, privacy: .public)")
+            transition(to: .needsSelfReport)
         }
     }
 
-    /// Answers the per-day "does the recorded activity reflect today?" check-in.
-    func confirmTrackingReflectsToday(_ reflectsToday: Bool) async {
-        guard let snapshot = pendingSnapshot else { return }
-
-        guard reflectsToday, let comparison = pendingComparison else {
-            pendingComparison = nil
-            transition(to: .needsSelfReport)
-            return
+    /// Health's own resting figure, else a Mifflin estimate from the stored body basics, else
+    /// nothing at all — never a zero.
+    private func restingEnergy(in snapshot: EvidenceSnapshot, window: DateInterval) -> RestingEnergy? {
+        if let recorded = snapshot.today.restingEnergy {
+            return .recorded(recorded)
         }
+        guard
+            let body = snapshot.body,
+            let kilocalories = BasalMetabolicRate.kilocalories(
+                for: body,
+                upTo: window,
+                calendar: clock.calendar
+            )
+        else { return nil }
 
-        let outcome = DinnerCategoryRule.decide(
-            today: comparison.today,
-            baseline: comparison.baseline,
-            trackingRepresentative: true,
-            selfReport: nil
-        )
+        return .estimated(kilocalories: kilocalories, body: body, window: window)
+    }
 
-        guard case let .verdict(decision) = outcome else {
-            // Unreachable: `trackingRepresentative: true` always satisfies `decideFromRecording`'s
-            // guard, so the rule can only hand back a verdict from here.
-            return
+    /// Health's own dietary total **replaces** the questionnaire rather than adding to it, and an
+    /// unanswered questionnaire is no basis at all.
+    private func dailyIntake(in snapshot: EvidenceSnapshot) -> DailyIntake? {
+        if let recorded = snapshot.today.dietaryEnergy {
+            return .recorded(recorded)
         }
-        await finish(decision: decision, snapshot: snapshot)
+        guard let questionnaire = snapshot.intake, questionnaire.isAnswered else { return nil }
+        return .estimated(questionnaire)
     }
 
     /// Answers the self-report check-in, or skips it with `nil`.
+    ///
+    /// The report is written into the saved evidence as well as into the decision's basis, so a
+    /// reopened case can say what was asked and what was answered.
     func submitSelfReport(_ report: SelfReportedActivity?) async {
         guard let snapshot = pendingSnapshot else { return }
 
-        let outcome = DinnerCategoryRule.decide(
-            today: nil,
-            baseline: nil,
-            trackingRepresentative: nil,
-            selfReport: report
+        await finish(
+            decision: CheatMealAllowanceRule.decide(selfReport: report),
+            snapshot: snapshot.recordingSelfReport(report)
         )
-
-        guard case let .verdict(decision) = outcome else {
-            // Unreachable: with `today`/`baseline` both `nil`, the rule can only hand back a
-            // verdict — self-reported or provisional — never ask for tracking confirmation.
-            return
-        }
-        await finish(decision: decision, snapshot: snapshot)
     }
 
     // MARK: - Finishing
@@ -351,7 +374,6 @@ final class TodayViewModel {
             let saved = try await caseStore.recordRevision(draft)
             pendingSnapshot = nil
             pendingDraft = nil
-            pendingComparison = nil
             transition(to: .verdict(saved))
         } catch is CancellationError {
             transition(to: .gathering)

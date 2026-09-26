@@ -83,43 +83,56 @@ is set to `6.0` on every target.
 
 ## Product rules that bite
 
-**Category decision table.** Ratio of today's activity to the recorded pattern:
+**Category decision table (D112, rule version 2.0.0).** Today's energy allowance as a share of
+today's maintenance: `maintenance = resting + active`, `allowance = maintenance − intake`,
+`share = allowance / maintenance`.
 
 | Evidence | Category |
 |---|---|
-| Above 125% | Treat |
-| 75%–125%, **both inclusive** | Balanced |
-| Below 75% **and** the user confirms tracking reflects the day | Light |
-| No usable measurement, user reports more / usual / less | Treat / Balanced / Light, labelled self-reported |
+| `share >= 0.35` | Treat |
+| `0.20 <= share < 0.35` | Balanced |
+| `share < 0.20`, negative included | Light |
+| No allowance possible, user reports more / usual / less | Treat / Balanced / Light, labelled self-reported |
 | Nothing at all, check-in skipped | Provisional Balanced |
 
-Below 75% with tracking unconfirmed returns `needsTrackingConfirmation` — ask before ruling,
-because a forgotten watch looks exactly like a quiet day. A recorded comparison always outranks
-a self-report.
+Inclusive at each band's lower edge. **The allowance is never floored at zero** — a negative
+allowance is a valid, returned value, and it never suppresses a dinner suggestion. The 14-day
+recorded baseline and the tracking-confirmation question are gone (D111); a day with no readable
+active energy goes to the self-report, because it cannot be given a number without inventing one.
 
-**Baseline ("your recorded pattern").** Previous 14 completed days, each cut at the *same local
-clock time* as the evaluation. At least 7 non-missing, finite, non-negative observations, median
-strictly positive. Energy preferred; steps take over when energy cannot supply a usable
-comparison — including when its median is zero (D23). Never used when the user marked tracking
-unrepresentative.
+**Maintenance (D113).** Resting energy from Health `basalEnergyBurned`; absent that, Mifflin–St
+Jeor from stored body basics, **prorated by the local day's real length** — 23 hours the morning
+Spain springs forward, never 86,400 seconds. Six named refusals, never a sentinel:
+`missingActiveEnergy`, `noRestingBasis`, `noIntakeBasis`, `nonPositiveMaintenance`,
+`windowTooShort` (< 90 min since local midnight), `windowMismatch`.
+
+**Intake (D114).** Health `dietaryEnergy` first; absent that, a three-meal questionnaire whose
+buckets are editorial. A recorded total **replaces** an estimate, never adds to it. An unanswered
+slot is not a zero: `.skipped` is an answer worth zero, `nil` is no basis at all.
+
+**Explanation, not arithmetic (D121).** Sleep, steps and workouts only ever append a reason code —
+active energy already contains workout and step energy, so adding either would double-count.
 
 **Health aggregation.** Use HealthKit statistics, not summed raw samples. Never add workout
 calories to active energy again. Sleep is the **union** of asleep intervals, never their sum.
 Calendar-aware windows: a day is not 86,400 seconds.
 
-**Calories.** Active, resting and dietary energy stay three separate facts. A comparison is only
-shown when the components share a cutoff and intake is confirmed complete. Manual intake
-*replaces* the Health total, never adds to it. A dish shows calories only against a verified
-portion reference. Negative results never suppress a dinner suggestion.
+**Calories.** Active, resting and dietary energy stay three separate facts, combined only by the
+allowance rule and only when every component covers the identical window. A dish shows a *verified*
+calorie value only against a `CalorieReference`; an editorial `kilocalorieRange` (D116) is not one
+and is never rendered as one. Negative results never suppress a dinner suggestion.
 
 **Catalogue.** Nine families: burgers, pizza, tacos (Treat) · rice bowls, tortilla, pasta
 (Balanced) · lentil salad, vegetable soup, vegetable wraps (Light). Selection order is fixed:
 exclusions → category → craving and convenience → avoid the last three days → favourites →
 stable order rotated by date. Never silently relax an exclusion; show an honest no-match.
 
-**Voice.** Witty, encouraging, concise. Jokes about the case, never about a person's body,
-discipline or worth. Banned in both languages: "you earned this", "burn it off", guilt framing,
-any instruction to skip a meal.
+**Voice (D118, D119).** Witty, encouraging, concise. Jokes about the case, never about a person's
+body, discipline or worth. **Cheat-meal framing is allowed in English**; Spanish says *capricho* and
+never *comida trampa*, which carries exactly the guilt framing that stays banned. Still banned in
+both languages: "you earned this", "burn it off", guilt framing, any instruction to skip a meal,
+and medical or nutritional authority. The model's flourish may name the category and the dish and
+**may never state a number** — allowance figures appear only in deterministic Presentation copy.
 
 These are prototype product heuristics, not nutritional advice, and the explanation says so.
 

@@ -69,18 +69,10 @@ struct AppealSheetView: View {
     @Previewable @State var vm = PreviewDependencies.reopeningSavedCase(
         decision: VerdictDecision(
             category: .light,
-            basis: .recorded(
-                ratio: 0.7,
-                baseline: ActivityBaseline(
-                    metric: .activeEnergy,
-                    median: 400,
-                    observationCount: 14,
-                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                )
-            ),
-            reasonCodes: [.belowRecordedPattern],
+            basis: .energyBalance(SampleDecisions.slimAllowance),
+            reasonCodes: [.slimAllowance],
             isProvisional: false,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()
@@ -100,7 +92,7 @@ struct AppealSheetView: View {
             basis: .provisional,
             reasonCodes: [.checkInSkipped],
             isProvisional: true,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()
@@ -123,7 +115,7 @@ struct AppealSheetView: View {
             basis: .provisional,
             reasonCodes: [.checkInSkipped],
             isProvisional: true,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()
@@ -142,7 +134,7 @@ struct AppealSheetView: View {
             basis: .provisional,
             reasonCodes: [.checkInSkipped],
             isProvisional: true,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()
@@ -161,7 +153,7 @@ struct AppealSheetView: View {
             basis: .provisional,
             reasonCodes: [.checkInSkipped],
             isProvisional: true,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()
@@ -181,7 +173,7 @@ struct AppealSheetView: View {
             basis: .provisional,
             reasonCodes: [.checkInSkipped],
             isProvisional: true,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()

@@ -16,13 +16,13 @@ Today is the centre of the product. It is not a dashboard of unrelated metrics, 
 | Screen or state | Content | Primary actions | States |
 |---|---|---|---|
 | Welcome | One sentence explaining what Foodge does, the judge | Continue | — |
-| Health connection | Why Health helps, then Apple's own authorization sheet | Connect Apple Health · Continue without Health | idle · requesting · connected · no readable data · Health unavailable |
-| Recorded pattern | The recent activity pattern read from Health, shown after connection | Mark as unrepresentative | available · unavailable |
+| Health connection | Why Health helps, Apple's own authorization sheet, then which kinds came back with no readable data | Connect Apple Health · Continue without Health | idle · requesting · connected · no readable data · Health unavailable |
+| Body basics | Sex, age, height and mass, and why they are asked for: on a day Health records no resting energy, they are the only way to estimate it | Continue · Skip for now | untouched · complete · half answered |
 | Preferences | Diet, ingredient exclusions, favourite dish families, dinner routine | Save and finish | editing · saving · save failed |
-| Today, before verdict | Date, judge, the evidence available today, optional context inputs | **Give me a verdict** | evidence readable · partially missing · none |
+| Today, before verdict | Date, judge, the evidence available today, optional context inputs, the *Eaten so far* check-in | **Give me a verdict** | evidence readable · partially missing · none |
 | Missing evidence | What is unavailable, in absence wording, never denial wording | Only the relevant short check-in | per missing kind |
 | Verdict | Category, dish artwork and name, deterministic explanation, optional AI flourish | See alternative · Appeal · Evidence details | deterministic only · narrated · narration failed |
-| Evidence details | Sources, timestamps, recorded activity vs baseline, sleep, optional calorie arithmetic | Back | complete · partial |
+| Evidence details | Sources, timestamps, tonight's allowance broken into its components — each line labelled recorded or estimated — sleep | Back | complete · partial |
 | Appeal | Craving choice, the compatible option found, the original kept visible | Accept this instead · Keep the original | compatible · no match |
 | History | One case per local day, summarized | Open a case | populated · empty |
 | Case detail | The evidence, rule version, dish and narration used at the time | — | read-only |
@@ -69,8 +69,16 @@ discipline or worth.
 
 > "The court has reviewed the evidence. Tonight's leading candidate: tacos."
 
+**Cheat-meal framing is allowed in English** — the judge grants a cheat meal, and a voice that could
+not say so could not describe its own product. In Spanish the word is **capricho**, never *comida
+trampa*: *trampa* is cheating-as-transgression and carries exactly the guilt that stays out.
+
 Forbidden in both languages: "you earned this", "burn it off", guilty-food framing, any instruction
 to skip a meal, any implied medical or nutritional authority.
+
+The model's flourish may name the category and the dish. It may **never state a number** — the
+allowance figures appear only in deterministic copy, where they can be checked against the
+arithmetic that produced them, and each is labelled as an estimate.
 
 Spanish and English are complete, equal experiences. Spanish is not a translation afterthought:
 the judge's register in Spanish is warm and slightly formal courtroom, matching the English tone.

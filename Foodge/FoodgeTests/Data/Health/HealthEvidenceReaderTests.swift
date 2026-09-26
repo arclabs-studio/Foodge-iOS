@@ -114,42 +114,7 @@ struct HealthEvidenceReaderTests {
         // Then it says so, and no query was issued
         #expect(snapshot.availability == .healthUnavailable)
         #expect(snapshot.today == .empty)
-        #expect(snapshot.history.isEmpty)
         let calls = await source.dataCallCount
         #expect(calls == 0)
-    }
-
-    @Test("Every historical reading stays attached to its own day")
-    func historyReadingsStayAlignedWithTheirDays() async throws {
-        // Given a distinct energy figure on each of the 14 previous days, read concurrently
-        let planned = EvidenceWindowPlanner.windows(
-            evaluation: evaluation,
-            calendar: TestCalendar.madrid,
-            historyDays: 14
-        )
-        var scripted: [Date: Double] = [:]
-        var delays: [Date: Duration] = [:]
-        for (index, window) in planned.history.enumerated() {
-            scripted[window.start] = Double(100 + index)
-            // The earliest day answers last, so results provably arrive out of submission order.
-            // Without this the reads never suspend and a serial loop would pass this test too.
-            delays[window.start] = .milliseconds(index == 0 ? 60 : 1)
-        }
-        let source = FixtureHealthSampleSource(
-            todayStart: midnight,
-            historyEnergy: scripted,
-            historyDelays: delays
-        )
-
-        // When the snapshot is read
-        let snapshot = try await snapshot(from: source)
-
-        // Then each day carries its own figure: concurrency must not shuffle a reading onto the
-        // wrong day, which would silently corrupt the baseline
-        #expect(snapshot.history.count == 14)
-        for (index, observation) in snapshot.history.enumerated() {
-            #expect(observation.day == planned.history[index].start)
-            #expect(observation.activeEnergyAtCutoff == Double(100 + index))
-        }
     }
 }

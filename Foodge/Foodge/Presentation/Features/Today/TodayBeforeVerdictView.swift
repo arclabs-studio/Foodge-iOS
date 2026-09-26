@@ -32,9 +32,12 @@ struct TodayBeforeVerdictView: View {
                 Section {
                     JudgeBadgeView(artwork: .judgeVerdict)
                         .frame(maxWidth: .infinity, alignment: .center)
+                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                    // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is
+                    // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
                     Text("Tell the judge about tonight, or just ask for a verdict.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.appBurgundyMuted)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .listRowBackground(Color.clear)
@@ -71,11 +74,9 @@ struct TodayBeforeVerdictView: View {
                     Text("Optional. This never changes the category — only the pick inside it.")
                 }
 
+                IntakeCheckInSection(vm: vm)
+
                 switch vm.stage {
-                case .needsTrackingConfirmation:
-                    TrackingConfirmationSection { reflectsToday in
-                        Task { await vm.confirmTrackingReflectsToday(reflectsToday) }
-                    }
                 case .needsSelfReport:
                     SelfReportCheckInSection { report in
                         Task { await vm.submitSelfReport(report) }
@@ -130,8 +131,8 @@ struct TodayBeforeVerdictView: View {
     }
 }
 
-#Preview("Needs tracking confirmation", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.quietDayUnconfirmed)
+#Preview("Needs the self-report", traits: .sampleData) {
+    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
         .makeTodayViewModel()
 
     NavigationStack {

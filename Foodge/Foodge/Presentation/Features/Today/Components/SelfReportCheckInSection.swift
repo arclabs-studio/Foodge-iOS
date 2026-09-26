@@ -17,7 +17,7 @@ struct SelfReportCheckInSection: View {
 
     var body: some View {
         Section {
-            Text("There’s no usable recorded pattern for today.")
+            Text("There isn’t enough readable data to work out today’s allowance.")
             Text("How active was today, compared to usual?")
                 .font(.footnote)
                 .foregroundStyle(.secondary)

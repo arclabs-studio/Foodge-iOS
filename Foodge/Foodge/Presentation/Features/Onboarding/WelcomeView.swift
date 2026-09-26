@@ -32,8 +32,8 @@ struct WelcomeView: View {
 
                 Text(
                     """
-                    Foodge reads what Apple Health actually recorded, weighs today against your \
-                    usual fortnight, and proposes one dinner.
+                    Foodge reads what Apple Health actually recorded, works out what today has \
+                    left you to spend, and proposes one dinner.
                     """
                 )
                 .font(.body)

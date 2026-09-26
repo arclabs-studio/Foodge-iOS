@@ -9,28 +9,37 @@ import Foundation
 
 /// What the category was actually decided from.
 enum CategoryBasis: Hashable, Codable, Sendable {
-    /// A real comparison of today against the recorded pattern.
-    case recorded(ratio: Double, baseline: ActivityBaseline)
-    /// The user's own account, because no usable comparison existed.
+    /// Today's energy allowance as a share of maintenance (D112).
+    case energyBalance(EnergyAllowance)
+    /// The user's own account, because no allowance could be computed.
     case selfReported(SelfReportedActivity)
     /// Neither was available and the check-in was skipped.
     case provisional
 }
 
-/// The individual reasons behind a verdict, so the explanation can be assembled from facts
-/// rather than from prose.
+/// The individual reasons behind a verdict, so the explanation can be assembled from facts rather
+/// than from prose.
+///
+/// Every case is reachable: the band codes and `allowanceSpent` come from the arithmetic, the two
+/// provenance codes from where the figures came from, the three contextual codes from today's other
+/// readings, and the last four from the fallbacks. The four unreachable codes D62 tolerated are
+/// deliberately not reintroduced.
 enum ReasonCode: String, Codable, CaseIterable, Hashable, Sendable {
-    case aboveRecordedPattern
-    case withinRecordedPattern
-    case belowRecordedPattern
+    case generousAllowance
+    case moderateAllowance
+    case slimAllowance
+    /// The allowance is zero or negative — its own sentence, because "a slim allowance" and
+    /// "you have already spent it" are different things to be told.
+    case allowanceSpent
+    case restingEnergyEstimated
+    case intakeEstimated
+    case strongActivityToday
+    case shortSleep
+    case lowReportedEnergy
     case selfReportedMore
     case selfReportedUsual
     case selfReportedLess
     case checkInSkipped
-    case baselineUnavailable
-    case trackingMarkedUnrepresentative
-    case shortSleep
-    case lowReportedEnergy
 }
 
 /// A completed category decision, with everything needed to explain and to reproduce it.
@@ -40,13 +49,4 @@ struct VerdictDecision: Hashable, Codable, Sendable {
     let reasonCodes: [ReasonCode]
     let isProvisional: Bool
     let ruleVersion: String
-}
-
-/// The result of asking for a category.
-///
-/// A low-activity reading does not go straight to a verdict: Foodge first asks whether the
-/// recorded activity reflects the day, and only then rules.
-enum CategoryOutcome: Hashable, Sendable {
-    case verdict(VerdictDecision)
-    case needsTrackingConfirmation
 }

@@ -65,16 +65,16 @@ struct TodayNarrationViewModelTests {
     }
 
     private static func evidence(note: Note?) -> EvidenceSnapshot {
-        let base = SyntheticScenarios.typicalDay.snapshot
+        let base = SyntheticScenarios.modestAllowance.snapshot
         return EvidenceSnapshot(
             evaluatedAt: base.evaluatedAt,
             timeZoneIdentifier: base.timeZoneIdentifier,
             today: base.today,
-            history: base.history,
             availability: base.availability,
             context: DailyContext(note: note),
             constraints: base.constraints,
-            trackingRepresentative: base.trackingRepresentative,
+            intake: base.intake,
+            body: base.body,
             isSynthetic: base.isSynthetic
         )
     }
@@ -93,7 +93,7 @@ struct TodayNarrationViewModelTests {
                 basis: .provisional,
                 reasonCodes: [.checkInSkipped],
                 isProvisional: true,
-                ruleVersion: DinnerCategoryRule.ruleVersion
+                ruleVersion: CheatMealAllowanceRule.ruleVersion
             ),
             evidence: evidence,
             catalogueVersion: DishCatalogue.version,

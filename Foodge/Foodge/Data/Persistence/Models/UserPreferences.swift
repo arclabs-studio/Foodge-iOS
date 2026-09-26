@@ -22,12 +22,19 @@ final class UserPreferences {
     var excludedIngredientIDs: [String]
     var favouriteFamilyRawValues: [String]
     var dinnerRoutineRawValue: String?
-    /// Whether the recorded days may be used as a baseline at all (D32).
+    /// The body basics behind an estimated resting figure, stored as four separate optionals
+    /// (D117).
     ///
-    /// Stored rather than recomputed because the answer is the user's, and asking again on every
-    /// launch would quietly re-enable a fortnight they have already disowned. `true` by default:
-    /// unasked means "use my data".
-    var trackingRepresentative: Bool = true
+    /// Four columns rather than one encoded blob, and each one optional, because a half-answered
+    /// questionnaire has to stay readable as half-answered: ``bodyBasics`` returns `nil` unless all
+    /// four parse, the same idiom as ``dinnerRoutineRawValue``. `trackingRepresentative` went the
+    /// other way in the same edit; V1 is edited in place and the store is discarded by a dev
+    /// reinstall rather than migrated, so the app must be deleted before the first run after this
+    /// change (D110).
+    var bodySexRawValue: String?
+    var bodyAgeYears: Int?
+    var bodyHeightCentimetres: Double?
+    var bodyWeightKilograms: Double?
     /// When onboarding was completed. `nil` means it has not been, and this is the single source
     /// of that truth — deleted along with the rest of the local data (D9).
     var onboardingCompletedAt: Date?
@@ -41,7 +48,7 @@ final class UserPreferences {
         excludedIngredientIDs: [String] = [],
         favouriteFamilies: [DishFamily] = [],
         dinnerRoutine: DinnerTime? = nil,
-        trackingRepresentative: Bool = true,
+        bodyBasics: BodyBasics? = nil,
         onboardingCompletedAt: Date? = nil,
         narrationEnabled: Bool = true,
         reminderHour: Int? = nil,
@@ -51,7 +58,10 @@ final class UserPreferences {
         self.excludedIngredientIDs = excludedIngredientIDs
         self.favouriteFamilyRawValues = favouriteFamilies.map(\.rawValue)
         self.dinnerRoutineRawValue = dinnerRoutine?.rawValue
-        self.trackingRepresentative = trackingRepresentative
+        self.bodySexRawValue = bodyBasics?.sex.rawValue
+        self.bodyAgeYears = bodyBasics?.ageYears
+        self.bodyHeightCentimetres = bodyBasics?.heightCentimetres
+        self.bodyWeightKilograms = bodyBasics?.weightKilograms
         self.onboardingCompletedAt = onboardingCompletedAt
         self.narrationEnabled = narrationEnabled
         self.reminderHour = reminderHour
@@ -75,6 +85,27 @@ extension UserPreferences {
         dinnerRoutineRawValue.flatMap(DinnerTime.init(rawValue:))
     }
 
+    /// The stored basics, or `nil` unless all four parse into a plausible `BodyBasics`.
+    ///
+    /// A partly filled row is not a body: it produces no estimate rather than a maintenance figure
+    /// computed from three answers and a guess.
+    var bodyBasics: BodyBasics? {
+        guard
+            let sexRawValue = bodySexRawValue,
+            let sex = BiologicalSex(rawValue: sexRawValue),
+            let ageYears = bodyAgeYears,
+            let heightCentimetres = bodyHeightCentimetres,
+            let weightKilograms = bodyWeightKilograms
+        else { return nil }
+
+        return BodyBasics(
+            sex: sex,
+            ageYears: ageYears,
+            heightCentimetres: heightCentimetres,
+            weightKilograms: weightKilograms
+        )
+    }
+
     var hasCompletedOnboarding: Bool {
         onboardingCompletedAt != nil
     }
@@ -92,7 +123,10 @@ extension UserPreferences {
         excludedIngredientIDs = draft.excludedIngredientIDs.sorted()
         favouriteFamilyRawValues = draft.favouriteFamilies.map(\.rawValue)
         dinnerRoutineRawValue = draft.dinnerRoutine?.rawValue
-        trackingRepresentative = draft.trackingRepresentative
+        bodySexRawValue = draft.bodyBasics?.sex.rawValue
+        bodyAgeYears = draft.bodyBasics?.ageYears
+        bodyHeightCentimetres = draft.bodyBasics?.heightCentimetres
+        bodyWeightKilograms = draft.bodyBasics?.weightKilograms
         narrationEnabled = draft.narrationEnabled
         reminderHour = draft.reminderHour
         reminderMinute = draft.reminderMinute

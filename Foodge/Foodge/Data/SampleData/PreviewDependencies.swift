@@ -20,7 +20,7 @@
     enum PreviewDependencies {
         /// A device with Health, a typical recorded fortnight, and a store that accepts writes.
         static var all: AppDependencies {
-            connected(SyntheticScenarios.typicalDay)
+            connected(SyntheticScenarios.modestAllowance)
         }
 
         /// A device with no Health data at all.
@@ -43,14 +43,14 @@
         static func savingFails() -> AppDependencies {
             make(
                 authorization: PreviewAuthorization(isHealthDataAvailable: true),
-                snapshot: SyntheticScenarios.typicalDay.snapshot,
+                snapshot: SyntheticScenarios.modestAllowance.snapshot,
                 storeFailure: .saveFailed
             )
         }
 
         /// A day already ruled on: reopening returns the saved revision without regenerating it.
         static func reopeningSavedCase(
-            _ scenario: SyntheticScenario = SyntheticScenarios.typicalDay,
+            _ scenario: SyntheticScenario = SyntheticScenarios.modestAllowance,
             preferencesDraft: PreferencesDraft? = nil,
             appealFailure: FoodgeError? = nil,
             decision: VerdictDecision
@@ -95,7 +95,7 @@
         static var historyPopulated: AppDependencies {
             let base = make(
                 authorization: PreviewAuthorization(isHealthDataAvailable: true),
-                snapshot: SyntheticScenarios.typicalDay.snapshot
+                snapshot: SyntheticScenarios.modestAllowance.snapshot
             )
             return AppDependencies(
                 authorization: base.authorization,
@@ -114,7 +114,7 @@
         static func reminderRefused() -> AppDependencies {
             make(
                 authorization: PreviewAuthorization(isHealthDataAvailable: true),
-                snapshot: SyntheticScenarios.typicalDay.snapshot,
+                snapshot: SyntheticScenarios.modestAllowance.snapshot,
                 reminderFailure: .reminderNotAuthorized
             )
         }
@@ -152,7 +152,7 @@
         /// The same, with a demonstration reported as running — for the Settings variants where
         /// two rows are hidden and the sixth reads "Exit demonstration".
         static var previewRunning: Self {
-            DemonstrationControls(running: .typicalDay, failure: nil, start: { _ in }, exit: {})
+            DemonstrationControls(running: .modestAllowance, failure: nil, start: { _ in }, exit: {})
         }
 
         /// The same, reporting a failed attempt to start — for the failure row
@@ -398,35 +398,43 @@
                 evaluatedAt: shifted(original.evaluatedAt, byDays: days),
                 timeZoneIdentifier: original.timeZoneIdentifier,
                 today: original.today,
-                history: original.history,
                 availability: original.availability,
                 context: original.context,
                 constraints: original.constraints,
-                trackingRepresentative: original.trackingRepresentative,
+                intake: original.intake,
+                body: original.body,
                 isSynthetic: original.isSynthetic
             )
         }
 
+        /// A decision built from an allowance whose figures are stated here rather than recomputed,
+        /// so a History preview shows the same arithmetic the evidence screen renders.
         static func decision(
             category: DinnerCategory,
-            ratio: Double,
+            share: Double,
+            maintenanceKilocalories: Double = 2000,
             reasonCode: ReasonCode,
             evidence: EvidenceSnapshot
         ) -> VerdictDecision {
-            VerdictDecision(
+            let allowanceKilocalories = maintenanceKilocalories * share
+            return VerdictDecision(
                 category: category,
-                basis: .recorded(
-                    ratio: ratio,
-                    baseline: ActivityBaseline(
-                        metric: .activeEnergy,
-                        median: 400,
-                        observationCount: 14,
+                basis: .energyBalance(
+                    EnergyAllowance(
+                        activeKilocalories: 400,
+                        restingKilocalories: maintenanceKilocalories - 400,
+                        intakeKilocalories: maintenanceKilocalories - allowanceKilocalories,
+                        maintenanceKilocalories: maintenanceKilocalories,
+                        allowanceKilocalories: allowanceKilocalories,
+                        share: share,
+                        restingIsEstimated: false,
+                        intakeIsEstimated: false,
                         window: SyntheticScenarios.windowSinceMidnight(endingAt: evidence.evaluatedAt)
                     )
                 ),
                 reasonCodes: [reasonCode],
                 isProvisional: false,
-                ruleVersion: DinnerCategoryRule.ruleVersion
+                ruleVersion: CheatMealAllowanceRule.ruleVersion
             )
         }
 
@@ -452,13 +460,13 @@
 
         /// A dish match: balanced, today.
         static let dishMatch: SavedCase = {
-            let day = evidence(SyntheticScenarios.typicalDay, shiftedByDays: 0)
+            let day = evidence(SyntheticScenarios.modestAllowance, shiftedByDays: 0)
             return SavedCase(
                 localDayKey: localDayKey(for: day),
                 revisions: [
                     revision(
                         evidence: day,
-                        decision: decision(category: .balanced, ratio: 1.02, reasonCode: .withinRecordedPattern, evidence: day),
+                        decision: decision(category: .balanced, share: 0.27, reasonCode: .moderateAllowance, evidence: day),
                         dishOutcome: .selected(
                             variantID: "dish.pasta.pesto",
                             family: .pasta,
@@ -472,13 +480,13 @@
 
         /// A treat day, no appeal.
         static let treatDay: SavedCase = {
-            let day = evidence(SyntheticScenarios.activeDay, shiftedByDays: 1)
+            let day = evidence(SyntheticScenarios.generousAllowance, shiftedByDays: 1)
             return SavedCase(
                 localDayKey: localDayKey(for: day),
                 revisions: [
                     revision(
                         evidence: day,
-                        decision: decision(category: .treat, ratio: 1.4, reasonCode: .aboveRecordedPattern, evidence: day),
+                        decision: decision(category: .treat, share: 0.45, reasonCode: .generousAllowance, evidence: day),
                         dishOutcome: .selected(
                             variantID: "dish.burgers.blackBean",
                             family: .burgers,
@@ -498,7 +506,7 @@
                 revisions: [
                     revision(
                         evidence: day,
-                        decision: decision(category: .balanced, ratio: 1.0, reasonCode: .withinRecordedPattern, evidence: day),
+                        decision: decision(category: .balanced, share: 0.27, reasonCode: .moderateAllowance, evidence: day),
                         dishOutcome: .noMatch(blockingIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id])
                     ),
                 ]
@@ -507,13 +515,13 @@
 
         /// A light day with a recorded appeal.
         static let appealedDay: SavedCase = {
-            let day = evidence(SyntheticScenarios.restDay, shiftedByDays: 3)
+            let day = evidence(SyntheticScenarios.slimAllowance, shiftedByDays: 3)
             return SavedCase(
                 localDayKey: localDayKey(for: day),
                 revisions: [
                     revision(
                         evidence: day,
-                        decision: decision(category: .light, ratio: 0.45, reasonCode: .belowRecordedPattern, evidence: day),
+                        decision: decision(category: .light, share: 0.12, reasonCode: .slimAllowance, evidence: day),
                         dishOutcome: .selected(
                             variantID: "dish.lentilSalad.tomato",
                             family: .lentilSalad,

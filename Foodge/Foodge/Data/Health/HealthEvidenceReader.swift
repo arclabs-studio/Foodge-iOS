@@ -9,16 +9,18 @@ import Foundation
 
 /// Assembles one evaluation's evidence from a sample source.
 ///
-/// It reads today's figures and the same-clock-time figure for each of the previous days, then
-/// hands the raw sleep intervals to the domain to union. Everything it cannot read stays `nil`
-/// and is reported as missing — never as zero, and never as a denial.
+/// It reads today's six figures and hands the raw sleep intervals to the domain to union.
+/// Everything it cannot read stays `nil` and is reported as missing — never as zero, and never as a
+/// denial, because HealthKit cannot tell absence from denial.
+///
+/// The fourteen historical windows went with D111. That drops this from fifteen statistics queries
+/// per evaluation to one set of six, which is also the cheapest available fix for the ~51-second
+/// verdict recorded in WU-25-A.
 struct HealthEvidenceReader: HealthEvidenceProvider {
     private let source: any HealthSampleSource
-    private let historyDays: Int
 
-    init(source: any HealthSampleSource, historyDays: Int = 14) {
+    init(source: any HealthSampleSource) {
         self.source = source
-        self.historyDays = historyDays
     }
 
     func snapshot(
@@ -33,32 +35,19 @@ struct HealthEvidenceReader: HealthEvidenceProvider {
                 evaluatedAt: date,
                 timeZoneIdentifier: calendar.timeZone.identifier,
                 today: .empty,
-                history: [],
                 availability: .healthUnavailable,
                 context: context,
                 constraints: constraints
             )
         }
 
-        let windows = EvidenceWindowPlanner.windows(
-            evaluation: date,
-            calendar: calendar,
-            historyDays: historyDays
-        )
-
-        // Today and the fortnight share nothing, so they are read together rather than one after
-        // the other: the cost is the slower of the two, not their sum.
-        async let todayAggregates = todayAggregates(in: windows.today, readAt: date)
-        async let historyObservations = history(for: windows.history)
-
-        let today = try await todayAggregates
-        let history = try await historyObservations
+        let window = EvidenceWindowPlanner.today(evaluation: date, calendar: calendar)
+        let today = try await todayAggregates(in: window, readAt: date)
 
         return EvidenceSnapshot(
             evaluatedAt: date,
             timeZoneIdentifier: calendar.timeZone.identifier,
             today: today,
-            history: history,
             availability: .readable(missing: missingKinds(in: today)),
             context: context,
             constraints: constraints
@@ -101,43 +90,8 @@ struct HealthEvidenceReader: HealthEvidenceProvider {
         )
     }
 
-    /// Reads every historical window concurrently, keeping each result aligned with its day.
-    private func history(for windows: [DateInterval]) async throws -> [DailyActivityObservation] {
-        try await withThrowingTaskGroup(of: (Int, DailyActivityObservation).self) { group in
-            for (index, window) in windows.enumerated() {
-                group.addTask {
-                    try Task.checkCancellation()
-                    async let energy = source.cumulativeSum(of: .activeEnergy, in: window)
-                    async let steps = source.cumulativeSum(of: .steps, in: window)
-                    return (
-                        index,
-                        DailyActivityObservation(
-                            day: window.start,
-                            activeEnergyAtCutoff: try await energy,
-                            stepsAtCutoff: try await steps
-                        )
-                    )
-                }
-            }
-
-            // Results arrive in completion order, so they are put back in window order here: an
-            // observation attributed to the wrong day would quietly corrupt the baseline.
-            var observations = [DailyActivityObservation?](repeating: nil, count: windows.count)
-            for try await (index, observation) in group {
-                observations[index] = observation
-            }
-
-            // Every slot must be filled. Quietly dropping a gap would hand the baseline a short
-            // history that looks complete, and the median would be computed over the wrong days.
-            return try observations.map { observation in
-                guard let observation else { throw FoodgeError.evidenceUnreadable }
-                return observation
-            }
-        }
-    }
-
     /// Sleep is read from the previous evening rather than from midnight, because the night that
-    /// matters to tonight's dinner started yesterday (D16).
+    /// matters to tonight's dinner started yesterday (D16 — the half of it that survives D111).
     private func sleepWindow(endingAt end: Date) -> DateInterval {
         let start = end.addingTimeInterval(-Self.sleepLookBack)
         return DateInterval(start: min(start, end), end: end)

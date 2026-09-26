@@ -62,9 +62,13 @@ struct VerdictView: View {
                 ForEach(display.decision.reasonCodes, id: \.self) { reason in
                     Text(reason.displayText)
                 }
+                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                // light appearance — below the 4.5:1 WCAG 1.4.3 needs, same as the `.saveFailed`
+                // text below. `appBurgundyMuted` is the brand's dedicated secondary-text color,
+                // tuned to ≥4.5:1 everywhere.
                 Text("These are prototype product heuristics, not nutritional advice.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
 
             if vm.currentRevision != nil {
@@ -119,9 +123,11 @@ struct VerdictView: View {
         case .noMatch:
             Section {
                 Text("No catalogue dish matched your constraints tonight.")
+                // Same WCAG 1.4.3 fix as the "Why" section's disclaimer above: `.secondary`
+                // falls short of 4.5:1 at footnote size here.
                 Text("Nothing was relaxed to force a match — you can adjust your exclusions in Preferences.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
         }
     }
@@ -131,18 +137,10 @@ struct VerdictView: View {
     @Previewable @State var vm = PreviewDependencies.reopeningSavedCase(
         decision: VerdictDecision(
             category: .balanced,
-            basis: .recorded(
-                ratio: 1.02,
-                baseline: ActivityBaseline(
-                    metric: .activeEnergy,
-                    median: 400,
-                    observationCount: 14,
-                    window: SyntheticScenarios.windowSinceMidnight(endingAt: SyntheticScenarios.evaluationDate)
-                )
-            ),
-            reasonCodes: [.withinRecordedPattern],
+            basis: .energyBalance(SampleDecisions.moderateAllowance),
+            reasonCodes: [.moderateAllowance],
             isProvisional: false,
-            ruleVersion: DinnerCategoryRule.ruleVersion
+            ruleVersion: CheatMealAllowanceRule.ruleVersion
         )
     )
     .makeTodayViewModel()
