@@ -233,9 +233,41 @@ enum NarrationValidator {
     /// punctuation, so these could never be found in it.
     private static let bannedTokens = ["```", "<<<", ">>>"]
 
+    /// Phrases the voice may use even though a banned phrase sits inside them (D128).
+    ///
+    /// There is exactly one, and it is the one D119 meant to allow: *guilt free*. Removing the
+    /// string from ``bannedPhrases`` was never enough on its own, because `"guilt"` is banned
+    /// separately and matches the same words — so "a guilt-free burger" stayed refused and D119's
+    /// third removal did nothing. Excising the exempt phrase **before** the sweep is what makes
+    /// the allowance real, while `"guilt"`, `"guilty"` and the whole Spanish guilt group keep
+    /// rejecting actual guilt framing. Spanish is deliberately not exempted: *sin culpa* carries
+    /// the guilt the ban exists for, the same asymmetry D118 already draws for *comida trampa*.
+    private static let exemptPhrases = ["guilt free"]
+
+    /// Removes every exempt phrase from the word scan, leaving the space delimiters intact so the
+    /// words either side cannot be fused into a phrase that was never written.
+    ///
+    /// Loops because `replacingOccurrences` consumes the trailing delimiter a neighbouring match
+    /// would need, so a repeated phrase would otherwise leave a bare `"guilt"` behind. Each pass
+    /// strictly shortens the string, so this terminates.
+    private static func excisingExemptPhrases(from words: String) -> String {
+        var result = words
+        for phrase in exemptPhrases {
+            while true {
+                let stripped = result.replacingOccurrences(of: " \(phrase) ", with: " ")
+                if stripped == result {
+                    break
+                }
+                result = stripped
+            }
+        }
+        return result
+    }
+
     private static func containsBannedPhrase(folded: String, words: String) -> Bool {
-        bannedTokens.contains { folded.contains($0) }
-            || bannedPhrases.contains { contains($0, in: words) }
+        let permitted = excisingExemptPhrases(from: words)
+        return bannedTokens.contains { folded.contains($0) }
+            || bannedPhrases.contains { contains($0, in: permitted) }
     }
 
     // MARK: - Note echo
@@ -256,7 +288,7 @@ enum NarrationValidator {
         let characters = Array(foldedNote)
         guard characters.count >= noteEchoWindow else { return false }
 
-        for start in 0...(characters.count - noteEchoWindow) {
+        for start in 0 ... (characters.count - noteEchoWindow) {
             let window = String(characters[start ..< start + noteEchoWindow])
             if folded.contains(window) {
                 return true
