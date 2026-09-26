@@ -46,8 +46,12 @@ struct EvidenceSectionsView: View {
                 )
             }
 
-            Section("Tonight’s allowance") {
+            Section {
                 AllowanceBreakdownRow(basis: basis)
+            } header: {
+                Text("Tonight’s allowance")
+            } footer: {
+                AllowanceDisclaimerFooter(basis: basis)
             }
 
             Section("Sleep") {

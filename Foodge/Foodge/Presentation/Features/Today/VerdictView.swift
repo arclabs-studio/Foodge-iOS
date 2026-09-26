@@ -58,16 +58,19 @@ struct VerdictView: View {
 
             dishSection(for: display.dishOutcome)
 
-            Section("Why") {
+            Section {
                 ForEach(display.decision.reasonCodes, id: \.self) { reason in
                     Text(reason.displayText)
                 }
-                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
-                // light appearance — below the 4.5:1 WCAG 1.4.3 needs, same as the `.saveFailed`
-                // text below. `appBurgundyMuted` is the brand's dedicated secondary-text color,
-                // tuned to ≥4.5:1 everywhere.
+            } header: {
+                Text("Why")
+            } footer: {
+                // The disclaimer qualifies the reasons above it, so it belongs in the footer
+                // rather than as one more row among them (`arc-audit-hig`, WU-EB). A footer is
+                // already footnote-sized, so only the color is set: `.secondary` measures ~3.4:1
+                // in standard-contrast light appearance, below the 4.5:1 WCAG 1.4.3 needs, while
+                // `appBurgundyMuted` is tuned to ≥4.5:1 everywhere.
                 Text("These are prototype product heuristics, not nutritional advice.")
-                    .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
             }
 

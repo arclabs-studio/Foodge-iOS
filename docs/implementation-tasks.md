@@ -156,6 +156,11 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D126 | The body-basics **skip** is offered whenever the four figures are incomplete (`canSkipBodyBasics == bodyBasicsFromInputs == nil`), not only while the step is untouched. **Fixes a dead end introduced in Pass B; amends D117, D124.** | `Continue` is disabled while the basics are incomplete and `Skip for now` was shown only while `!hasStartedBodyBasics`, so the two conditions flipped on the *same* keystroke: entering a sex and an age and declining to give a weight left the step with **no way forward at all**, while its own footer still read "Skipping is fine". Escape existed only by clearing all four fields, including resetting the picker to "Not given" — recoverable, but nothing on screen said so. Keying the skip on the *answer* rather than on whether typing had begun costs nothing: skipping already discards a partial answer, because `applyBodyBasics()` writes `bodyBasicsFromInputs`, which is `nil`. Found by `RenderPreview` on the "Half answered" preview in `es`, not by a test — the rule lived in the View, where this project has no test that can reach it. It is now `OnboardingViewModel.canSkipBodyBasics`, covered by `aHalfAnsweredStepIsStillSkippable`, which fails against the old condition. |
 | D127 | Two **user-facing strings** that described the deleted 14-day baseline are rewritten to describe the allowance: `WelcomeView`'s "weighs today against your usual fortnight" → "works out what today has left you to spend", and `SelfReportCheckInSection`'s "There's no usable recorded pattern for today." → "There isn't enough readable data to work out today's allowance." Both re-translated into `es`. **Completes D111 into the UI layer.** | D111 deleted the recorded baseline from the domain, and Pass B swept the screens that *showed* it — but these two strings only *describe* it, so they survived a search for baseline types and kept claiming a feature the app no longer has. The `WelcomeView` one is the first sentence a user or a hackathon judge reads, which makes it a false product claim on the demo's opening screen, not an internal staleness. Found by `arc-audit-hig`, which flagged both as outside WU-EB's diff yet caused by it — correctly: the files were never edited, only invalidated. Neither string carries a numeric specifier, so the one-way plural-variation trap did not apply. The English is the product's own writing and was rewritten here deliberately rather than by a translation agent as a side effect. |
 | D128 | `"guilt free"` is made **genuinely** sayable in English by an explicit exemption: `NarrationValidator.exemptPhrases` is excised from the word scan before the banned-phrase sweep. `"guilt"`, `"guilty"`, `"culpa"`, `"pecado"` and the rest of the guilt group stay banned, and Spanish is deliberately **not** exempted. **Completes D119, which did not work.** | D119 recorded three string removals from `bannedPhrases` and claimed the third allowed "a guilt-free burger". It did not: `"guilt"` is banned separately and matches the same words, so removing `"guilt free"` from the list changed nothing and the phrase stayed refused — the removal was **inert**, and D119's own rationale is internally contradictory, asking for `"guilt free"` allowed *while* `"guilt"` remained banned. Caught by the first real test run: `cheatMealFramingIsAccepted` failed on exactly that one of its three arguments. The user chose the allowance over the ban, so the exemption is now real rather than claimed. The asymmetry is deliberate and matches D118: *sin culpa* is literally "guilt free" and stays banned, because Spanish carries the guilt framing the ban exists for. Verified by executing the validator against 12 candidates — the 4 allowed spellings accepted, the 8 guilt/earning/compensation phrasings still rejected — and pinned by `theGuiltExemptionDoesNotReachActualGuiltFraming` and `theHyphenatedGuiltFreeSpellingIsAccepted`. |
+| D129 | A Health read that **throws** is no longer a dead end. `EvidenceAvailability` gains `.unreadable`, `TodayViewModel` keeps a snapshot carrying it, and `TodayBeforeVerdictView` offers the **self-report check-in underneath the retry** in the `.evidenceUnavailable` state. | Found on the simulator during WU-26-A's rehearsal, then confirmed as a product-level dead end: on a phone whose Health has never been authorized every `HKStatisticsQueryDescriptor` throws, so the screen showed *"Foodge couldn't finish reading today's evidence"* and a **Try again** that threw again — no route to a verdict at all, for exactly the user the fallback was designed for. The fix reuses the whole designed path (self-report → Treat/Balanced/Light, labelled self-reported, or a provisional Balanced on skip) and invents no new sentence: `SelfReportCheckInSection`'s own copy — *"There isn't enough readable data to work out today's allowance"* — is already true of a failed read. `.unreadable` exists rather than reusing `.readable(missing: everything)` because this project may only call data absent **after a read that came back**, and this one did not; it is not a denial either, which HealthKit cannot report. Adding a case to the persisted `Codable` enum is additive — existing records still decode. Pinned by `failedEvidenceReadStillOffersTheSelfReport`, which fails against the old code because `submitSelfReport(_:)` had no pending snapshot to work from and recorded nothing. |
+| D130 | When tonight already has a verdict, Today's last section offers **"Tonight's verdict"** as a `NavigationLink` instead of the **"Give me a verdict"** button. | Popping the navigation stack — and leaving a demonstration, which rebuilds the whole tree (D98) — lands on Today's root, which rendered the pre-verdict form as if the evening had never been judged, while the recorded verdict sat one tap away in the store. That is WU-25-A's finding 4, and the device rehearsal reproduced the same symptom from a plain **Back**. Offering the route back is both the honest state and the safer one: the button would start a second evaluation and record a second revision for the same night. The English literal reuses the existing `"Tonight's verdict"` key (`VerdictView`'s navigation title), so the String Catalog is untouched and the Spanish is already there. View-level, so it is verified on the simulator, not by a unit test — this project has no test that can reach a `body`. |
+| D131 | `MainTabView` adopts `.tabBarMinimizeBehavior(.onScrollDown)`. | The floating Liquid Glass tab bar overlays the scroll content, which the device rehearsal measured rather than eyeballed: on the verdict screen the estimates disclaimer overlapped the bar's band by **46 pt** and the flourish header sat entirely inside it, while the `.evidenceUnavailable` state put **Try again**'s hit point squarely under the pill. The content *can* be scrolled clear (20 pt of clearance at full scroll), so the bottom inset was never missing — the platform's own answer to the resting position is to minimize the bar on a downward scroll, which keeps it reachable instead of hiding it. WU-25-A finding 3 closes here. |
+| D132 | Two **diagnostic** log lines are added, both labels and numbers only: `TODAY evidence=read ms=`/`TODAY evaluating=finished into= ms=` (monotonic `ContinuousClock`), and `ONBOARDING health=requestFailed at=<authorization\|evidence> error=<domain>#<code>`. | Two of WU-25-A's five device findings were unexplained *because nothing measured them*. The ~51 s verdict was hand-timed off a screen recording with no attribution between the Health read, the rule and the save; and `requestFailed` covers both Apple's authorization sheet failing and the first read afterwards failing, with no way to tell which fired on the first-run failure a judge would see. A duration is not a Health value and neither is an error's domain and code, so both are safe at `privacy: .public`; the error's *message* is deliberately not logged, because a framework description can name the query and therefore the Health type. This is the instrument the 15→6 query reduction needs before its predicted improvement can be called measured. |
+| D133 | The `noReadableData` sentence on the Apple Health screen is rewritten: *"Health didn't return anything readable for these days."* → *"Foodge asked Health for access. Nothing readable came back for today."*, re-translated into `es`. **Completes D111 in one more string, and answers a rehearsal finding.** | Two bugs in one sentence, both found by walking a **fresh install** rather than by reading code. *These days* is the deleted fourteen-day window still talking (D111, D127): only **today** is ever at stake now, so the plural described a feature the app does not have — on the onboarding screen a hackathon judge sees. And the screen said nothing at all about the request having completed: after granting all six topics in Apple's own sheet, the user was returned to an unchanged **Connect Apple Health** button with no sign it had worked, which reads as a failure. The replacement states what Foodge actually knows — it asked, and nothing readable came back for today — and still claims **no grant**, because HealthKit cannot report one and D35's rule holds: absence may only be claimed after a read that came back, and a denial may never be claimed at all. |
 
 ---
 
@@ -2112,6 +2117,140 @@ not arise: the name is only a misnomer under one-dish-per-kind, which is not wha
 untouched — they already describe the nine families that ship, which is why they were not edited
 during Pass B.
 
+
+## Day 26 — release candidate (WU-26-A)
+
+### WU-26-A 🟦 Device findings closed, README written, verification in progress
+
+- **Objective / scope**: close the WU-25-A device findings that survive the rebuild, write the
+  submission-facing `README.md`, and validate the checkout a judge would clone. No new product
+  surface, and nothing was added to the String Catalog — every sentence used here already existed
+  with its Spanish (`Tonight’s verdict`, `There isn’t enough readable data…`, `Foodge couldn’t
+  finish reading today’s evidence.`), checked against the catalogue before the views were edited.
+- **The device-interaction wedge did not reproduce.** WU-25-A recorded seven failed attempts across
+  three approaches; today the arrangement the tool's own response demands worked on the first try —
+  `DeviceInteractionStartWorkspaceSession` (with the **required** `sessionIdentifier`, whose absence
+  reports only "The data couldn't be read because it is missing"), then `InstallAndRun`, then a
+  subagent loading the `device-interaction` skill for every `Synthesize`. Two walks, ~45
+  interactions, no "Session not found". A session key does **not** outlive a rebuild: the first
+  walk's key was already gone when the second build finished, so each build gets a fresh session.
+- **The rehearsal found a defect no test could see, and it was the most serious one on the list.**
+  On the simulator every Health read throws, and the flow stopped dead: the screen offered
+  "Foodge couldn't finish reading today's evidence" and a **Try again** that threw again — no route
+  to a verdict at all for exactly the user the self-report fallback was designed for. Fixed as
+  **D129**, pinned by `failedEvidenceReadStillOffersTheSelfReport`, which cannot pass against the
+  old code because `submitSelfReport(_:)` had no pending snapshot and recorded nothing.
+- **The tab-bar finding is now a measurement, not an impression.** From the hierarchy dump: tab bar
+  `{{0, 791}, {402, 83}}`; the verdict screen's estimates disclaimer `{{16, 773.3}, {370, 63.7}}`,
+  so **46.0 pt of overlap**, with "The judge's flourish" header entirely inside the band; and in the
+  `.evidenceUnavailable` state **Try again** `{{16, 791.3}, {370, 52}}` overlapped the bar by 52 of
+  its 52 pt, its hit point landing on the pill. Content *can* be scrolled clear (20 pt at full
+  scroll), so the inset was never missing — the resting position was the problem. **D131**.
+- **WU-25-A finding 4 reproduced from a plain Back**, not only from a demonstration exit: popping
+  the stack showed the pre-verdict form although the verdict was recorded. **D130**.
+- **The two unexplained findings are now instrumented rather than guessed at** (**D132**). The first
+  verdict attempt of the rehearsal spent **47 s** in `.evaluating` before failing, and the second
+  took **0.6 s** — so WU-25-A's ~51 s is reproducible on a *simulator with no Health data at all*,
+  which makes the 15-query fan-out an unlikely sole cause and a first-read cost the better
+  suspicion. That is a hypothesis, not a finding: the `ms=` lines exist to settle it.
+- **Deferred HIG MAJOR closed.** The estimates disclaimer, the "Why" disclaimer and the narration
+  caption are `Section` footers now rather than list rows — the one deliberate pass WU-EB asked
+  for instead of a rushed edit. `NarrationSection`'s caption moved off `.secondary` with it,
+  closing one of the three contrast gaps that block listed as remaining.
+- **Build gate — met.** `BuildProject { buildForTesting: true }` green six times this session
+  (17.8 / 13.8 / 11.8 / 13.1 / 10.2 / 9.0 s), each followed by `GetBuildLog { severity: "warning" }`
+  → **`totalFound: 0`**. The one failure in between was mine — an enum case whose declaration I had
+  written into a doc comment — caught by the build, fixed, re-run.
+- **Previews.** `VerdictView` "Verdict" and `EvidenceSectionsView` at `es`/default, read off the
+  render rather than inferred: both disclaimers sit outside the card as footers, and
+  `EvidenceSectionsView`'s arithmetic is still internally consistent (1600 + 400 = 2000, − 1460 =
+  540, 540 / 2000 = 27 %). `TodayBeforeVerdictView` "Needs the self-report" at `es`/AX 5 wraps
+  without truncation. A dark-appearance `NarrationSection` render timed out while the simulator was
+  busy with the walk and is **owed**.
+- **The fixes were walked on the simulator and all four hold.** Second session, iPhone 17 Pro
+  (27.0), ~54 interactions, every assertion read off a hierarchy dump rather than a screenshot:
+
+  | Fix | Evidence |
+  |---|---|
+  | **D129** self-report after a failed read | The failure row and the check-in render together — "Foodge couldn't finish reading today's evidence." `{{16, 719}, {370, 72.3}}` above **Try again**, and below it "There isn't enough readable data…" with **More than usual / About usual / Less than usual / Skip**. Answering *About usual* produced **Balanced / Chicken rice bowl**, reason "You said today was about as active as usual." A verdict now exists where the app previously had no route to one |
+  | **D130** Today shows the recorded verdict | After **Back**, Today's last row is `Button label: 'Tonight's verdict'` `{{16, 719}, {370, 52}}`, and `"Give me a verdict"` appears **0 times** in the hierarchy. Tapping it returns the same verdict |
+  | **D131** tab bar minimizes | Tab buttons **94 × 54 → 48 × 48**, the bar's inner container **188 pt wide → 48 pt**, History's button gone and Today's marked `value: Collapsed` after a downward scroll; it re-expands on scroll up. After the scroll **no text sits under the bar**: the bottom-most row ends at y 771 against a bar top of y 791 — 20 pt of clearance |
+  | **WU-25-A finding 4** | Started *A generous allowance*, exited from the banner: the real verdict was still there (Balanced / Chicken rice bowl), Today showed the **Tonight's verdict** link and no request button, unchanged on a recapture 5 s later, and History listed exactly **1** case — the demonstration left nothing behind |
+
+- **The performance instrument was half-blind, and the walk is what showed it.** Only
+  `TODAY evaluating=finished into=evidenceUnavailable ms=545` appeared; `TODAY evidence=read`
+  produced **zero** lines, because the read *threw* and the timing line sat after it on the success
+  path — while both slow verdicts ever observed (WU-25-A's ~51 s, this session's 47 s) were reads
+  that failed. Fixed by timing all three outcomes (`evidence=read|failed|cancelled`). Recorded as a
+  mistake caught by verification rather than quietly corrected: the first version of D132 would
+  have measured every case except the one it was built for.
+- **`ONBOARDING health=requestFailed` produced zero lines too, and correctly so** — that install had
+  already completed onboarding, so `connectHealth()` never ran. Absence of the line is not evidence
+  the instrument works; the fresh-install rehearsal is where it gets exercised.
+- **Accepted, not fixed**: at rest with the tab bar expanded, the narration caption
+  (`{{16, 775}, {370, 29.7}}`) and the **Appeal** row still sit under the bar on the verdict screen,
+  and with the bar collapsed the pill overlaps the Appeal row's card at x 28–76 while the row's own
+  hit point (x 201) stays clear. Both clear on a downward scroll, which is what D131 buys; removing
+  the resting overlap entirely would mean padding the content by the bar's full height and giving
+  up the platform's own floating-bar behaviour.
+- **`arc-constitution-review`: 0 BLOCKER, 2 MAJOR — both evidence problems, both mine, both fixed.**
+  It re-derived the falsifiability of the new test itself rather than taking the claim: stashed back
+  to `HEAD`, read the old `catch` branch, and confirmed that `submitSelfReport(_:)`'s
+  `guard let snapshot = pendingSnapshot` made the pre-change path a silent no-op, so
+  `#require(recordedDrafts.first)` throws. It also checked that the oracle is independent — the
+  `.usual → Balanced` mapping comes from D112's table, not from reading the rule — and verified the
+  privacy claim across all 29 logger call sites.
+
+  | Finding | Disposition |
+  |---|---|
+  | Inserting `logConnectionFailure(at:error:)` **split a doc comment from the function it described**: "The single place `healthState` changes…" ended up above the new method, leaving `transition(to:)` undocumented and the logger wrongly documented | **Fixed.** The paragraph is back on `transition(to:)`. Exactly the class of defect this project's memory says the auditors are for |
+  | `README.md` stated "**268 tests, 33 suites, 0 failures**" as current fact. There are now **271** `@Test` functions, including one added in this diff that has never been run, and the 268 figure already carried a caveat in the Checkpoint B close that the README dropped | **Fixed.** The README now names the build gate, calls 268 the last *recorded* run, and points at this ledger for each run's real numbers rather than restating a stale count to judges |
+
+  Verified true and left alone: no network code anywhere in `Foodge/Foodge`; backup exclusion and
+  `.completeUnlessOpen` on the store and both sidecars; no Health value, note or narration text in
+  any log line; `EvidenceAvailability`'s new case is additive for existing `evidenceData` blobs
+  (checked by inspection, not by decoding an old fixture — stated as such). It marked
+  `.tabBarMinimizeBehavior(.onScrollDown)` as an API it could not itself confirm; it was confirmed
+  here before it was written, through `DocumentationSearch` (`tabBarMinimizeBehavior(_:)` on `View`,
+  `TabBarMinimizeBehavior.onScrollDown`), and then observed collapsing the bar on the simulator.
+- **The fresh-install rehearsal — the judge's own path — ran end to end and reached a verdict.**
+  Deleted the local data from Settings (confirmation sheet: *"Delete everything Foodge has saved
+  here? This cannot be undone. Your Apple Health records are not affected."*), which returned the
+  app to **Welcome**; then Health, body basics (skipped, and the skip was offered), preferences,
+  Today, verdict, appeal.
+
+  - **WU-25-A finding 1 did not reproduce.** Apple's sheet came up on the **first** tap of
+    *Connect Apple Health* — no error row first — and the console shows one clean request:
+    `ONBOARDING state=requesting` 09:30:59.314 → `ONBOARDING state=noReadableData` 09:32:58.226,
+    with **zero** `health=requestFailed` lines. All six topics were granted through Apple's own
+    two-page flow. The finding stays open as unexplained-on-device rather than closed: D132's
+    instrument is in place, and it recorded nothing because there was nothing to record here.
+  - **The ritual:** *About usual* → **Balanced / Chicken rice bowl**, reason *"You said today was
+    about as active as usual."* The flourish carried **no number**, as D118/D119 require.
+  - **The appeal:** craving *Pizza* against a Balanced verdict offered **Margherita pizza** and
+    recorded it as an appeal — *"Tonight's verdict stays as it was — this is recorded alongside
+    it."* — with the verdict still reading Balanced / Chicken rice bowl afterwards. That is
+    WU-22-A's designed cross-category appeal, not a defect: the craving row's "never changes the
+    category" promise is about the *context* input, not about an appeal.
+  - **D132 now measures what it was built for.** `TODAY evidence=read ms=63` and
+    `TODAY evaluating=finished into=needsSelfReport ms=325`, and the 325 ms matches the wall-clock
+    gap between `stage=evaluating` and `stage=needsSelfReport` **exactly** — so the instrument
+    agrees with the console's own timestamps rather than only with itself. Nothing at error or
+    fault severity in the whole launch.
+  - **Found and fixed on the spot (D133)**: the Apple Health screen still said *"Health didn't
+    return anything readable for **these days**"* — the deleted fortnight talking — and said
+    nothing about the request having completed, so a user who had just granted six topics saw an
+    unchanged *Connect Apple Health* button.
+  - **Left as it is, deliberately**: the collapsed tab pill overlapped the self-report question
+    ("How ac…" hidden) and the Appeal card's corner on the straight-line path. Same trade as
+    above — scrolling clears both, and removing the resting overlap means abandoning the floating
+    bar. Narration took **9.14 s** to fall back to the template on that run, which is within
+    `DeadlineNarrator`'s budget plus model start-up and does not block the verdict, which is
+    already on screen. The History tab's symbol identifier was reported as
+    `clock.arrow.trianglehead.counterclockwise.rotate.90` in one capture and
+    `clock.arrow.circlepath` in another; the source names the latter exactly once, so this is the
+    system resolving an alias, not two icons in the code.
+- **Owed**: the test run, the clean-checkout build, and the iOS 26 walk.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

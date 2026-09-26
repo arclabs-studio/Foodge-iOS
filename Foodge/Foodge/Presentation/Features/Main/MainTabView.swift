@@ -54,6 +54,13 @@ struct MainTabView: View {
                 HistoryFlowView(vm: history)
             }
         }
+        // The floating tab bar sits over the content it is scrolled past, so the last rows of a
+        // long `Form` read *underneath* it — measured on the simulator at 46 pt of overlap on the
+        // verdict screen's disclaimer, and on the phone in WU-25-A as an unreadable flourish.
+        // Minimizing on a downward scroll is the platform's own answer (iOS 26+), and it keeps
+        // the bar reachable rather than hiding it: it expands again the moment the user scrolls
+        // back up.
+        .tabBarMinimizeBehavior(.onScrollDown)
     }
 }
 

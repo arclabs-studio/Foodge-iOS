@@ -33,7 +33,15 @@ struct HealthUnavailableSection: View {
             }
         case .noReadableData:
             Section {
-                Text("Health didn’t return anything readable for these days.")
+                // Two staleness bugs in one sentence, both found on the fresh-install rehearsal
+                // (D133). "These days" is the deleted fourteen-day window still talking (D111),
+                // when only **today** is ever at stake now; and the screen said nothing at all
+                // about the request having completed, so after granting all six topics a user
+                // saw an unchanged "Connect Apple Health" button and no sign it had worked.
+                // The replacement says what Foodge actually knows — it asked, and nothing came
+                // back for today — and still claims no grant, because HealthKit cannot report
+                // one and this app never pretends otherwise.
+                Text("Foodge asked Health for access. Nothing readable came back for today.")
                 Text("That can simply mean nothing has been recorded yet. Foodge will ask you about your day instead.")
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)

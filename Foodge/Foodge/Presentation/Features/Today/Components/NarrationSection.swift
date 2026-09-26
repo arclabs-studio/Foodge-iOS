@@ -31,7 +31,7 @@ struct NarrationSection: View {
 
     var body: some View {
         if dishOutcome.showsFlourish {
-            Section("The judge’s flourish") {
+            Section {
                 flourish
                     .font(.callout)
                     .italic()
@@ -40,9 +40,15 @@ struct NarrationSection: View {
                     // rendered pixels rather than the asset hex: 5.82:1 light, 6.70:1 dark,
                     // against the 4.5:1 WCAG 1.4.3 needs.
                     .foregroundStyle(.appBurgundyMuted)
+            } header: {
+                Text("The judge’s flourish")
+            } footer: {
+                // A caption about the section belongs in its footer, not in a row of it
+                // (`arc-audit-hig`, WU-EB). The color moves with it: `.secondary` measures
+                // ~3.4:1 in standard-contrast light appearance, below the 4.5:1 WCAG 1.4.3
+                // needs, and a footer is already footnote-sized.
                 Text("Decoration only — the reasoning above is the verdict.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
         }
     }

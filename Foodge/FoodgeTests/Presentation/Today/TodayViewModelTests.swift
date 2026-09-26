@@ -323,6 +323,25 @@ struct TodayViewModelTests {
         #expect(await sut.caseStore.recordedDrafts.isEmpty)
     }
 
+    @Test("A failed read still lets the user’s own account reach a verdict")
+    func failedEvidenceReadStillOffersTheSelfReport() async throws {
+        // Given a Health read that will not complete — the state of a phone whose Health has
+        // never been authorized, where the retry throws exactly as the first attempt did
+        let sut = makeSUT(evidenceFailure: FixtureFailure("the read did not complete"))
+        await sut.viewModel.requestVerdict()
+
+        // When the user answers the self-report rather than retrying
+        await sut.viewModel.submitSelfReport(.usual)
+
+        // Then a verdict is recorded from their own account, over evidence that says plainly
+        // that nothing could be read — never that the day was empty, never that it was refused
+        let recorded = try #require(await sut.caseStore.recordedDrafts.first)
+        #expect(recorded.decision.category == .balanced)
+        #expect(recorded.decision.basis == .selfReported(.usual))
+        #expect(recorded.evidence.availability == .unreadable)
+        #expect(recorded.evidence.today.hasAnyReading == false)
+    }
+
     @Test("A cancelled evidence read puts back gathering, not a failure the user did not cause")
     func cancelledEvidenceReadRevertsToGathering() async {
         // Given a Health read that is cancelled rather than failing

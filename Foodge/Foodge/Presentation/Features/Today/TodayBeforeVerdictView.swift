@@ -88,15 +88,39 @@ struct TodayBeforeVerdictView: View {
                             Task { await vm.requestVerdict() }
                         }
                     }
+                    // The retry comes first, because a read that failed once may well succeed.
+                    // The user's own account comes second, because the retry must never be the
+                    // only way out: on a phone whose Health has never been authorized every
+                    // attempt throws, and before this the screen had no route to a verdict at
+                    // all (D129). The section's own copy — "There isn't enough readable data to
+                    // work out today's allowance" — is true of a failed read as well as of an
+                    // empty day, which is why no new sentence is invented here.
+                    SelfReportCheckInSection { report in
+                        Task { await vm.submitSelfReport(report) }
+                    }
                 case .gathering, .evaluating, .verdict, .saveFailed:
                     EmptyView()
                 }
 
-                Section {
-                    Button("Give me a verdict") {
-                        Task { await vm.requestVerdict() }
+                switch vm.stage {
+                case .verdict:
+                    // Tonight already has a verdict, so this offers the way back to it rather
+                    // than a button that would record a second revision for the same night
+                    // (D130). Popping the navigation stack lands here, and so does leaving a
+                    // demonstration — both used to show "Give me a verdict" as if the evening
+                    // had never been judged.
+                    Section {
+                        NavigationLink(value: TodayRoute.verdict) {
+                            Text("Tonight’s verdict")
+                        }
                     }
-                    .disabled(isEvaluating)
+                case .gathering, .evaluating, .needsSelfReport, .evidenceUnavailable, .saveFailed:
+                    Section {
+                        Button("Give me a verdict") {
+                            Task { await vm.requestVerdict() }
+                        }
+                        .disabled(isEvaluating)
+                    }
                 }
             }
             .disabled(isEvaluating)

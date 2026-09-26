@@ -169,6 +169,14 @@ final class TodayViewModel {
     private var pendingSnapshot: EvidenceSnapshot?
     private var pendingDraft: PreferencesDraft?
 
+    /// When the current `.evaluating` stage began.
+    ///
+    /// WU-25-A hand-timed the spinner on a real phone at roughly **51 seconds** and had no
+    /// instrument saying which part of it was slow. This is that instrument: a duration is not a
+    /// Health value, so it is safe to log, and it is the only way the 15→6 query reduction of the
+    /// energy-allowance rebuild can be confirmed on a device rather than predicted.
+    @ObservationIgnored private var evaluationStartedAt: ContinuousClock.Instant?
+
     init(
         evidence: any HealthEvidenceProvider,
         preferences: any PreferencesStore,
@@ -230,6 +238,7 @@ final class TodayViewModel {
         )
 
         let read: EvidenceSnapshot
+        let readStartedAt = ContinuousClock.now
         do {
             read = try await evidence.snapshot(
                 at: clock.now,
@@ -238,12 +247,34 @@ final class TodayViewModel {
                 constraints: draft.constraints
             )
         } catch is CancellationError {
+            logEvidenceRead(since: readStartedAt, outcome: "cancelled")
             transition(to: .gathering)
             return
         } catch {
+            // The failing read is timed too, and it is the one that matters: WU-25-A's ~51-second
+            // spinner and WU-26-A's 47-second one both ended in a failure, so a line that fired
+            // only on success would miss every slow case seen so far.
+            logEvidenceRead(since: readStartedAt, outcome: "failed")
+
+            // A failed read is reported as a failed read — and it is **not** a dead end (D129).
+            // The snapshot kept here carries nothing but the day's key and `.unreadable`, which
+            // is exactly the basis `submitSelfReport(_:)` needs, so the ritual can still reach a
+            // verdict the user's own account paid for. Before this, a phone whose Health had
+            // never been authorized could not reach a verdict at all: the read threw, the flow
+            // stopped, and the only control on screen was a retry that threw again.
+            pendingSnapshot = EvidenceSnapshot(
+                evaluatedAt: clock.now,
+                timeZoneIdentifier: clock.calendar.timeZone.identifier,
+                today: .empty,
+                availability: .unreadable,
+                context: context,
+                constraints: draft.constraints
+            )
             transition(to: .evidenceUnavailable)
             return
         }
+
+        logEvidenceRead(since: readStartedAt, outcome: "read")
 
         // The two estimate inputs are attached here, before anything is evaluated or saved, so the
         // snapshot a case is reopened from says which figures were estimates and from what.
@@ -557,6 +588,7 @@ final class TodayViewModel {
     /// verdict screen is always pushed once there is something for it to show — a saved verdict
     /// or a failed save whose computed decision still needs to stay visible with a retry.
     private func transition(to newStage: Stage) {
+        timeEvaluation(leaving: stage, entering: newStage)
         stage = newStage
         switch newStage {
         case .verdict, .saveFailed:
@@ -567,5 +599,43 @@ final class TodayViewModel {
             break
         }
         TodayLog.logger.info("TODAY stage=\(newStage.logLabel, privacy: .public)")
+    }
+
+    /// Stamps the start of an evaluation, and reports how long the finished one took.
+    ///
+    /// Measured here rather than inside `requestVerdict()` because the stage can be left through
+    /// four different paths — a verdict, a failed save, unreadable evidence and cancellation —
+    /// and every one of them is a spinner the user watched end. The label says which path it was;
+    /// the milliseconds say how long it took. Neither is derived from Health data.
+    private func timeEvaluation(leaving current: Stage, entering next: Stage) {
+        if case .evaluating = next {
+            evaluationStartedAt = ContinuousClock.now
+            return
+        }
+        guard case .evaluating = current, let startedAt = evaluationStartedAt else { return }
+        evaluationStartedAt = nil
+        let elapsed = Self.milliseconds(since: startedAt)
+        TodayLog.logger.info(
+            "TODAY evaluating=finished into=\(next.logLabel, privacy: .public) ms=\(elapsed, privacy: .public)"
+        )
+    }
+
+    /// How long the Health read took, and how it ended — three outcomes, one line each.
+    ///
+    /// The outcome is part of the line because a read that runs for forty-seven seconds and *then*
+    /// throws is exactly the case this instrument exists for, and a success-only line would have
+    /// recorded nothing for either slow verdict observed so far.
+    private func logEvidenceRead(since instant: ContinuousClock.Instant, outcome: String) {
+        let elapsed = Self.milliseconds(since: instant)
+        TodayLog.logger.info(
+            "TODAY evidence=\(outcome, privacy: .public) ms=\(elapsed, privacy: .public)"
+        )
+    }
+
+    /// Whole milliseconds since `instant`, on the monotonic clock — never the wall clock, which a
+    /// time-zone change or an NTP correction can move underneath a measurement.
+    private static func milliseconds(since instant: ContinuousClock.Instant) -> Int64 {
+        let elapsed = ContinuousClock.now - instant
+        return elapsed.components.seconds * 1000 + elapsed.components.attoseconds / 1_000_000_000_000_000
     }
 }

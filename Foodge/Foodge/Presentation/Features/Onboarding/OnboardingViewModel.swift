@@ -116,6 +116,7 @@ final class OnboardingViewModel {
             transition(to: .unavailable)
             return
         } catch {
+            logConnectionFailure(at: "authorization", error: error)
             transition(to: .requestFailed)
             return
         }
@@ -138,6 +139,7 @@ final class OnboardingViewModel {
             transition(to: previous)
             return
         } catch {
+            logConnectionFailure(at: "evidence", error: error)
             transition(to: .requestFailed)
             return
         }
@@ -198,6 +200,25 @@ final class OnboardingViewModel {
         draft.bodyBasics = bodyBasicsFromInputs
     }
 
+    /// Records *where* a Health connection attempt failed, in labels and codes only.
+    ///
+    /// `requestFailed` covers two different events — Apple's authorization sheet failing to
+    /// complete, and the first read afterwards failing — and the state label alone cannot tell
+    /// them apart. On a physical device the console is the only instrument (D21), and WU-25-A's
+    /// first-run authorization failure is still unexplained precisely because nothing recorded
+    /// which half of `connectHealth()` produced it.
+    ///
+    /// The error's domain and numeric code are not Health values, so they are safe at `.public`.
+    /// Its *message* is deliberately not logged: a framework description can name the query, and
+    /// therefore the Health type, that failed.
+    private func logConnectionFailure(at stage: String, error: some Error) {
+        let bridged = error as NSError
+        let code = "\(bridged.domain)#\(bridged.code)"
+        OnboardingLog.logger.error(
+            "ONBOARDING health=requestFailed at=\(stage, privacy: .public) error=\(code, privacy: .public)"
+        )
+    }
+
     /// The single place ``healthState`` changes, so every transition is logged the same way.
     ///
     /// The label, never the state: nothing about a Health *value* may reach a `Logger`, and a rule
@@ -223,7 +244,7 @@ final class OnboardingViewModel {
     private static func missingKinds(in availability: EvidenceAvailability) -> Set<HealthKind> {
         switch availability {
         case let .readable(missing): missing
-        case .healthUnavailable, .notRequested: []
+        case .healthUnavailable, .notRequested, .unreadable: []
         }
     }
 

@@ -70,14 +70,6 @@ struct AllowanceBreakdownRow: View {
                     )
                 )
             }
-            // `.secondary` measures ~3.4:1 against the row background in standard-contrast light
-            // appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is the brand's
-            // dedicated secondary-text color, tuned to ≥4.5:1 in every appearance/contrast
-            // combination — the same fix already applied in `VerdictView` and
-            // `HealthUnavailableSection`.
-            Text("These figures are estimates, not nutritional advice.")
-                .font(.footnote)
-                .foregroundStyle(.appBurgundyMuted)
         case let .selfReported(report):
             LabeledContent("Your account") {
                 Text(report.displayName)
@@ -85,6 +77,36 @@ struct AllowanceBreakdownRow: View {
         case .provisional:
             Text("Nothing readable to go on — this verdict is provisional.")
                 .foregroundStyle(.appBurgundyMuted)
+        }
+    }
+}
+
+/// The estimates disclaimer, for a `Section` footer rather than a list row.
+///
+/// It qualifies the figures above it, so a footer is where it belongs (`arc-audit-hig`, WU-EB):
+/// as a row it read as one more piece of evidence, and VoiceOver reached it as a sibling of the
+/// figures instead of as the section's own caption.
+///
+/// It is a view rather than a `String?` on the caller because it is only true of
+/// ``CategoryBasis/energyBalance``: a self-reported night has no figures to qualify, and a
+/// provisional one says its own sentence in the row. `EmptyView` in the other two cases leaves the
+/// section with no footer at all.
+@MainActor
+struct AllowanceDisclaimerFooter: View {
+    let basis: CategoryBasis
+
+    var body: some View {
+        switch basis {
+        case .energyBalance:
+            // A footer is already footnote-sized, so only the color is set here. `.secondary`
+            // measures ~3.4:1 against the grouped background in standard-contrast light
+            // appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is the brand's
+            // dedicated secondary-text color, tuned to ≥4.5:1 in every appearance/contrast
+            // combination.
+            Text("These figures are estimates, not nutritional advice.")
+                .foregroundStyle(.appBurgundyMuted)
+        case .selfReported, .provisional:
+            EmptyView()
         }
     }
 }
