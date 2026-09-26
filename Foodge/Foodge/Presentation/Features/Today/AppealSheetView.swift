@@ -57,11 +57,12 @@ struct AppealSheetView: View {
                 Button(role: .close) { dismiss() }
             }
         }
-        // Synchronous and deterministic on purpose: `.task` schedules its closure as an async
-        // unit of work, which can interleave arbitrarily with any `.task` a caller (or a
-        // preview) attaches to reach a later `appealStage` — `.onAppear` runs inline with view
-        // appearance, before any of those async continuations get a chance to run.
-        .onAppear { vm.beginAppeal() }
+        // The fresh appeal is begun by whoever *presents* this sheet, not here (D136). The reset
+        // used to run from this view's `.onAppear`, with a comment claiming it was ordered ahead
+        // of any caller's `.task`. It is not: five of the six previews below drove themselves to
+        // a later stage and every one of them rendered the craving list, because the reset landed
+        // last and wiped it. Resetting at the button is deterministic — state first, then the
+        // sheet — and it is what lets a preview reach the stage it is named after.
     }
 }
 

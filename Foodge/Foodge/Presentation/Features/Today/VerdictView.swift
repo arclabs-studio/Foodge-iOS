@@ -101,7 +101,13 @@ struct VerdictView: View {
 
             if vm.currentRevision != nil {
                 Section {
-                    Button("Appeal") { showingAppeal = true }
+                    // State first, then the sheet: `AppealSheetView` no longer resets itself on
+                    // appear, because that reset raced whatever drove the sheet to a later
+                    // stage — see D136 and the comment on that view.
+                    Button("Appeal") {
+                        vm.beginAppeal()
+                        showingAppeal = true
+                    }
                     NavigationLink(value: TodayRoute.evidenceDetails) {
                         Text("Evidence details")
                     }

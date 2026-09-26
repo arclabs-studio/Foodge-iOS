@@ -83,6 +83,39 @@ struct TodayAppealViewModelTests {
         )
     }
 
+    /// Pins D136. The reset moved out of `AppealSheetView.onAppear` and into `VerdictView`'s
+    /// Appeal button, so the claim "behaviour is unchanged" rests on `beginAppeal()` still
+    /// clearing a *recorded* appeal — the only case where the two placements could differ.
+    /// What this cannot reach is the button itself: no test in this project renders a `body`.
+    @Test("Reopening the appeal after one was recorded starts from the craving list again")
+    func beginAppealResetsARecordedAppeal() async throws {
+        // Given an appeal already recorded against tonight's verdict
+        let revision = makeSavedRevision(category: .light)
+        let saved = SavedCase(localDayKey: "2026-09-18", revisions: [revision])
+        let sut = makeSUT(seededCase: saved)
+        await sut.viewModel.onAppear()
+        await sut.viewModel.proposeCraving(.burgers)
+        guard case let .compatibleFound(_, entry) = sut.viewModel.appealStage else {
+            Issue.record("Expected .compatibleFound, got \(sut.viewModel.appealStage)")
+            return
+        }
+        await sut.viewModel.acceptCompatible(entry: entry)
+        guard case .recorded = sut.viewModel.appealStage else {
+            Issue.record("Expected .recorded, got \(sut.viewModel.appealStage)")
+            return
+        }
+
+        // When the appeal is begun again — what the Appeal button now does before presenting
+        sut.viewModel.beginAppeal()
+
+        // Then the craving list is what opens, and the recorded appeal is still recorded
+        guard case .choosingCraving = sut.viewModel.appealStage else {
+            Issue.record("Expected .choosingCraving, got \(sut.viewModel.appealStage)")
+            return
+        }
+        #expect(await sut.caseStore.recordedAppeals.count == 1)
+    }
+
     @Test("A compatible craving can be accepted from a different category than the ruled one")
     func compatibleCravingAcceptedAcrossCategories() async throws {
         // Given a case already ruled light, and unrestricted constraints
