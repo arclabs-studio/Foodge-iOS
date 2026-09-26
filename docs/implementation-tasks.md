@@ -2250,7 +2250,48 @@ during Pass B.
     `clock.arrow.trianglehead.counterclockwise.rotate.90` in one capture and
     `clock.arrow.circlepath` in another; the source names the latter exactly once, so this is the
     system resolving an alias, not two icons in the code.
-- **Owed**: the test run, the clean-checkout build, and the iOS 26 walk.
+- **The suite still has not run, and the behaviour was proved another way.** `RunSomeTests` wedged
+  twice more today — one suite, backgrounded at 120 s with no result, stopped by hand, while
+  builds answered in 5–24 s throughout. So D129 was executed rather than asserted, through
+  `RunCodeSnippet` against the **real** `TodayViewModel`, `CheatMealAllowanceRule` and
+  `DishSelection`, with only the four collaborators faked (a provider that throws, an empty
+  preferences store, a collecting case store, a silent narrator):
+
+  ```
+  stage after the read threw: evidenceUnavailable
+  stage after the self-report: verdict
+  revisions recorded: 1
+  category: balanced
+  basis: selfReported(Foodge.SelfReportedActivity.usual)
+  availability: unreadable
+  any Health reading present: false
+  provisional: false
+  dish outcome: selected(variantID: "dish.riceBowls.chicken", …)
+  ```
+
+  That is the same set of facts `failedEvidenceReadStillOffersTheSelfReport` asserts, produced by
+  running the code. It is **not** a substitute for the suite: it proves this one behaviour and says
+  nothing about the other 270 test functions, which is why the run stays listed as owed. ⌘U remains
+  the fast path — 2.17 s by hand at the Checkpoint B close.
+- **iOS 26 — built, launched, not walked.** Destination switched to iPhone 17 Pro (26.5):
+  `BuildProject` green in 7.8 s, `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**,
+  `RunProject` launched the app (pid 22015) and the console shows it reaching its first decision —
+  `ONBOARDING launch completed=false` — with **nothing at error or fault severity**. The ritual was
+  **not** walked there: `DeviceInteractionStartWorkspaceSession` refused the 26.5 simulator and
+  listed only 27.0 devices as eligible, exactly as WU-25-A found, so an interactive iOS 26 pass is
+  not reachable through this tool at all. `CLAUDE.md`'s "iOS 26 still owed" line therefore stays,
+  narrowed: the build and launch are evidenced, the walk is not.
+- **Clean checkout — validated by comparison rather than by a second build.** A fresh
+  `git clone` of `f96dead` differs from the tree that built green **only** by `.DS_Store`,
+  `.claude/settings.local.json`, `.claude/scheduled_tasks.lock`, `xcuserdata` and an empty
+  `project.xcworkspace/swiftpm` — no source, no asset, no catalogue, and the shared scheme
+  (`Foodge.xcodeproj/xcshareddata/xcschemes/Foodge.xcscheme`) is tracked and present in the clone.
+  326 files tracked, working tree clean. Opening the clone as a second Xcode workspace needs the
+  user's approval in Xcode, which is **pending**; the comparison stands in the meantime, and it
+  answers the question the second build would have asked — whether anything the build needs is
+  untracked.
+- **Owed**: the test suite run (⌘U), the interactive iOS 26 walk (not reachable from this tool),
+  and the Xcode approval for a literal clean-checkout build.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
