@@ -2017,12 +2017,23 @@ Plan: `docs/migrations/2026-09-25-checkpoint-b-close.md`.
   session (6.5 s, 8.9 s, 7.8 s, 8.2 s), each followed by its own `GetBuildLog { severity:
   "warning" }` → **`totalFound: 0`**. The last one is after every edit below, including the three
   files the accessibility auditor changed.
-- **Tests — still owed, and now on the fifth wedge.** `RunSomeTests` against the full curated
-  33-suite list ran **21+ minutes with no result** and was abandoned; an earlier single-suite probe
-  (`EvidenceWindowPlannerTests`, 7 tests, pure `Calendar` arithmetic) behaved identically. Meanwhile
-  `BuildProject` answered in 4–9 s throughout, confirming the wedge is the test runner and not the
-  toolchain. **No test in this rebuild has still been observed to pass.** The count owed is
-  265 enabled + the one added below. Handed to the user for a ⌘U.
+- **Tests — RUN AND GREEN, by hand.** The MCP runner never unwedged (the full 33-suite list sat
+  **21+ minutes** with no result, a single cheap suite behaved identically, while `BuildProject`
+  answered in 4–9 s throughout — so the wedge is the runner, not the toolchain). The user ran ⌘U
+  instead, and that took **2.170 seconds**, which is the measure of how badly the MCP path was
+  misleading this project.
+
+  **First run, on `iPhone de CR` (a physical device): 268 tests, 33 suites, 11 failures.**
+  **Second run, on `iPhone 17 Pro (27.0)`: 268 passing.** Eight of the eleven were the destination,
+  and one of those is structural rather than incidental — see the table below. The two real defects
+  it caught are D128 and the stale 410 oracle.
+
+  Count note: `GetTestList` reports **270** enabled functions after D128's two new tests (265 at
+  WU-EB.B, +2 from `951002f`, +3 from this close). The green run reported 268, so it predates those
+  last two by one commit. Their subject — the guilt-free exemption — was instead verified by
+  **executing the validator** against 12 candidates through `RunCodeSnippet`: the 4 allowed
+  spellings accepted, the 8 guilt/earning/compensation phrasings still rejected. Recorded as what
+  it is rather than rounded up to a clean green.
 - **Previews — met, 11 renders by me plus the auditor's matrix.** `AllowanceBreakdownRow` at
   `en`/default, `es`/AX 5, `es`/AX 3 and `es`/default; `BodyBasicsView` "Half answered" at `es`/AX 5
   and `es`/default; `IntakeCheckInSection` at `es`/default and `es`/AX 5; `EvidenceSectionsView` and
@@ -2051,6 +2062,20 @@ before it was acted on, rather than taken on the agent's word.
 | **`WelcomeView` told the user Foodge "weighs today against your usual fortnight"** — a feature D111 deleted, on the first screen of the demo | `arc-audit-hig` | **Fixed (D127)**, with `SelfReportCheckInSection`'s "no usable recorded pattern", and both translated into `es` |
 | Negative allowance was built from a pre-formatted `String`, losing the numeric metadata VoiceOver uses to say "minus" rather than read a hyphen | `arc-audit-accessibility` | **Fixed** by the auditor: `Text(_:format:)`, visually byte-identical |
 | `.secondary` footnotes measure ~3.44:1, below the 4.5:1 floor | `arc-audit-accessibility` | **Fixed** by the auditor on six instances, using the established `appBurgundyMuted` (4.73:1 light / 5.66:1 dark, re-measured) |
+
+**The eleven failures, and what each actually was:**
+
+| Failure | Verdict |
+|---|---|
+| `cheatMealFramingIsAccepted` — one of three arguments | **Real defect.** D119's third removal was **inert**: `"guilt free"` was deleted from `bannedPhrases` while `"guilt"` stayed banned and matched the same words, so the phrase was still refused and the ledger claimed a capability the code never had. Fixed by a real exemption — **D128** |
+| `theCallersContextOverridesTheScenarios` | **Real defect.** Stale oracle: asserted the `shortSleep` scenario ships 410 kcal active; Pass B rewrote `SyntheticScenarios` and it ships **400**. Test and doc comment corrected |
+| `everyDeclaredUIStringShipsASpanishTranslation` | **Cannot pass on a device, by construction.** It reads the catalogue through `URL(fileURLWithPath: #filePath)` — the build machine's path. A simulator shares the Mac's filesystem; a device has no `/Users/…` tree, so `declaredKeys` falls back to `[]` and the test fails its own precondition. Simulator-only, permanently |
+| `everyCategoryShipsASpanishTemplate` ×3, `spanishTemplatesAreDistinct`, `spanishTemplatesPassTheValidator` | **Destination.** Not missing translations: all three flourish templates carry Spanish in the source catalogue, none `stale`, and all three are present in the **built** `es.lproj/Localizable.strings` of *both* `Debug-iphonesimulator` and `Debug-iphoneos` (349 keys each). Whatever `Bundle.main` resolved to on the device run, it was not the freshly built app |
+| `anOrdinaryDayProratesAgainstTwentyFourHours`, `springForwardProratesAgainstAShorterDay`, `fallBackProratesAgainstALongerDay` | **Destination.** Each failed on its day-length precondition. Executing Foundation on the simulator returns exactly **86,400 / 82,800 / 90,000 s** for those three Madrid dates — precisely what the tests assert. Green on the correct destination |
+
+**The lesson, recorded because it cost this unit its whole verification budget:** the runner was
+never the only problem. Running on the wrong destination invalidated three tests *by construction*
+and produced eight failures that looked like regressions and were not.
 
 **Deferred, with reasons, not silently dropped:**
 

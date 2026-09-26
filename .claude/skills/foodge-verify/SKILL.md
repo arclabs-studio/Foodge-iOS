@@ -82,6 +82,21 @@ Tests and previews run on **iPhone 17 Pro (27.0)**. Switch with
 Switch to `iPhone de CR` only for a real device run, and switch back afterwards. Changing
 destination while the app is running on the phone disturbs that session.
 
+**The destination is not a preference — three tests cannot pass on a device at all.**
+`UIStringLocalizationTests` reads the String Catalog through `URL(fileURLWithPath: #filePath)`,
+the *build machine's* path. A simulator shares the Mac's filesystem; a device has no `/Users/…`
+tree, so `declaredKeys` falls back to `[]` and the test fails its own `#require`. On 2026-09-26 a
+⌘U on `iPhone de CR` returned **11 failures**; the same code on `iPhone 17 Pro (27.0)` returned
+**268 passing**. Eight of the eleven were the destination. Before reading a localization failure as
+a missing translation, check the built artefact:
+`plutil -convert json -o - <app>/es.lproj/Localizable.strings`.
+
+**⌘U is the fast path here.** The full suite takes **2.17 s** by hand. `RunSomeTests` has wedged
+on six consecutive attempts on this machine — `.xcresult` created, then 20+ minutes with no
+progress — while `BuildProject` answers in 4–9 s and `RunCodeSnippet` works normally. When a
+behaviour needs proving and the runner is wedged, `RunCodeSnippet` against the real type is a
+genuine oracle; that is how D128's validator exemption was verified.
+
 **`RunSomeTests`/`RunAllTests` silently return `notRun` while the device destination is active** —
 every test comes back `"state": "No result"` with no error explaining why. It is not a broken
 test; it is the destination. Switch back to `iPhone 17 Pro (27.0)` and re-run (Day 23).
