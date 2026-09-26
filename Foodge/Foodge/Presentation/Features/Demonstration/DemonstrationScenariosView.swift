@@ -73,7 +73,9 @@ private struct DemonstrationScenarioRow: View {
 
             Text(scenario.detail)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is tuned to ≥4.5:1 (D134).
+                .foregroundStyle(.appBurgundyMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         // The title and its explanation are one thing to VoiceOver — reading them as two rows

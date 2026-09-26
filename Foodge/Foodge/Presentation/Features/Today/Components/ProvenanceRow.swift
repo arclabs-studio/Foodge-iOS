@@ -23,12 +23,15 @@ struct ProvenanceRow: View {
                     Text(valueText)
                     Text(readAt, format: .dateTime.hour().minute())
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        // `.secondary` measures ~3.4:1 against the row background in
+                        // standard-contrast light — below WCAG 1.4.3's 4.5:1.
+                        // `appBurgundyMuted` is ≥4.5:1 (D134).
+                        .foregroundStyle(.appBurgundyMuted)
                 }
                 .accessibilityElement(children: .combine)
             } else {
                 Text("No readable data")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
         } label: {
             Text(title)
@@ -41,4 +44,8 @@ struct ProvenanceRow: View {
         ProvenanceRow(title: HealthKind.activeEnergy.displayName, valueText: "410 kcal", readAt: .now)
         ProvenanceRow(title: HealthKind.dietaryEnergy.displayName, valueText: nil, readAt: nil)
     }
+    // The app applies this once at `AppRootView` (D135), which no component preview sits under —
+    // without it this preview renders the value slot at the platform's 3.44:1 and misrepresents
+    // what ships.
+    .labeledContentStyle(.readableValue)
 }

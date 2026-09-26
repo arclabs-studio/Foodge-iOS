@@ -62,8 +62,11 @@ struct EvidenceSectionsView: View {
                     )
                     LabeledContent("Intervals", value: sleep.intervalCount, format: .number)
                 } else {
+                    // `.secondary` measures ~3.4:1 against the row background in
+                    // standard-contrast light — below WCAG 1.4.3's 4.5:1.
+                    // `appBurgundyMuted` is ≥4.5:1 (D134).
                     Text("No readable data")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.appBurgundyMuted)
                 }
             }
         }

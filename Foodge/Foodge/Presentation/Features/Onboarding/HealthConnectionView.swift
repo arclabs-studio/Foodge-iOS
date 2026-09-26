@@ -48,8 +48,11 @@ struct HealthConnectionView: View {
                     } else {
                         ForEach(HealthKind.allCases.filter(missing.contains), id: \.self) { kind in
                             LabeledContent(kind.displayName) {
+                                // `.secondary` measures ~3.4:1 against the row background in
+                                // standard-contrast light — below WCAG 1.4.3's 4.5:1.
+                                // `appBurgundyMuted` is ≥4.5:1 (D134).
                                 Text("No readable data")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(.appBurgundyMuted)
                             }
                         }
                         Text("No readable data is not the same as a refusal — Apple Health cannot tell Foodge which it was. Anything missing is either estimated from what you tell it, or left out.")

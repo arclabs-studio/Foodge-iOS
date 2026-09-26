@@ -35,7 +35,10 @@ struct CaseDetailView: View {
                 Section {
                     Text("Demonstration data")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        // `.secondary` measures ~3.4:1 against the row background in
+                        // standard-contrast light — below WCAG 1.4.3's 4.5:1.
+                        // `appBurgundyMuted` is ≥4.5:1 (D134).
+                        .foregroundStyle(.appBurgundyMuted)
                 }
             }
 
@@ -52,9 +55,6 @@ struct CaseDetailView: View {
                 ForEach(revision.decision.reasonCodes, id: \.self) { reason in
                     Text(reason.displayText)
                 }
-                Text("These are prototype product heuristics, not nutritional advice.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             } header: {
                 HStack {
                     Text("Why")
@@ -62,6 +62,14 @@ struct CaseDetailView: View {
                     Text(revision.createdAt, format: .dateTime.year().month().day())
                 }
                 .accessibilityElement(children: .combine)
+            } footer: {
+                // Same placement as `VerdictView`'s copy of this sentence: it qualifies the
+                // reasons above it, so it is a footer rather than one more row among them
+                // (`arc-audit-hig`, WU-EB). A footer is already footnote-sized, so only the
+                // color is set — `.secondary` measures ~3.4:1 in standard-contrast light,
+                // below WCAG 1.4.3's 4.5:1, while `appBurgundyMuted` is ≥4.5:1 (D134).
+                Text("These are prototype product heuristics, not nutritional advice.")
+                    .foregroundStyle(.appBurgundyMuted)
             }
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
@@ -100,7 +108,7 @@ struct CaseDetailView: View {
                 Text("No catalogue dish matched your constraints that night.")
                 Text("Nothing was relaxed to force a match.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.appBurgundyMuted)
             }
         }
     }

@@ -20,7 +20,9 @@ struct SelfReportCheckInSection: View {
             Text("There isn’t enough readable data to work out today’s allowance.")
             Text("How active was today, compared to usual?")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is tuned to ≥4.5:1 (D134).
+                .foregroundStyle(.appBurgundyMuted)
             ForEach(SelfReportedActivity.allCases, id: \.self) { report in
                 Button(String(localized: report.displayName)) { submit(report) }
             }

@@ -20,7 +20,9 @@ struct AppealNoMatchSection: View {
             Text("No compatible match for \(String(localized: family.displayName)) tonight.")
             Text("Nothing was relaxed to force a match — you can adjust your exclusions in Preferences.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is ≥4.5:1 (D134).
+                .foregroundStyle(.appBurgundyMuted)
             Button("Try another craving") { tryAnother() }
         }
     }

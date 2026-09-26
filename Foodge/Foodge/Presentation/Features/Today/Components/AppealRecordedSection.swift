@@ -24,7 +24,9 @@ struct AppealRecordedSection: View {
             }
             Text("Tonight’s verdict stays as it was — this is recorded alongside it.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is ≥4.5:1 (D134).
+                .foregroundStyle(.appBurgundyMuted)
         }
     }
 }

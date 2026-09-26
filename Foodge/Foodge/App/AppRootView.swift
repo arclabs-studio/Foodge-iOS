@@ -53,6 +53,11 @@ struct AppRootView: View {
                 OnboardingFlowView(vm: onboarding)
             }
         }
+        // Applied at the root because the contrast floor is a property of every screen, not of
+        // whichever one was last audited — the mistake D134 was written to stop repeating. It
+        // reaches `LabeledContent` and nothing else, so `Section` headers and footers keep the
+        // platform's own hierarchy.
+        .labeledContentStyle(.readableValue)
         .task {
             OnboardingLog.logger.info(
                 "ONBOARDING launch completed=\(hasCompletedOnboarding, privacy: .public)"

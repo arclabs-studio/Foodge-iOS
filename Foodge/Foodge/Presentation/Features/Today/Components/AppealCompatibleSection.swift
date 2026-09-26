@@ -36,7 +36,9 @@ struct AppealCompatibleSection: View {
             Button("Accept this instead") { accept() }
             Text("Keep the original — close this sheet to leave tonight’s verdict unchanged.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is ≥4.5:1 (D134).
+                .foregroundStyle(.appBurgundyMuted)
         }
     }
 
@@ -46,7 +48,7 @@ struct AppealCompatibleSection: View {
                 .font(.headline)
             Text(entry.family.displayName)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.appBurgundyMuted)
         }
         .accessibilityElement(children: .combine)
     }

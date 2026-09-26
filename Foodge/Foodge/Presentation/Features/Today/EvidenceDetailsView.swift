@@ -21,7 +21,9 @@ struct EvidenceDetailsView: View {
             Section {
                 Text(revision.evidence.isSynthetic ? "Demonstration data" : "From Health")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                    // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is ≥4.5:1 (D134).
+                    .foregroundStyle(.appBurgundyMuted)
             }
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)

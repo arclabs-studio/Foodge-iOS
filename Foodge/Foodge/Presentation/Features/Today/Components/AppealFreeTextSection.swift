@@ -19,10 +19,14 @@ struct AppealFreeTextSection: View {
 
     var body: some View {
         Section("What would you rather have?") {
+            // Opted out of D135's app-wide style on purpose: its whole job is to recolor the
+            // value slot, and here the value slot is the field the user types into. What someone
+            // writes is their own text, not a secondary reading, so it stays `primary`.
             LabeledContent("Your dinner") {
                 TextField("e.g. Grandma’s stew", text: $text, axis: .vertical)
                     .multilineTextAlignment(.leading)
             }
+            .labeledContentStyle(.automatic)
             Button("Submit") { submit() }
                 .disabled(!canSubmit)
         }
