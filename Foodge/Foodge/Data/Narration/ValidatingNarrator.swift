@@ -23,7 +23,7 @@ struct ValidatingNarrator: VerdictNarrator {
 
     func flourish(
         for decision: VerdictDecision,
-        dishName: String,
+        dishName: String
     ) async -> String? {
         guard let candidate = await wrapped.flourish(for: decision, dishName: dishName) else {
             return nil

@@ -113,9 +113,14 @@ struct DemonstrationScenarioOutcomeTests {
         #expect(try decision(viewModel).category == .light)
         #expect(try decision(viewModel).reasonCodes.contains(.allowanceSpent))
 
-        // And a dish is still recommended: a negative result never suppresses dinner
+        // And a dish is still recommended: a negative result never suppresses dinner. The oracle
+        // is the catalogue itself — the recorded id has to name a real variant, and that variant
+        // has to belong to the category the rule just decided. `!variantID.isEmpty` would pass on
+        // any successful path by construction now that the outcome is a struct, so it proves
+        // nothing.
         let display = try #require(viewModel.currentDisplay)
-        #expect(!display.dishOutcome.variantID.isEmpty)
+        let entry = try #require(DishCatalogue.entries.first { $0.id == display.dishOutcome.variantID })
+        #expect(entry.category == display.decision.category)
     }
 
     // MARK: - Estimated components

@@ -33,9 +33,10 @@ struct AllowanceRequest: Sendable {
 
 /// Why today has no allowance figure.
 ///
-/// Never thrown — an unavailable allowance is a correct consequence of missing data, the same
-/// reasoning `DishSelectionOutcome.noMatch(blockingIngredientIDs:)` uses (D43). Each case is
-/// separate so it has its own oracle in tests and its own sentence on screen.
+/// Never thrown — an unavailable allowance is a correct consequence of missing data, not a
+/// failure (D43). Each case is separate so it has its own oracle in tests and its own sentence on
+/// screen. The dish rule used to reach the same conclusion through a `noMatch` outcome; that case
+/// went with the exclusions it reported (D139), and this one stands on its own.
 enum AllowanceUnavailableReason: Hashable, Sendable {
     case missingActiveEnergy
     /// Neither `basalEnergyBurned` nor usable body basics.

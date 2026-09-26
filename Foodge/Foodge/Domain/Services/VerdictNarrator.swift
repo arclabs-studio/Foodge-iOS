@@ -16,6 +16,6 @@ import Foundation
 protocol VerdictNarrator: Sendable {
     func flourish(
         for decision: VerdictDecision,
-        dishName: String,
+        dishName: String
     ) async -> String?
 }

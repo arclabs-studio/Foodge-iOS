@@ -45,7 +45,7 @@ struct FoundationModelsNarrator: VerdictNarrator {
 
     func flourish(
         for decision: VerdictDecision,
-        dishName: String,
+        dishName: String
     ) async -> String? {
         let status = availability()
         guard status.canNarrate else {

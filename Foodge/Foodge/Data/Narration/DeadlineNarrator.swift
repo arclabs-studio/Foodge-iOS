@@ -35,7 +35,7 @@ struct DeadlineNarrator: VerdictNarrator {
 
     func flourish(
         for decision: VerdictDecision,
-        dishName: String,
+        dishName: String
     ) async -> String? {
         await withTaskGroup(of: Outcome.self) { group in
             group.addTask {

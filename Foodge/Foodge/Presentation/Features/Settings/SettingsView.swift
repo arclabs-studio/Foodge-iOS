@@ -57,8 +57,7 @@ struct SettingsView: View {
             .toolbar {
                 // The role, not a title: iOS 27 draws the Liquid Glass close glyph and supplies
                 // the accessibility label itself. `.close` rather than `.cancel` because there
-                // is no draft to lose — every change on this screen is already saved (D90). Same
-                // shape as `AppealSheetView`'s dismissal.
+                // is no draft to lose — every change on this screen is already saved (D90).
                 Button(role: .close) { dismiss() }
             }
             .task { await vm.load() }

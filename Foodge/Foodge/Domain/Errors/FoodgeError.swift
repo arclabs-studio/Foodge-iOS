@@ -23,8 +23,6 @@ enum FoodgeError: Error, Hashable, Sendable {
     case storeUnavailable
     /// A write did not complete. The result stays visible with a retry; it is never reported saved.
     case saveFailed
-    /// No catalogue dish satisfies the user's constraints. Exclusions are never relaxed to avoid this.
-    case noCompatibleDish
     /// Narration was addressed to a revision id that does not exist.
     case revisionNotFound
     /// A stored blob failed to decode. Real corruption, not a foreseeable rename with a safe
