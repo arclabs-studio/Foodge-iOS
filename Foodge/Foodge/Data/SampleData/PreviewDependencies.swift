@@ -166,6 +166,13 @@
     private struct PreviewAuthorization: HealthAuthorizing {
         let isHealthDataAvailable: Bool
 
+        /// `shouldRequest`, so the "Connect" previews walk the first-run path. The
+        /// already-answered state has its own preview in `HealthUnavailableSection`, built from
+        /// the state directly rather than by reaching this far.
+        func readRequestStatus() async -> HealthRequestStatus {
+            .shouldRequest
+        }
+
         func requestReadAuthorization() async throws {
             guard isHealthDataAvailable else {
                 throw FoodgeError.healthUnavailable
@@ -362,10 +369,10 @@
             )
         }
 
-        func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws {}
+        func recordAppeal(_: AppealDraft, to _: UUID) async throws {}
 
         @discardableResult
-        func attachNarration(_ text: String, to revisionID: UUID) async throws -> SavedRevision {
+        func attachNarration(_: String, to _: UUID) async throws -> SavedRevision {
             // Unreachable from the History screens this store backs — they only ever read, and
             // narration runs on Today. Reported honestly rather than inventing a revision.
             throw FoodgeError.revisionNotFound
@@ -540,7 +547,9 @@
             )
         }()
 
-        static var all: [SavedCase] { [dishMatch, treatDay, noMatchDay, appealedDay] }
+        static var all: [SavedCase] {
+            [dishMatch, treatDay, noMatchDay, appealedDay]
+        }
 
         private static func localDayKey(for evidence: EvidenceSnapshot) -> String {
             var calendar = Calendar(identifier: .gregorian)

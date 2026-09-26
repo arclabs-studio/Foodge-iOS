@@ -164,6 +164,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D134 | Every remaining `.foregroundStyle(.secondary)` on **text** in `Presentation` becomes `.appBurgundyMuted` — 17 call sites across 13 files — and `CaseDetailView`'s *"These are prototype product heuristics"* disclaimer moves from a Section row into the Section footer, matching `VerdictView`'s copy of the same sentence. | The accessibility auditor measured `.secondary` at **~3.44:1** against a Form row background in standard-contrast light, below WCAG 1.4.3's 4.5:1 floor, and fixed **six** sites in WU-EB and one in WU-26-A — each time inside the work unit's own diff. The Checkpoint B close then recorded that *two* gaps remained and named them. A repo-wide grep on Day 27 found **17**, because an audit scoped to a changeset cannot close an invariant that holds app-wide: History's list and detail, all four appeal sections, the demonstration scenario list, the self-report check-in, the provenance rows and the onboarding Health screen were never in any audited diff. The sweep converts body-size text as well as footnotes — the criterion does not distinguish them, and leaving the "less bad" ones would hand the next reader the same ambiguity. No `*Style` is written for native `LabeledContent` here, on the grounds that restyling a native control to chase a ratio is the parallel-struct mistake the doctrine forbids — a premise **D135 then overturned**. Note the claim is about writing a style: two of the 17 sites (`HealthConnectionView`, `ProvenanceRow`) do recolor `Text` nodes that sit *inside* a `LabeledContent` value closure, so "left alone entirely" would have been the wrong word. No test is added — a test asserting a color literal would pass whenever the code compiles, which `swift-testing-doctrine` says to delete. The evidence is the render and the auditor's measurement. |
 | D135 | **D134's `LabeledContent` carve-out is reversed.** A `ReadableValueLabeledContentStyle` is applied once at `AppRootView`. It rebuilds the row through `LabeledContent` and sets the foreground style **on `configuration.content`** — the value slot only — so labels, headers and footers keep the platform's hierarchy. (Setting the foreground style's *second level* was the first attempt and was rejected: it dropped the value's secondary treatment entirely and rendered every figure at full `primary`. It is recorded in the unit's evidence as a rejected attempt, not as the mechanism.) | D134 left native `LabeledContent` values alone on the grounds that restyling a native control is the parallel-struct mistake the doctrine forbids. The accessibility auditor then measured them: SwiftUI's own value slot is **3.44:1** in standard-contrast light against the same Form row — the identical ratio the sweep had just fixed everywhere else, leaving `ProvenanceRow` showing "410 kcal" at 3.44:1 directly above a timestamp at 4.73:1, in one cell. The carve-out's premise was wrong, not its principle: the doctrine forbids a **parallel struct**, and writing a `*Style` is the route it names instead. `LabeledContent(configuration)` inside `makeBody` is Apple's documented initializer for a style that modifies rather than replaces the current one (confirmed through `DocumentationSearch` before it was written, not from memory), so the platform keeps ownership of the layout. Applied at the root because the floor is a property of every screen — the same reasoning as D134. The cost, stated because it is real: component `#Preview`s do not sit under `AppRootView`, so they render the unstyled value and **under-represent the app**; the verification therefore has to be the running app, not a preview. The alternative was to accept a documented native gap, which would have left the constitution's 4.5:1 floor knowingly unmet on the evidence screen a judge is shown. |
 | D136 | The fresh appeal is begun by the **Appeal button** in `VerdictView` — state first, then the sheet — and `AppealSheetView`'s `.onAppear { vm.beginAppeal() }` is removed. | The `.onAppear` reset carried a comment asserting it ran *before* any caller's `.task` continuations. It does not, and the file's own previews were the disproof: **five of the six** drove themselves to a later stage (`proposeCraving`, `beginFreeText`, `submitFreeText`) and **every one of them rendered the craving list**, because the reset landed last and wiped what they had set. Verified by rendering, not by reading: "Compatible variant found" and "Recorded" both showed the craving list before the change and their named states after it — the first time those sections have been seen in a preview at all. So every "verified by preview" claim about an appeal stage before today was made against a screen that was not showing the stage. Behaviour is unchanged: `appealStage` already defaults to `.choosingCraving`, so a first presentation is identical, and re-opening after a recorded appeal still resets — the button is simply a deterministic place to do it, where `.onAppear` was a racy one. Found by `arc-audit-accessibility` as a comment that claimed more than the code did (2 previews); the other three came out of checking the claim rather than taking it. |
+| D137 | `connectHealth()` calls `getRequestStatusForAuthorization(toShare:read:)` **before** requesting, logs the result as `ONBOARDING health-request-status=<shouldRequest\|alreadyAnswered\|undetermined>`, skips the request when the answer is `alreadyAnswered`, and a phone in that state whose read comes back empty gets its own `HealthState.previouslyAnswered` with a route to Health's own Sharing screen. | The user reported that Apple's permission sheet **never appears**. Apple's documentation is explicit that `requestAuthorization(toShare:read:)` returns immediately, with no sheet, once every requested type has been answered, and iOS never re-presents it — so the symptom has two possible causes that the app could not tell apart and neither could the user: a request that failed, or a request that was never going to show anything. `getRequestStatusForAuthorization` is the only API that distinguishes them, and it is the only thing HealthKit will say about permission at all. Requesting is skipped only in the `alreadyAnswered` case, because that call can do nothing but return silently again; `undetermined` still asks, since withholding the sheet on a guess is the worse failure. The new state does **not** claim a denial — iOS reports that it asked, never how it was answered (D35 holds) — and its copy spells out the Health → Sharing → Apps → Foodge path in words as well as offering an `x-apple-health://` link, so the sentence stays true on a phone where that link does not resolve. The alternative was to keep showing `noReadableData` with a **Try again** button, which is a retry the user can disprove in one tap. |
 
 ---
 
@@ -2426,6 +2427,52 @@ during Pass B.
   only path that has ever produced a result here** (2.17 s for 271 tests at the Checkpoint B
   close). Recorded this way because the first version of this paragraph, written when the refusal
   message appeared, said the cause had been found — the probe that followed showed it had not.
+
+## Day 28 — the simplification (WU-28-A / WU-28-B)
+
+The user's verdict on the app as it stood: *"The app is much more simple than you made it. Just connect
+with Apple Health (actually is not working correctly), ask for more complementary info, track and
+analyze data, map with meals, show veredict according to result… I dont choose meals, you do."*
+
+Two work units come out of that. **WU-28-A** is the Health defect. **WU-28-B** removes every place
+the user is asked to choose food. Decisions taken with the user before any code: hard cut, delete the
+removed code rather than hide it, keep the diet profile (without it the judge can propose a burger to
+a vegetarian and has no way to know), rewrite schema V1 and accept that the local store is discarded
+(pre-release, no real users).
+
+### WU-28-A ✅ The permission sheet, and an honest answer when it is not coming back
+
+**D137.** Status is read before the request; the request is skipped only when iOS says it would
+return silently; a phone in that state with nothing readable reaches `previouslyAnswered`, which
+names the Health → Sharing → Apps → Foodge path rather than offering a retry that cannot work.
+
+- **Files:** `HealthAuthorizing` (protocol + `HealthRequestStatus`), `HealthAuthorizationService`
+  (the `getRequestStatusForAuthorization` bridge and the `HKAuthorizationRequestStatus` mapping),
+  `DemonstrationHealthAuthorization`, `PreviewDependencies.PreviewAuthorization`,
+  `OnboardingViewModel`, `HealthConnectionView`, `HealthUnavailableSection`,
+  `FixtureHealthAuthorization`, `OnboardingViewModelTests`.
+- **Four new tests, each able to fail.** `aFirstRunPresentsTheSheet` (status consulted once, request
+  made once) · `anAlreadyAnsweredPhoneSkipsTheRequestAndReadsAnyway` (**fails the moment the guard is
+  dropped** — `requestCount` would be 1 — while still requiring the read to happen and the state to
+  be `connected`) · `anUndeterminedStatusStillPresentsTheSheet` · 
+  `anAlreadyAnsweredPhoneWithNoDataGetsItsOwnState`.
+- **Build:** green at 4.8 s (one error, fixed), 12.9 s and 9.9 s; `GetBuildLog { severity: "warning" }`
+  after each → **`totalFound: 0`**.
+- **Suite:** `RunAllTests` → **334 tests, 328 passed, 6 failed**. The six are a **measured baseline**,
+  not this unit's: the working tree was stashed and the same tests run against `HEAD` first — three
+  `BasalMetabolicRateTests` day-length expectations and three `NarrationTemplateLocalizationTests`
+  Spanish-template lookups fail identically **without** any of today's changes. A seventh failure
+  *was* this unit's (`everyDeclaredUIStringShipsASpanishTranslation`, three new English keys with no
+  Spanish) and is now green.
+- **Spanish:** the three new keys translated through `StringCatalogEdit` — *Abrir Salud*, *Ya se ha
+  preguntado a Salud por Foodge, así que iOS no volverá a mostrar su ventana.*, *Abre Salud y ve a
+  Compartir → Apps → Foodge…* — matching the catalogue's own terminology (*Salud*, *Compartir*,
+  *ventana* for a sheet, informal *tú*).
+- **Render:** the new `Already answered` preview rendered on iPhone 18 Pro / iOS 27, in `es`.
+- **Owed:** the phone. No physical device is in the run-destination list right now, so the
+  `ONBOARDING health-request-status=` line — the evidence for *which* of the two causes the user
+  actually hit — has not been read from the user's iPhone, and the `x-apple-health://` link has not
+  been tapped there. Both are simulator-unverifiable in the way that matters.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

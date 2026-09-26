@@ -5,8 +5,8 @@
 //  Created by ARC Labs Studio on 19/09/2026.
 //
 
-import Foundation
 @testable import Foodge
+import Foundation
 
 /// A stand-in for the system authorization sheet.
 ///
@@ -16,11 +16,23 @@ import Foundation
 actor FixtureHealthAuthorization: HealthAuthorizing {
     nonisolated let isHealthDataAvailable: Bool
     private let failure: (any Error)?
+    private let requestStatus: HealthRequestStatus
     private(set) var requestCount = 0
+    private(set) var statusCount = 0
 
-    init(isHealthDataAvailable: Bool = true, failure: (any Error)? = nil) {
+    init(
+        isHealthDataAvailable: Bool = true,
+        requestStatus: HealthRequestStatus = .shouldRequest,
+        failure: (any Error)? = nil
+    ) {
         self.isHealthDataAvailable = isHealthDataAvailable
+        self.requestStatus = requestStatus
         self.failure = failure
+    }
+
+    func readRequestStatus() async -> HealthRequestStatus {
+        statusCount += 1
+        return requestStatus
     }
 
     func requestReadAuthorization() async throws {

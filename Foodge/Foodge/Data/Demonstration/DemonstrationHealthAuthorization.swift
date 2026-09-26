@@ -17,5 +17,12 @@ import Foundation
 struct DemonstrationHealthAuthorization: HealthAuthorizing {
     let isHealthDataAvailable = true
 
+    /// `shouldRequest`, so a demonstration never shows the "iOS already has your answer" screen.
+    /// It reports what a first-time run would report, and `requestReadAuthorization()` below is
+    /// still the no-op that keeps Apple's sheet away from the audience.
+    func readRequestStatus() async -> HealthRequestStatus {
+        .shouldRequest
+    }
+
     func requestReadAuthorization() async throws {}
 }

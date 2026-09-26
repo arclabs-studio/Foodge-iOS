@@ -72,7 +72,7 @@ struct HealthConnectionView: View {
                     Button("Continue without Health") {
                         vm.skipHealth()
                     }
-                case .connected, .noReadableData, .unavailable, .requestFailed:
+                case .connected, .noReadableData, .previouslyAnswered, .unavailable, .requestFailed:
                     NavigationLink("Continue", value: OnboardingRoute.bodyBasics)
                 }
             }

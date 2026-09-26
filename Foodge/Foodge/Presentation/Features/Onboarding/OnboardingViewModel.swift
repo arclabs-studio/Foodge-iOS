@@ -26,6 +26,11 @@ final class OnboardingViewModel {
         case unavailable
         /// The request completed and the read came back with nothing.
         case noReadableData
+        /// iOS has already put every type Foodge reads to the user, so it will not present its
+        /// sheet again — and the read came back with nothing. Kept apart from
+        /// ``noReadableData`` because the way out is different: nothing Foodge can do from here
+        /// changes the answer, only Health's own Sharing screen can (D137).
+        case previouslyAnswered
         /// The authorization request itself did not complete. Distinct from an absence, which
         /// this app may only claim after an actual read returned empty (D35).
         case requestFailed
@@ -43,6 +48,7 @@ final class OnboardingViewModel {
             case .requesting: "requesting"
             case .unavailable: "unavailable"
             case .noReadableData: "noReadableData"
+            case .previouslyAnswered: "previouslyAnswered"
             case .requestFailed: "requestFailed"
             case .connected: "connected"
             }
@@ -99,6 +105,12 @@ final class OnboardingViewModel {
     /// authorization *and never asked for evidence*; a request that does not complete is
     /// reported as a failed request rather than an absence; and only a read that actually came
     /// back empty produces ``HealthState/noReadableData``.
+    ///
+    /// The status is read *before* the request because a request on a phone that has already
+    /// answered returns immediately with no sheet at all, and this screen used to report that as
+    /// an ordinary success — the user pressed Connect, saw nothing happen, and had no way to
+    /// learn why (D137). Requesting is skipped in exactly that one case, because it can only
+    /// return silently again.
     func connectHealth() async {
         guard authorization.isHealthDataAvailable else {
             transition(to: .unavailable)
@@ -110,15 +122,24 @@ final class OnboardingViewModel {
         let previous = healthState
         transition(to: .requesting)
 
-        do {
-            try await authorization.requestReadAuthorization()
-        } catch FoodgeError.healthUnavailable {
-            transition(to: .unavailable)
-            return
-        } catch {
-            logConnectionFailure(at: "authorization", error: error)
-            transition(to: .requestFailed)
-            return
+        let status = await authorization.readRequestStatus()
+        OnboardingLog.logger.info(
+            "ONBOARDING health-request-status=\(status.logLabel, privacy: .public)"
+        )
+
+        // `.undetermined` asks: a status the system could not work out is no reason to withhold
+        // the sheet, and a second request on an already-answered phone costs the user nothing.
+        if status != .alreadyAnswered {
+            do {
+                try await authorization.requestReadAuthorization()
+            } catch FoodgeError.healthUnavailable {
+                transition(to: .unavailable)
+                return
+            } catch {
+                logConnectionFailure(at: "authorization", error: error)
+                transition(to: .requestFailed)
+                return
+            }
         }
 
         // Read once from the clock, so everything in this evaluation agrees about what day it is.
@@ -144,7 +165,7 @@ final class OnboardingViewModel {
             return
         }
 
-        transition(to: Self.state(for: read))
+        transition(to: Self.state(for: read, requestStatus: status))
     }
 
     /// Continues without Health, leaving no failed attempt on the screen behind them.
@@ -234,9 +255,14 @@ final class OnboardingViewModel {
     /// launch just after midnight can therefore land on `.noReadableData` where it used to report a
     /// recorded pattern — correctly, because there is nothing readable *yet*, and the allowance rule
     /// refuses a window under ninety minutes for the same reason.
-    private static func state(for snapshot: EvidenceSnapshot) -> HealthState {
+    private static func state(
+        for snapshot: EvidenceSnapshot,
+        requestStatus: HealthRequestStatus
+    ) -> HealthState {
         guard snapshot.today.hasAnyReading else {
-            return .noReadableData
+            // An empty read after a sheet that was never shown is a different fact from an empty
+            // read after the user answered just now, and only the first one has a way out.
+            return requestStatus == .alreadyAnswered ? .previouslyAnswered : .noReadableData
         }
         return .connected(missing: missingKinds(in: snapshot.availability))
     }

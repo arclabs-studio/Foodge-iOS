@@ -46,6 +46,21 @@ struct HealthUnavailableSection: View {
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
             }
+        case .previouslyAnswered:
+            Section {
+                // The sheet is not coming back, and saying "try again" here would be a lie the
+                // user can test in one tap (D137). The path is spelled out in the copy as well as
+                // offered as a button, so the sentence stays true even where the link cannot
+                // open. Still no word about a denial: iOS reports that it asked, never how it
+                // was answered.
+                Text("Health has already been asked about Foodge, so iOS won’t show its sheet again.")
+                Text("Open Health, then Sharing → Apps → Foodge to change what Foodge may read. Until then it will ask you about your day instead.")
+                    .font(.footnote)
+                    .foregroundStyle(.appBurgundyMuted)
+                if let url = URL.healthApp {
+                    Link("Open Health", destination: url)
+                }
+            }
         case .requestFailed:
             Section {
                 Text("Foodge couldn’t finish asking for access to Health.")
@@ -57,9 +72,24 @@ struct HealthUnavailableSection: View {
     }
 }
 
+private extension URL {
+    /// Apple Health's own app.
+    ///
+    /// Optional rather than force-unwrapped, and the section renders without the button when it
+    /// is `nil` — the written path above is what the user actually needs, and it does not depend
+    /// on this resolving.
+    static let healthApp = URL(string: "x-apple-health://")
+}
+
 #Preview("Health unavailable", traits: .sizeThatFitsLayout) {
     Form {
         HealthUnavailableSection(state: .unavailable, retry: {})
+    }
+}
+
+#Preview("Already answered", traits: .sizeThatFitsLayout) {
+    Form {
+        HealthUnavailableSection(state: .previouslyAnswered, retry: {})
     }
 }
 

@@ -25,6 +25,7 @@ struct OnboardingViewModelTests {
 
     private func makeSUT(
         isHealthDataAvailable: Bool = true,
+        requestStatus: HealthRequestStatus = .shouldRequest,
         authorizationFailure: (any Error)? = nil,
         snapshot: EvidenceSnapshot = SyntheticScenarios.modestAllowance.snapshot,
         evidenceFailure: (any Error)? = nil,
@@ -33,6 +34,7 @@ struct OnboardingViewModelTests {
     ) -> SUT {
         let authorization = FixtureHealthAuthorization(
             isHealthDataAvailable: isHealthDataAvailable,
+            requestStatus: requestStatus,
             failure: authorizationFailure
         )
         let evidence = evidenceFailure.map(FixtureEvidenceProvider.init(failure:))
@@ -80,6 +82,63 @@ struct OnboardingViewModelTests {
         #expect(sut.viewModel.healthState == .unavailable)
         #expect(await sut.authorization.requestCount == 0)
         #expect(await sut.evidence.callCount == 0)
+    }
+
+    @Test("A phone that has never been asked is asked exactly once")
+    func aFirstRunPresentsTheSheet() async {
+        // Given a phone iOS says it would show the sheet for
+        let sut = makeSUT(requestStatus: .shouldRequest)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the status was consulted and the request was made
+        #expect(await sut.authorization.statusCount == 1)
+        #expect(await sut.authorization.requestCount == 1)
+    }
+
+    @Test("A phone that has already answered is not asked again, but is still read")
+    func anAlreadyAnsweredPhoneSkipsTheRequestAndReadsAnyway() async {
+        // Given a phone that has been asked about every type Foodge reads
+        let sut = makeSUT(requestStatus: .alreadyAnswered)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then no request was made — iOS would return silently, and this expectation fails the
+        // moment the guard in `connectHealth()` is dropped — while the read still happened, so
+        // a phone that *did* grant access reaches its verdict
+        #expect(await sut.authorization.requestCount == 0)
+        #expect(await sut.evidence.callCount == 1)
+        #expect(sut.viewModel.healthState == .connected(missing: []))
+    }
+
+    @Test("A status the system cannot determine still asks")
+    func anUndeterminedStatusStillPresentsTheSheet() async {
+        // Given a phone whose request status could not be worked out
+        let sut = makeSUT(requestStatus: .undetermined)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the sheet is still requested: withholding it on a guess is the worse failure
+        #expect(await sut.authorization.requestCount == 1)
+    }
+
+    @Test("An already-answered phone with nothing readable is told the sheet is not coming back")
+    func anAlreadyAnsweredPhoneWithNoDataGetsItsOwnState() async {
+        // Given a phone that has answered already and has nothing readable for today
+        let sut = makeSUT(
+            requestStatus: .alreadyAnswered,
+            snapshot: SyntheticScenarios.noHealthData.snapshot
+        )
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the state is the one with a way out — Health's own Sharing screen — rather than
+        // `.noReadableData`, which would offer a retry that cannot change anything (D137)
+        #expect(sut.viewModel.healthState == .previouslyAnswered)
     }
 
     @Test(

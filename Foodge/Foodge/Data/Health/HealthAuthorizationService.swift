@@ -28,6 +28,24 @@ struct HealthAuthorizationService: HealthAuthorizing, Sendable {
         HKHealthStore.isHealthDataAvailable()
     }
 
+    /// Asks the system whether a request would present its sheet.
+    ///
+    /// `getRequestStatusForAuthorization(toShare:read:completion:)` is the only shape Apple
+    /// ships — there is no `async` overload — so the continuation is the bridge, not a
+    /// preference. It is resumed exactly once on every path: an error, a status, or both
+    /// present (in which case the status wins, because it is the answer that was asked for).
+    ///
+    /// An error is reported as ``HealthRequestStatus/undetermined`` rather than thrown: not
+    /// knowing whether the sheet would appear must never be the reason the user is denied the
+    /// chance to see it.
+    func readRequestStatus() async -> HealthRequestStatus {
+        await withCheckedContinuation { continuation in
+            store.getRequestStatusForAuthorization(toShare: [], read: HealthReadTypes.all) { status, _ in
+                continuation.resume(returning: HealthRequestStatus(status))
+            }
+        }
+    }
+
     /// Asks for read access to the six types in ``HealthReadTypes``, sharing nothing.
     ///
     /// - Throws: ``FoodgeError/healthUnavailable`` when the device has no Health data at all,
@@ -37,5 +55,20 @@ struct HealthAuthorizationService: HealthAuthorizing, Sendable {
             throw FoodgeError.healthUnavailable
         }
         try await store.requestAuthorization(toShare: [], read: HealthReadTypes.all)
+    }
+}
+
+/// Translates HealthKit's own answer, keeping `HKAuthorizationRequestStatus` out of the domain.
+///
+/// `@unknown default` rather than a wildcard: a status Apple adds later lands on
+/// ``HealthRequestStatus/undetermined`` — asking again — and the compiler still says so.
+private extension HealthRequestStatus {
+    init(_ status: HKAuthorizationRequestStatus) {
+        switch status {
+        case .shouldRequest: self = .shouldRequest
+        case .unnecessary: self = .alreadyAnswered
+        case .unknown: self = .undetermined
+        @unknown default: self = .undetermined
+        }
     }
 }
