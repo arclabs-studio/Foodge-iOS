@@ -24,13 +24,12 @@ struct ValidatingNarrator: VerdictNarrator {
     func flourish(
         for decision: VerdictDecision,
         dishName: String,
-        note: Note?
     ) async -> String? {
-        guard let candidate = await wrapped.flourish(for: decision, dishName: dishName, note: note) else {
+        guard let candidate = await wrapped.flourish(for: decision, dishName: dishName) else {
             return nil
         }
 
-        switch NarrationValidator.validate(candidate, note: note) {
+        switch NarrationValidator.validate(candidate) {
         case let .accepted(text):
             return text
         case let .rejected(rejection):

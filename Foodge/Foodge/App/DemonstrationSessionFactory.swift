@@ -61,22 +61,17 @@ enum DemonstrationSessionFactory {
     ///
     /// - `requestVerdict()` passes `draft.constraints` into the evidence call, and `finish()`
     ///   builds the `DishSelectionRequest` from `draft.constraints` — never `snapshot.constraints`.
-    ///   Without seeding, `noCompatibleDish` would recommend an ordinary pasta dish instead of the
-    ///   honest no-match its whole existence is about (D58).
+    ///   Without seeding, a scenario's diet profile would not reach the pick at all.
     /// - `TodayViewModel` reads `draft.bodyBasics` when Health has no resting energy, so
     ///   `estimatedResting` would report `noRestingBasis` instead of an estimated figure if the
     ///   body basics stayed in the snapshot alone (D117).
     ///
     /// `onboardingCompletedAt` is set from the scenario clock so the demonstration opens on Today
     /// rather than onboarding — through D9's single source of truth, not a second flag.
-    /// `favouriteFamilies` stays empty so nothing biases the dish pick beyond the scenario itself.
     static func seededPreferences(for scenario: SyntheticScenario) -> PreferencesDraft {
         let snapshot = scenario.snapshot
         return PreferencesDraft(
             dietProfile: snapshot.constraints.profile,
-            excludedIngredientIDs: snapshot.constraints.excludedIngredientIDs,
-            favouriteFamilies: [],
-            dinnerRoutine: nil,
             bodyBasics: snapshot.body,
             onboardingCompletedAt: scenario.clock.now,
             narrationEnabled: true,

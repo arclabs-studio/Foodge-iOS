@@ -29,8 +29,6 @@ extension DemonstrationScenarioID {
             LocalizedStringResource("A short night", comment: "Demonstration scenario: an ordinary day on very little sleep")
         case .dstSpringForward:
             LocalizedStringResource("The hour Spain skips", comment: "Demonstration scenario: an evaluation during the daylight saving change")
-        case .noCompatibleDish:
-            LocalizedStringResource("Nothing on the menu fits", comment: "Demonstration scenario: exclusions block every dish in the tier")
         }
     }
 
@@ -55,8 +53,6 @@ extension DemonstrationScenarioID {
             LocalizedStringResource("An ordinary day's figures on a night that was anything but.", comment: "Demonstration scenario detail: short sleep")
         case .dstSpringForward:
             LocalizedStringResource("An evaluation inside the hour the clocks jump forward.", comment: "Demonstration scenario detail: daylight saving day")
-        case .noCompatibleDish:
-            LocalizedStringResource("Every dish in the tier is blocked, and no exclusion is relaxed.", comment: "Demonstration scenario detail: honest no-match")
         }
     }
 }

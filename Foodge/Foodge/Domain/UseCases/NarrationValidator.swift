@@ -19,7 +19,6 @@ enum NarrationRejection: Hashable, Sendable {
     case unsuitableShape
     case numericClaim
     case bannedPhrase
-    case echoesNote
 
     /// A label that is safe to log: the rule that fired, never the candidate that fired it.
     var logLabel: String {
@@ -29,7 +28,6 @@ enum NarrationRejection: Hashable, Sendable {
         case .unsuitableShape: "unsuitableShape"
         case .numericClaim: "numericClaim"
         case .bannedPhrase: "bannedPhrase"
-        case .echoesNote: "echoesNote"
         }
     }
 }
@@ -58,8 +56,11 @@ enum NarrationValidator {
     /// Validates one candidate against every voice rule, in a **fixed order** so a string that
     /// breaks two rules always reports the same one.
     ///
-    /// Order: normalize → empty → shape → length → numeric claim → banned phrase → note echo.
-    static func validate(_ candidate: String, note: Note?) -> NarrationValidation {
+    /// Order: normalize → empty → shape → length → numeric claim → banned phrase.
+    ///
+    /// The note-echo check was the seventh, and it left with the note itself (D138): there is no
+    /// user-written text anywhere near the model now, so there is nothing it could quote back.
+    static func validate(_ candidate: String) -> NarrationValidation {
         let normalized = normalize(candidate)
         guard !normalized.isEmpty else { return .rejected(.empty) }
         guard !hasUnsuitableShape(normalized) else { return .rejected(.unsuitableShape) }
@@ -70,7 +71,6 @@ enum NarrationValidator {
 
         guard !makesNumericClaim(folded: folded, words: words) else { return .rejected(.numericClaim) }
         guard !containsBannedPhrase(folded: folded, words: words) else { return .rejected(.bannedPhrase) }
-        guard !echoes(note, in: folded) else { return .rejected(.echoesNote) }
 
         return .accepted(normalized)
     }
@@ -268,32 +268,5 @@ enum NarrationValidator {
         let permitted = excisingExemptPhrases(from: words)
         return bannedTokens.contains { folded.contains($0) }
             || bannedPhrases.contains { contains($0, in: permitted) }
-    }
-
-    // MARK: - Note echo
-
-    /// How much of the note has to reappear before it counts as a quotation rather than a
-    /// coincidence. Short enough to catch a fragment, long enough that two flourishes about the
-    /// same dinner do not collide.
-    private static let noteEchoWindow = 24
-
-    /// Rejects a candidate that quotes the user's note back.
-    ///
-    /// The output half of the injection defence. The product rule is that a note may colour the
-    /// judge's humour only — and colouring never requires quoting, so any substantial verbatim
-    /// overlap means the model treated the note as content to reproduce.
-    private static func echoes(_ note: Note?, in folded: String) -> Bool {
-        guard let note else { return false }
-        let foldedNote = fold(note.text)
-        let characters = Array(foldedNote)
-        guard characters.count >= noteEchoWindow else { return false }
-
-        for start in 0 ... (characters.count - noteEchoWindow) {
-            let window = String(characters[start ..< start + noteEchoWindow])
-            if folded.contains(window) {
-                return true
-            }
-        }
-        return false
     }
 }

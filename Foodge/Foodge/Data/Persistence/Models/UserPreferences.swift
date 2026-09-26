@@ -11,23 +11,18 @@ import SwiftData
 /// Everything the user has told Foodge about themselves.
 ///
 /// Under the SwiftData carve-out this `@Model` *is* the domain model — there is no parallel
-/// entity for it. None of it is ever inferred from Health: a diet and an exclusion only ever
-/// come from the person.
+/// entity for it. None of it is ever inferred from Health: the diet only ever comes from the
+/// person.
 @Model
 final class UserPreferences {
     /// Stored as the raw value so a rename in the enum cannot silently change what is persisted.
     private(set) var dietProfileRawValue: String
-    /// Ingredient identifiers, never localized names, so changing a translation cannot change
-    /// what someone excluded.
-    var excludedIngredientIDs: [String]
-    var favouriteFamilyRawValues: [String]
-    var dinnerRoutineRawValue: String?
     /// The body basics behind an estimated resting figure, stored as four separate optionals
     /// (D117).
     ///
     /// Four columns rather than one encoded blob, and each one optional, because a half-answered
     /// questionnaire has to stay readable as half-answered: ``bodyBasics`` returns `nil` unless all
-    /// four parse, the same idiom as ``dinnerRoutineRawValue``. `trackingRepresentative` went the
+    /// four parse. `trackingRepresentative` went the
     /// other way in the same edit; V1 is edited in place and the store is discarded by a dev
     /// reinstall rather than migrated, so the app must be deleted before the first run after this
     /// change (D110).
@@ -45,9 +40,6 @@ final class UserPreferences {
 
     init(
         dietProfile: DietProfile = .omnivore,
-        excludedIngredientIDs: [String] = [],
-        favouriteFamilies: [DishFamily] = [],
-        dinnerRoutine: DinnerTime? = nil,
         bodyBasics: BodyBasics? = nil,
         onboardingCompletedAt: Date? = nil,
         narrationEnabled: Bool = true,
@@ -55,9 +47,6 @@ final class UserPreferences {
         reminderMinute: Int? = nil
     ) {
         self.dietProfileRawValue = dietProfile.rawValue
-        self.excludedIngredientIDs = excludedIngredientIDs
-        self.favouriteFamilyRawValues = favouriteFamilies.map(\.rawValue)
-        self.dinnerRoutineRawValue = dinnerRoutine?.rawValue
         self.bodySexRawValue = bodyBasics?.sex.rawValue
         self.bodyAgeYears = bodyBasics?.ageYears
         self.bodyHeightCentimetres = bodyBasics?.heightCentimetres
@@ -75,14 +64,6 @@ extension UserPreferences {
     /// someone is offered.
     var dietProfile: DietProfile {
         DietProfile(rawValue: dietProfileRawValue) ?? .omnivore
-    }
-
-    var favouriteFamilies: [DishFamily] {
-        favouriteFamilyRawValues.compactMap(DishFamily.init(rawValue:))
-    }
-
-    var dinnerRoutine: DinnerTime? {
-        dinnerRoutineRawValue.flatMap(DinnerTime.init(rawValue:))
     }
 
     /// The stored basics, or `nil` unless all four parse into a plausible `BodyBasics`.
@@ -111,18 +92,12 @@ extension UserPreferences {
     }
 
     var constraints: DietaryConstraints {
-        DietaryConstraints(
-            profile: dietProfile,
-            excludedIngredientIDs: Set(excludedIngredientIDs)
-        )
+        DietaryConstraints(profile: dietProfile)
     }
 
     /// Applies a draft, which is the only way these values change.
     func apply(_ draft: PreferencesDraft) {
         dietProfileRawValue = draft.dietProfile.rawValue
-        excludedIngredientIDs = draft.excludedIngredientIDs.sorted()
-        favouriteFamilyRawValues = draft.favouriteFamilies.map(\.rawValue)
-        dinnerRoutineRawValue = draft.dinnerRoutine?.rawValue
         bodySexRawValue = draft.bodyBasics?.sex.rawValue
         bodyAgeYears = draft.bodyBasics?.ageYears
         bodyHeightCentimetres = draft.bodyBasics?.heightCentimetres

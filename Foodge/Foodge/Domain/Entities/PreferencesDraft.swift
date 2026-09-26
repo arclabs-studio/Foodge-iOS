@@ -14,9 +14,6 @@ import Foundation
 /// Data because ``PreferencesStore`` names it, and Presentation may not depend on Data (D34).
 struct PreferencesDraft: Hashable, Sendable {
     var dietProfile: DietProfile
-    var excludedIngredientIDs: Set<String>
-    var favouriteFamilies: [DishFamily]
-    var dinnerRoutine: DinnerTime?
     /// The body basics behind an estimated resting figure, or `nil` when they have not been given.
     ///
     /// Load-bearing rather than decorative (D117): without `basalEnergyBurned` these are the only
@@ -32,9 +29,6 @@ struct PreferencesDraft: Hashable, Sendable {
 
     init(
         dietProfile: DietProfile = .omnivore,
-        excludedIngredientIDs: Set<String> = [],
-        favouriteFamilies: [DishFamily] = [],
-        dinnerRoutine: DinnerTime? = nil,
         bodyBasics: BodyBasics? = nil,
         onboardingCompletedAt: Date? = nil,
         narrationEnabled: Bool = true,
@@ -42,9 +36,6 @@ struct PreferencesDraft: Hashable, Sendable {
         reminderMinute: Int? = nil
     ) {
         self.dietProfile = dietProfile
-        self.excludedIngredientIDs = excludedIngredientIDs
-        self.favouriteFamilies = favouriteFamilies
-        self.dinnerRoutine = dinnerRoutine
         self.bodyBasics = bodyBasics
         self.onboardingCompletedAt = onboardingCompletedAt
         self.narrationEnabled = narrationEnabled
@@ -52,8 +43,8 @@ struct PreferencesDraft: Hashable, Sendable {
         self.reminderMinute = reminderMinute
     }
 
-    /// What the user will and will not eat, in the form the Health and catalogue layers take.
+    /// What the user will not eat, in the form the Health and catalogue layers take.
     var constraints: DietaryConstraints {
-        DietaryConstraints(profile: dietProfile, excludedIngredientIDs: excludedIngredientIDs)
+        DietaryConstraints(profile: dietProfile)
     }
 }

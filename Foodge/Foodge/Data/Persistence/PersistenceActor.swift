@@ -48,9 +48,6 @@ actor PersistenceActor: PreferencesStore {
 
         return PreferencesDraft(
             dietProfile: stored.dietProfile,
-            excludedIngredientIDs: Set(stored.excludedIngredientIDs),
-            favouriteFamilies: stored.favouriteFamilies,
-            dinnerRoutine: stored.dinnerRoutine,
             bodyBasics: stored.bodyBasics,
             onboardingCompletedAt: stored.onboardingCompletedAt,
             narrationEnabled: stored.narrationEnabled,
@@ -65,7 +62,7 @@ extension PersistenceActor: LocalDataErasing {
     ///
     /// Fetched and deleted object by object rather than with SwiftData's batch
     /// `delete(model:)`: a batch delete does not run the model layer's cascade rules, which is
-    /// how `VerdictRevision` and `Appeal` rows would be left behind with no case to belong to.
+    /// how `VerdictRevision` rows would be left behind with no case to belong to.
     /// The dataset here is one person's own history, so the cost of walking it is irrelevant
     /// beside the guarantee that nothing survives.
     ///
@@ -153,28 +150,6 @@ extension PersistenceActor: CaseStore {
         }
 
         return try revision.asSavedRevision()
-    }
-
-    /// Attaches an appeal to one specific revision.
-    ///
-    /// - Throws: ``FoodgeError/revisionNotFound`` if no revision with that id exists;
-    ///   ``FoodgeError/saveFailed`` if the write does not complete.
-    func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) throws {
-        let descriptor = FetchDescriptor<VerdictRevision>(predicate: #Predicate { $0.id == revisionID })
-        guard let revision = try modelContext.fetch(descriptor).first else {
-            throw FoodgeError.revisionNotFound
-        }
-
-        let appeal = Appeal(createdAt: draft.createdAt, choice: draft.choice)
-        appeal.revision = revision
-        revision.appeals.append(appeal)
-        modelContext.insert(appeal)
-
-        do {
-            try modelContext.save()
-        } catch {
-            throw FoodgeError.saveFailed
-        }
     }
 
     /// Attaches validated narration to one specific revision, once.

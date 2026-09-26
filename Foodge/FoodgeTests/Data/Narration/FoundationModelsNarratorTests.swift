@@ -43,7 +43,7 @@ struct FoundationModelsNarratorTests {
         // When a flourish is requested, timed on a clock the SUT has no access to
         let clock = ContinuousClock()
         let start = clock.now
-        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta", note: nil)
+        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta")
         let elapsed = clock.now - start
 
         // Then nothing came back, and it came back at once. The elapsed-time assertion is what

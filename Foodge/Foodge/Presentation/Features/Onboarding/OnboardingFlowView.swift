@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The onboarding stack: Welcome, then Health, then Preferences.
+/// The onboarding stack: Welcome, then Apple Health, then About you.
 ///
 /// One `NavigationStack` over a typed route, driven by the view model's path. There is no
 /// router type here and never will be — this is Apple's own pattern, and a custom one would
@@ -25,13 +25,6 @@ struct OnboardingFlowView: View {
                         HealthConnectionView(vm: vm)
                     case .bodyBasics:
                         BodyBasicsView(vm: vm)
-                    case .preferences:
-                        PreferencesView(vm: vm)
-                    case .ingredientExclusions:
-                        IngredientExclusionsView(
-                            excludedIngredientIDs: vm.draft.excludedIngredientIDs,
-                            toggle: vm.toggleExclusion
-                        )
                     }
                 }
         }

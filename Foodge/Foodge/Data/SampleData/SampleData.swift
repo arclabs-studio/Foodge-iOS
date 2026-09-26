@@ -32,8 +32,6 @@ struct CompletedOnboardingSampleData: PreviewModifier {
         try await PersistenceActor(modelContainer: container).savePreferences(
             PreferencesDraft(
                 dietProfile: .vegetarian,
-                favouriteFamilies: [.tacos, .riceBowls],
-                dinnerRoutine: .quick,
                 onboardingCompletedAt: SyntheticScenarios.evaluationDate
             )
         )

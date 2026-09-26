@@ -9,8 +9,8 @@
 import Foundation
 import Testing
 
-/// Four of the spec's required narration scenarios — malformed output, invented numbers, a note
-/// echoed back, and a refusal — are exercised here against **production code**: the real
+/// Three of the spec's required narration scenarios — malformed output, invented numbers and a
+/// refusal — are exercised here against **production code**: the real
 /// `ValidatingNarrator` over the real `NarrationValidator`, with only the model itself scripted.
 /// The simulator has no Apple Intelligence at all, so this decorator split is what makes them
 /// testable off-device.
@@ -29,13 +29,10 @@ struct ValidatingNarratorTests {
         )
     }
 
-    private func flourish(
-        from scripted: String?,
-        note: Note? = nil
-    ) async -> (text: String?, narrator: ScriptedNarrator) {
+    private func flourish(from scripted: String?) async -> (text: String?, narrator: ScriptedNarrator) {
         let narrator = ScriptedNarrator(scripted: scripted)
         let sut = ValidatingNarrator(wrapped: narrator)
-        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta", note: note)
+        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta")
         return (text, narrator)
     }
 
@@ -50,7 +47,7 @@ struct ValidatingNarratorTests {
         #expect(result.text == "The court finds the defence charming.")
     }
 
-    // MARK: - The four scripted failures
+    // MARK: - The three scripted failures
 
     @Test("Malformed output never reaches the caller")
     func malformedOutputIsRefused() async {
@@ -67,19 +64,6 @@ struct ValidatingNarratorTests {
         let result = await flourish(from: "You moved 8,000 steps, so the court is generous.")
 
         // Then nothing reaches the caller
-        #expect(result.text == nil)
-    }
-
-    @Test("A note quoted back never reaches the caller")
-    func echoedNotesAreRefused() async throws {
-        // Given a note, and a model that quotes a long stretch of it back
-        let note = try #require(Note("I had a rough meeting with the whole leadership team today"))
-        let result = await flourish(
-            from: "The court notes: a rough meeting with the whole leadership team.",
-            note: note
-        )
-
-        // Then nothing reaches the caller — the output half of the injection defence
         #expect(result.text == nil)
     }
 
@@ -131,7 +115,7 @@ private actor ScriptedNarrator: VerdictNarrator {
         self.scripted = scripted
     }
 
-    func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+    func flourish(for _: VerdictDecision, dishName _: String) async -> String? {
         callCount += 1
         return scripted
     }

@@ -33,7 +33,7 @@ struct DeadlineNarratorTests {
         let sut = DeadlineNarrator(budget: Self.budget, wrapped: ImmediateNarrator(scripted: "The court approves."))
 
         // When a flourish is requested
-        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta", note: nil)
+        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta")
 
         // Then the budget changed nothing about the answer
         #expect(text == "The court approves.")
@@ -47,7 +47,7 @@ struct DeadlineNarratorTests {
         let sut = DeadlineNarrator(budget: Self.budget, wrapped: slow)
 
         // When a flourish is requested
-        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta", note: nil)
+        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta")
 
         // Then it answers, and it was never cancelled. This is what pins `cancelAll()` to *after*
         // `group.next()`: an implementation that cancelled as soon as the children were added
@@ -65,7 +65,7 @@ struct DeadlineNarratorTests {
         // When a flourish is requested, timed on a clock the SUT has no access to
         let clock = ContinuousClock()
         let start = clock.now
-        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta", note: nil)
+        let text = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta")
         let elapsed = clock.now - start
 
         // Then nothing came back, and the caller waited about the budget rather than the delay
@@ -80,7 +80,7 @@ struct DeadlineNarratorTests {
         let sut = DeadlineNarrator(budget: Self.budget, wrapped: slow)
 
         // When the budget expires
-        _ = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta", note: nil)
+        _ = await sut.flourish(for: makeDecision(), dishName: "Pesto pasta")
 
         // Then the narrator observed the cancellation. Without this, the timeout test alone would
         // pass against an implementation that leaks a running generation on every timeout.
@@ -94,7 +94,7 @@ struct DeadlineNarratorTests {
 private struct ImmediateNarrator: VerdictNarrator {
     let scripted: String?
 
-    func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+    func flourish(for _: VerdictDecision, dishName _: String) async -> String? {
         scripted
     }
 }
@@ -111,7 +111,7 @@ private actor SlowNarrator: VerdictNarrator {
         self.scripted = scripted
     }
 
-    func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+    func flourish(for _: VerdictDecision, dishName _: String) async -> String? {
         do {
             try await Task.sleep(for: delay, clock: .continuous)
         } catch {

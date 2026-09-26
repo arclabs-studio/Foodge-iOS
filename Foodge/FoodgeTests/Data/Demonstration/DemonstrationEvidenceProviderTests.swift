@@ -9,11 +9,11 @@
 import Foundation
 import Testing
 
-/// The merge rule that keeps the walkthrough's "add context" step alive (D101).
+/// The rule that keeps the walkthrough's check-in step alive (D101).
 ///
-/// The oracle is the scenario's own declaration in `SyntheticScenarios` — `shortSleep` ships
-/// `energyLevel: .low` and 400 kcal active — against what the provider hands back when asked with
-/// something different.
+/// The oracle is the scenario's own declaration in `SyntheticScenarios` — `shortSleep` ships 400
+/// kcal active and no context of its own — against what the provider hands back when asked with
+/// an answer of the caller's.
 @Suite("Demonstration evidence provider", .tags(.unit))
 struct DemonstrationEvidenceProviderTests {
     private func makeSUT(
@@ -22,54 +22,34 @@ struct DemonstrationEvidenceProviderTests {
         DemonstrationEvidenceProvider(scenario: scenario)
     }
 
-    @Test("What the user says wins over what the scenario assumed")
-    func theCallersContextOverridesTheScenarios() async throws {
-        // Given the short-sleep scenario, which ships `energyLevel: .low`
+    @Test("What the user answers is what the recorded evidence carries")
+    func theCallersContextReachesTheSnapshot() async throws {
+        // Given the short-sleep scenario, which declares no context of its own
         let provider = makeSUT()
-        let note = try #require(Note("Long meeting, short night."))
 
-        // When it is asked with a different energy level and a note
+        // When it is asked on behalf of someone who reported a quieter day than usual
         let snapshot = try await provider.snapshot(
             at: SyntheticScenarios.evaluationDate,
             calendar: SyntheticScenarios.calendar,
-            context: DailyContext(energyLevel: .normal, note: note),
+            context: DailyContext(selfReportedActivity: .less),
             constraints: .unrestricted
         )
 
-        // Then both of the user's answers are what come back
-        #expect(snapshot.context.energyLevel == .normal)
-        #expect(snapshot.context.note == note)
+        // Then the answer is what comes back — a provider returning `scenario.snapshot` verbatim
+        // would drop it, which is the defect this test exists for
+        #expect(snapshot.context.selfReportedActivity == .less)
         // And nothing Health-derived moved: the scenario's own reading and its label are intact
         #expect(snapshot.today.activeEnergy?.kilocalories == 400)
         #expect(snapshot.isSynthetic)
-    }
-
-    @Test("A field the user left alone keeps the scenario's own answer")
-    func anUnansweredFieldFallsBackToTheScenario() async throws {
-        // Given the same scenario
-        let provider = makeSUT()
-
-        // When it is asked with a craving only, leaving energy unanswered
-        let snapshot = try await provider.snapshot(
-            at: SyntheticScenarios.evaluationDate,
-            calendar: SyntheticScenarios.calendar,
-            context: DailyContext(craving: .tacos),
-            constraints: .unrestricted
-        )
-
-        // Then the craving is the user's and the energy level is still the scenario's deliberate
-        // `.low` — a replace rather than a merge would have erased what the scenario demonstrates
-        #expect(snapshot.context.craving == .tacos)
-        #expect(snapshot.context.energyLevel == .low)
     }
 
     @Test("The caller's constraints are the ones the snapshot carries")
     func theCallersConstraintsAreUsed() async throws {
         // Given a scenario that declares no constraints of its own
         let provider = makeSUT(SyntheticScenarios.modestAllowance)
-        let constraints = DietaryConstraints(profile: .vegetarian, excludedIngredientIDs: ["ingredient.olive"])
+        let constraints = DietaryConstraints(profile: .vegetarian)
 
-        // When it is asked on behalf of someone with a profile and an exclusion
+        // When it is asked on behalf of someone with a diet profile
         let snapshot = try await provider.snapshot(
             at: SyntheticScenarios.evaluationDate,
             calendar: SyntheticScenarios.calendar,

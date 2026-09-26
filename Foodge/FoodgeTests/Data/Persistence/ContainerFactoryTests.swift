@@ -30,9 +30,6 @@ struct ContainerFactoryTests {
         let completedAt = TestCalendar.date(2026, 9, 18, 20, 15)
         let draft = PreferencesDraft(
             dietProfile: .vegetarian,
-            excludedIngredientIDs: ["ingredient.mushroom", "ingredient.olive"],
-            favouriteFamilies: [.tacos, .riceBowls],
-            dinnerRoutine: .quick,
             bodyBasics: BodyBasics(
                 sex: .female,
                 ageYears: 34,
@@ -55,9 +52,6 @@ struct ContainerFactoryTests {
         // Then everything the user chose is still there, unchanged
         let stored = try #require(reloaded)
         #expect(stored.dietProfile == .vegetarian)
-        #expect(stored.excludedIngredientIDs == ["ingredient.mushroom", "ingredient.olive"])
-        #expect(stored.favouriteFamilies == [.tacos, .riceBowls])
-        #expect(stored.dinnerRoutine == .quick)
         // The body basics are the figures that decide a resting estimate, and they round-trip
         // through four separate columns — so all four are checked, not just that something came
         // back (D117).

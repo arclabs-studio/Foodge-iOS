@@ -8,8 +8,8 @@
 import Foundation
 import OSLog
 
-/// Drives the Today flow: reopening a saved case without regenerating it, gathering optional
-/// context, requesting a verdict, and recording the one revision that results.
+/// Drives the Today flow: reopening a saved case without regenerating it, gathering the intake
+/// check-in, requesting a verdict, and recording the one revision that results.
 ///
 /// Nothing is written until a verdict is actually reached. The verdict itself comes from
 /// `CheatMealAllowanceRule`: this view model's job is to assemble the request from three sources
@@ -28,6 +28,10 @@ final class TodayViewModel {
         case needsSelfReport
         case verdict(SavedRevision)
         case evidenceUnavailable
+        /// A category was decided, and the catalogue offered nothing for it on this diet. Carries
+        /// the decision so the screen can say which category it was, and records nothing —
+        /// unreachable for every shipped profile, and never a dish Foodge invented (D139).
+        case noDishAvailable(VerdictDecision)
         /// The computed decision, still visible with a retry — never reported as saved.
         case saveFailed(NewRevisionDraft, FoodgeError)
 
@@ -40,6 +44,7 @@ final class TodayViewModel {
             case .needsSelfReport: "needsSelfReport"
             case .verdict: "verdict"
             case .evidenceUnavailable: "evidenceUnavailable"
+            case .noDishAvailable: "noDishAvailable"
             case .saveFailed: "saveFailed"
             }
         }
@@ -78,25 +83,12 @@ final class TodayViewModel {
         }
     }
 
-    /// Where an appeal in progress currently stands. Separate from ``Stage`` — the plan requires
-    /// the original category, evidence and dish to stay visible and unchanged throughout an
-    /// appeal, so appeal state must never perturb ``stage``.
-    enum AppealStage: Sendable {
-        case choosingCraving
-        case compatibleFound(family: DishFamily, entry: CatalogueEntry)
-        case noMatchFound(family: DishFamily, blockingIngredientIDs: Set<String>)
-        case enteringFreeText
-        case recorded(AppealChoice)
-        case appealFailed(draft: AppealDraft, revisionID: UUID, error: FoodgeError)
-    }
-
-    private(set) var appealStage: AppealStage = .choosingCraving
-
     /// Where the optional flourish currently stands.
     ///
     /// Its own property, never a ``Stage`` case, for three reasons. `transition(to:)` appends
     /// `.verdict` to the navigation path, so a narration case would need a navigation carve-out —
-    /// the exact wall appeals hit (D65). `Stage` is the save-integrity machine, where
+    /// the wall the appeal flow hit before it was removed (D65, D141). `Stage` is the
+    /// save-integrity machine, where
     /// `.saveFailed` means "not saved, here is a retry" — the opposite of a narration failure,
     /// which must stay silent, and folding them together puts "narration failed" one refactor away
     /// from the user's eyes. And the verdict must stay visible and unchanged while narration runs.
@@ -131,15 +123,6 @@ final class TodayViewModel {
     }
 
     private(set) var narrationStage: NarrationStage = .idle
-
-    // MARK: - Context inputs, gathered before a verdict is requested
-
-    var dinnerTime: DinnerTime?
-    var energyLevel: EnergyLevel?
-    var craving: DishFamily?
-    /// Bound to the `TextField` directly; only turned into a `Note?` at submit time, in
-    /// ``requestVerdict()`` — never a hand-built `Binding<Note?>`.
-    var noteText = ""
 
     // MARK: - The intake check-in
 
@@ -230,12 +213,10 @@ final class TodayViewModel {
         let draft = (try? await preferences.preferences()) ?? PreferencesDraft()
         pendingDraft = draft
 
-        let context = DailyContext(
-            dinnerTime: dinnerTime ?? draft.dinnerRoutine,
-            energyLevel: energyLevel,
-            craving: craving,
-            note: Note(noteText)
-        )
+        // Empty at this point by construction: the self-report is the only thing `DailyContext`
+        // still carries (D138), and it is answered later — `submitSelfReport(_:)` records it onto
+        // the snapshot this read produces.
+        let context = DailyContext.empty
 
         let read: EvidenceSnapshot
         let readStartedAt = ContinuousClock.now
@@ -320,11 +301,7 @@ final class TodayViewModel {
 
         switch CheatMealAllowanceRule.allowance(request) {
         case let .allowance(allowance):
-            let decision = CheatMealAllowanceRule.decide(
-                allowance: allowance,
-                today: snapshot.today,
-                context: snapshot.context
-            )
+            let decision = CheatMealAllowanceRule.decide(allowance: allowance, today: snapshot.today)
             await finish(decision: decision, snapshot: snapshot)
         case let .unavailable(reason):
             TodayLog.logger.info("TODAY allowance=unavailable reason=\(reason.logLabel, privacy: .public)")
@@ -382,13 +359,21 @@ final class TodayViewModel {
             from: DishCatalogue.entries,
             request: DishSelectionRequest(
                 category: decision.category,
-                constraints: draft.constraints,
-                context: snapshot.context,
-                favouriteFamilies: draft.favouriteFamilies
+                constraints: draft.constraints
             ),
             on: clock.now,
             calendar: clock.calendar
         )
+
+        // Unreachable for every shipped diet profile — `DishCatalogueTests` pins that every
+        // category carries a variant for each one — but a night with no dish is not a night with
+        // an invented dish. Nothing is recorded, and the save-failed stage keeps the decision on
+        // screen with a retry rather than claiming a verdict that names no dinner.
+        guard let selection else {
+            TodayLog.logger.error("TODAY selection=empty category=\(decision.category.rawValue, privacy: .public)")
+            transition(to: .noDishAvailable(decision))
+            return
+        }
 
         let revisionDraft = NewRevisionDraft(
             decision: decision,
@@ -447,13 +432,7 @@ final class TodayViewModel {
             return
         }
 
-        // A `.noMatch` night has no dish to be playful about, and inventing one would be the
-        // opposite of the honest no-match the product rule requires.
-        guard case let .selected(variantID, _, _, _) = revision.dishOutcome else {
-            transitionNarration(to: .template)
-            return
-        }
-
+        let variantID = revision.dishOutcome.variantID
         let capturedID = revision.id
         transitionNarration(to: .narrating)
 
@@ -466,8 +445,7 @@ final class TodayViewModel {
 
         let flourish = await narrator.flourish(
             for: revision.decision,
-            dishName: DishCatalogue.displayName(forVariantID: variantID),
-            note: revision.evidence.context.note
+            dishName: DishCatalogue.displayName(forVariantID: variantID)
         )
 
         // Cancellation and staleness, checked before any mutation: `.task(id:)` already tears this
@@ -496,90 +474,6 @@ final class TodayViewModel {
     private func transitionNarration(to newStage: NarrationStage) {
         narrationStage = newStage
         TodayLog.logger.info("TODAY narration=\(newStage.logLabel, privacy: .public)")
-    }
-
-    // MARK: - Appeals
-
-    /// Resets appeal state fresh. Called once per sheet presentation.
-    func beginAppeal() {
-        appealStage = .choosingCraving
-    }
-
-    /// Negotiates one craving against the current preferences, re-fetched fresh — `pendingDraft`
-    /// is already `nil` by the time a verdict is showing, and an appeal must reflect the user's
-    /// preferences as they stand now, not as they stood when the original verdict was recorded.
-    func proposeCraving(_ family: DishFamily) async {
-        guard let revision = currentRevision else { return }
-        let draft = (try? await preferences.preferences()) ?? PreferencesDraft()
-        let context = DailyContext(
-            dinnerTime: revision.evidence.context.dinnerTime,
-            energyLevel: revision.evidence.context.energyLevel,
-            craving: family,
-            selfReportedActivity: revision.evidence.context.selfReportedActivity,
-            note: revision.evidence.context.note
-        )
-        let outcome = DishSelection.negotiateAppeal(
-            from: DishCatalogue.entries,
-            request: AppealNegotiationRequest(
-                craving: family,
-                constraints: draft.constraints,
-                context: context,
-                favouriteFamilies: draft.favouriteFamilies
-            ),
-            on: clock.now,
-            calendar: clock.calendar
-        )
-        switch outcome {
-        case let .selected(recommendation, _):
-            appealStage = .compatibleFound(family: family, entry: recommendation)
-        case let .noMatch(blockingIngredientIDs):
-            appealStage = .noMatchFound(family: family, blockingIngredientIDs: blockingIngredientIDs)
-        }
-    }
-
-    /// Accepts the compatible variant an appeal negotiation just found.
-    func acceptCompatible(entry: CatalogueEntry) async {
-        guard let revisionID = currentRevision?.id else { return }
-        let draft = AppealDraft(createdAt: clock.now, choice: .catalogue(variantID: entry.id, family: entry.family))
-        await recordAppeal(draft, to: revisionID)
-    }
-
-    func beginFreeText() {
-        appealStage = .enteringFreeText
-    }
-
-    /// Whether `text` is non-empty once trimmed — the one rule `submitFreeText` itself enforces,
-    /// exposed so `AppealFreeTextSection` can disable Submit without a second copy of the rule.
-    func canSubmitFreeText(_ text: String) -> Bool {
-        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    /// Records a free-text dish outside the catalogue — no invented nutritional analysis, no
-    /// catalogue lookup at all.
-    func submitFreeText(_ text: String) async {
-        guard let revisionID = currentRevision?.id else { return }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        let draft = AppealDraft(createdAt: clock.now, choice: .freeText(trimmed))
-        await recordAppeal(draft, to: revisionID)
-    }
-
-    /// Retries the exact appeal draft a failed save left behind.
-    func retryAppeal() async {
-        guard case let .appealFailed(draft, revisionID, _) = appealStage else { return }
-        await recordAppeal(draft, to: revisionID)
-    }
-
-    private func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async {
-        do {
-            try await caseStore.recordAppeal(draft, to: revisionID)
-            appealStage = .recorded(draft.choice)
-        } catch {
-            // Same coarse-mapping precedent as `record(_:)`: whatever `caseStore` actually threw
-            // becomes the one `.appealFailed` case — `FoodgeError` is deliberately coarse
-            // everywhere, and the retry offered is the same regardless of cause.
-            appealStage = .appealFailed(draft: draft, revisionID: revisionID, error: .saveFailed)
-        }
     }
 
     // MARK: - Helpers

@@ -11,8 +11,7 @@ import Foundation
 ///
 /// Reopening an unchanged case returns the saved revisions instead of regenerating them; an
 /// explicit "update evidence" appends an immutable new revision rather than overwriting the
-/// first; and an appeal attaches to one specific revision. A failed save is reported as a
-/// failure — never as a save.
+/// first. A failed save is reported as a failure — never as a save.
 protocol CaseStore: Sendable {
     /// The case matching the local day `evidence` was evaluated on, or `nil` if none exists.
     /// Never mutates anything — the "reopen without regenerating" read.
@@ -22,10 +21,6 @@ protocol CaseStore: Sendable {
     /// unchanged — this never overwrites or deletes.
     @discardableResult
     func recordRevision(_ draft: NewRevisionDraft) async throws -> SavedRevision
-
-    /// Attaches an appeal to one specific revision.
-    /// - Throws: ``FoodgeError/revisionNotFound`` if no revision with that id exists.
-    func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws
 
     /// Attaches validated narration to one specific revision, **once**.
     ///

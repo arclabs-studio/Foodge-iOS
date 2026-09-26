@@ -13,13 +13,11 @@ import Testing
 /// isolates exactly the one criterion it claims to test — the others are held tied by
 /// construction rather than asserted to be equal by inspection.
 ///
-/// Ingredient markers (`onlyIn…`) exist purely so a test can remove exactly one entry via
-/// `excludedIngredientIDs` without touching the others.
+/// The narrowing tool is the **diet profile**, not an ingredient exclusion: exclusions left with
+/// D138, so a test that needs a two-candidate field builds one by passing a trimmed `entries`
+/// array or by asking as a vegan, never by excluding an ingredient.
 private enum Mini {
     static let common = Ingredient(id: "mini.common", nameKey: "Common")
-    static let onlyBowlA = Ingredient(id: "mini.onlyBowlA", nameKey: "Only in Bowl A")
-    static let onlyBowlB = Ingredient(id: "mini.onlyBowlB", nameKey: "Only in Bowl B")
-    static let onlyTortillaA = Ingredient(id: "mini.onlyTortillaA", nameKey: "Only in Tortilla A")
 
     /// Catalogue index order — this array IS the `entries` parameter, so this order is what
     /// the rotation tie-break rotates.
@@ -28,7 +26,7 @@ private enum Mini {
         variant: DishVariant(
             id: "mini.riceBowls.a",
             nameKey: "Bowl A",
-            ingredients: [common, onlyBowlA],
+            ingredients: [common],
             diets: Set(DietProfile.allCases),
             convenience: [.quick],
             calorieReferenceID: nil
@@ -39,7 +37,7 @@ private enum Mini {
         variant: DishVariant(
             id: "mini.riceBowls.b",
             nameKey: "Bowl B",
-            ingredients: [common, onlyBowlB],
+            ingredients: [common],
             diets: Set(DietProfile.allCases),
             convenience: [.onePan],
             calorieReferenceID: nil
@@ -50,12 +48,13 @@ private enum Mini {
         variant: DishVariant(
             id: "mini.tortilla.a",
             nameKey: "Tortilla A",
-            ingredients: [common, onlyTortillaA],
+            ingredients: [common],
             diets: Set(DietProfile.allCases),
             convenience: [.quick, .onePan],
             calorieReferenceID: nil
         )
     )
+    /// The one omnivore-only entry, which is how a vegan request narrows the field.
     static let tortillaB = CatalogueEntry(
         family: .tortilla,
         variant: DishVariant(
@@ -90,18 +89,14 @@ struct DishSelectionTests {
         entries: [CatalogueEntry] = Mini.all,
         category: DinnerCategory = .balanced,
         constraints: DietaryConstraints = .unrestricted,
-        context: DailyContext = .empty,
-        favouriteFamilies: [DishFamily] = [],
         recentSelections: [RecentDishSelection] = [],
         on date: Date = DishSelectionTests.day
-    ) -> DishSelectionOutcome {
+    ) -> DishSelectionResult? {
         DishSelection.select(
             from: entries,
             request: DishSelectionRequest(
                 category: category,
                 constraints: constraints,
-                context: context,
-                favouriteFamilies: favouriteFamilies,
                 recentSelections: recentSelections
             ),
             on: date,
@@ -109,12 +104,12 @@ struct DishSelectionTests {
         )
     }
 
-    private func recommendation(_ outcome: DishSelectionOutcome) throws -> CatalogueEntry {
-        guard case let .selected(recommendation, _) = outcome else {
-            Issue.record("Expected .selected, got \(outcome)")
-            throw FixtureFailure("not selected")
-        }
-        return recommendation
+    private func recommendation(_ result: DishSelectionResult?) throws -> CatalogueEntry {
+        try #require(result).recommendation
+    }
+
+    private func yesterday() throws -> Date {
+        try #require(TestCalendar.madrid.date(byAdding: .day, value: -1, to: Self.day))
     }
 
     // MARK: - Hard filters
@@ -132,256 +127,147 @@ struct DishSelectionTests {
 
     @Test("An omnivore-only variant is excluded by a vegan diet")
     func dietFilterExcludesIncompatibleVariants() throws {
-        // Given tortillaB, which only satisfies omnivore, among otherwise all-vegan-compatible
-        // candidates
+        // Given a field of exactly two balanced entries, one of them omnivore-only
         // When a vegan asks for balanced
         let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan)
-            )
+            select(entries: [Mini.tortillaB, Mini.bowlA], constraints: DietaryConstraints(profile: .vegan))
         )
 
-        // Then tortillaB never wins — it is the only remaining candidate's opposite
-        #expect(recommendation.id != Mini.tortillaB.id)
-    }
-
-    @Test("An exclusion is never relaxed, even when it empties every candidate")
-    func exclusionNeverRelaxes() {
-        // Given every balanced variant sharing one ingredient
-        // When that ingredient is excluded
-        let outcome = select(
-            constraints: DietaryConstraints(excludedIngredientIDs: [Mini.common.id])
-        )
-
-        // Then the result is an honest no-match naming the blocking ingredient — never a
-        // silently relaxed recommendation
-        #expect(outcome == .noMatch(blockingIngredientIDs: [Mini.common.id]))
-    }
-
-    @Test("An id blocking a candidate only jointly with another exclusion is left out of the result")
-    func blockingIDsExcludeJointlyNeededIngredients() {
-        // Given two exclusions: "common", which every candidate contains, and "onlyBowlA",
-        // which only Bowl A contains alongside "common"
-        let outcome = select(
-            constraints: DietaryConstraints(excludedIngredientIDs: [Mini.common.id, Mini.onlyBowlA.id])
-        )
-
-        // Then "onlyBowlA" is never named: un-excluding it alone still leaves Bowl A blocked by
-        // "common", so it is not individually sufficient to unblock anything. "common" alone
-        // would unblock Bowl B and Tortilla A (neither contains "onlyBowlA"), so it is named.
-        #expect(outcome == .noMatch(blockingIngredientIDs: [Mini.common.id]))
-    }
-
-    // MARK: - Ranking: craving
-
-    @Test("Craving wins inside the category when everything else ties")
-    func cravingWinsInsideTheCategory() throws {
-        let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                context: DailyContext(craving: .tortilla)
-            )
-        )
-        #expect(recommendation.id == Mini.tortillaA.id)
-    }
-
-    @Test("A craving for a family outside the category falls through and still returns a dish")
-    func cravingOutsideCategoryStillReturnsADish() {
-        // Given only one candidate can possibly survive
-        let outcome = select(
-            constraints: DietaryConstraints(
-                profile: .vegan,
-                excludedIngredientIDs: [Mini.onlyBowlB.id, Mini.onlyTortillaA.id]
-            ),
-            context: DailyContext(craving: .burgers)
-        )
-
-        // Then a craving for a family this category doesn't even hold never blocks a result
-        guard case let .selected(recommendation, alternative) = outcome else {
-            Issue.record("Expected .selected, got \(outcome)")
-            return
-        }
+        // Then the omnivore-only one never wins, whatever the rotation says
         #expect(recommendation.id == Mini.bowlA.id)
-        #expect(alternative == nil)
     }
 
-    // MARK: - Ranking: convenience
+    @Test("A diet that admits nothing in the category is reported as nothing, never relaxed")
+    func anEmptyFieldIsReportedHonestly() {
+        // Given a catalogue whose only balanced entry is omnivore-only
+        // When a vegan asks for balanced
+        let result = select(entries: [Mini.tortillaB], constraints: DietaryConstraints(profile: .vegan))
 
-    @Test("Convenience overlap orders two candidates that tie on craving")
-    func convenienceOrdersCandidates() throws {
-        let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                context: DailyContext(dinnerTime: .quick)
-            )
-        )
-        // Tortilla A matches two preferred tags (quick, onePan) against Bowl A's one (quick)
-        #expect(recommendation.id == Mini.tortillaA.id)
+        // Then there is no dish, rather than the omnivore one relaxed into an answer. The real
+        // catalogue never reaches this — `everyCategoryOffersEveryDietProfile` is what pins
+        // that — but the rule has to hold for the one that does.
+        #expect(result == nil)
     }
 
     // MARK: - Ranking: recency
 
-    @Test("Yesterday's variant loses to a same-day-tied alternative")
+    @Test("The variant shown yesterday loses to the other candidate — in both directions")
     func yesterdaysVariantLoses() throws {
-        let yesterday = try #require(TestCalendar.madrid.date(byAdding: .day, value: -1, to: Self.day))
-        let recommendation = try recommendation(
+        // Given exactly two candidates, so rotation cannot decide the outcome either way
+        let yesterday = try yesterday()
+        let field = [Mini.bowlA, Mini.bowlB]
+
+        // When each of them in turn is the one shown yesterday
+        let afterBowlA = try recommendation(
             select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyTortillaA.id]),
+                entries: field,
                 recentSelections: [RecentDishSelection(variantID: Mini.bowlA.id, family: .riceBowls, date: yesterday)]
             )
         )
-        // Bowl A is the exact variant shown yesterday (recency 2); Bowl B only shares its
-        // family (recency 1) — the lower penalty wins
-        #expect(recommendation.id == Mini.bowlB.id)
+        let afterBowlB = try recommendation(
+            select(
+                entries: field,
+                recentSelections: [RecentDishSelection(variantID: Mini.bowlB.id, family: .riceBowls, date: yesterday)]
+            )
+        )
+
+        // Then the other one wins each time. Both directions are asserted on purpose: a rule
+        // that ignored recency entirely would return the same entry twice, and one direction
+        // alone could pass on rotation by luck
+        #expect(afterBowlA.id == Mini.bowlB.id)
+        #expect(afterBowlB.id == Mini.bowlA.id)
     }
 
     @Test("Yesterday's family loses to a different family, even with a different variant")
     func yesterdaysFamilyLoses() throws {
-        let yesterday = try #require(TestCalendar.madrid.date(byAdding: .day, value: -1, to: Self.day))
+        // Given three balanced candidates: two rice bowls and one tortilla
+        let yesterday = try yesterday()
+
+        // When a rice bowl was shown yesterday
         let recommendation = try recommendation(
             select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                recentSelections: [RecentDishSelection(variantID: Mini.bowlB.id, family: .riceBowls, date: yesterday)]
-            )
-        )
-        // Bowl A only shares the family shown yesterday (recency 1); Tortilla A shares neither
-        // the family nor the variant (recency 0)
-        #expect(recommendation.id == Mini.tortillaA.id)
-    }
-
-    @Test("A selection from four days ago has no effect on recency")
-    func fourDaysAgoHasNoEffect() throws {
-        let fourDaysAgo = try #require(TestCalendar.madrid.date(byAdding: .day, value: -4, to: Self.day))
-        let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                favouriteFamilies: [.riceBowls],
-                recentSelections: [RecentDishSelection(variantID: Mini.bowlA.id, family: .riceBowls, date: fourDaysAgo)]
-            )
-        )
-        // If the four-day-old selection wrongly counted, Bowl A's recency would outrank its
-        // favourite status and Tortilla A would win instead
-        #expect(recommendation.id == Mini.bowlA.id)
-    }
-
-    // MARK: - Ranking: favourites, and the comparator's priority order
-
-    @Test("Favourites break a tie once craving, convenience and recency all agree")
-    func favouritesBreakATie() throws {
-        let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                favouriteFamilies: [.tortilla]
-            )
-        )
-        #expect(recommendation.id == Mini.tortillaA.id)
-    }
-
-    @Test("Favourites never beat recency")
-    func favouritesNeverBeatRecency() throws {
-        let yesterday = try #require(TestCalendar.madrid.date(byAdding: .day, value: -1, to: Self.day))
-        let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                favouriteFamilies: [.riceBowls],
+                entries: [Mini.bowlA, Mini.bowlB, Mini.tortillaA],
                 recentSelections: [RecentDishSelection(variantID: Mini.bowlA.id, family: .riceBowls, date: yesterday)]
             )
         )
-        // Bowl A is favourited but was shown yesterday; Tortilla A is not favourited but is
-        // untouched — recency, ranked above favourite, decides
+
+        // Then the tortilla wins: Bowl A is the exact variant (recency 2), Bowl B shares its
+        // family (recency 1), and only the tortilla shares neither (recency 0)
         #expect(recommendation.id == Mini.tortillaA.id)
     }
 
-    @Test("Recency never beats craving")
-    func recencyNeverBeatsCraving() throws {
-        let yesterday = try #require(TestCalendar.madrid.date(byAdding: .day, value: -1, to: Self.day))
-        let recommendation = try recommendation(
+    @Test("A selection from four days ago changes nothing at all")
+    func fourDaysAgoHasNoEffect() throws {
+        // Given a selection just outside the three-day window
+        let fourDaysAgo = try #require(TestCalendar.madrid.date(byAdding: .day, value: -4, to: Self.day))
+        let field = [Mini.bowlA, Mini.bowlB, Mini.tortillaA]
+
+        // When the same day is decided with and without it
+        let withHistory = try recommendation(
             select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                context: DailyContext(craving: .tortilla),
-                recentSelections: [RecentDishSelection(variantID: Mini.tortillaA.id, family: .tortilla, date: yesterday)]
+                entries: field,
+                recentSelections: [RecentDishSelection(variantID: Mini.bowlA.id, family: .riceBowls, date: fourDaysAgo)]
             )
         )
-        // Tortilla A was shown yesterday (recency 2, its worst possible score) but is still the
-        // craving match — craving, ranked above recency, decides regardless
-        #expect(recommendation.id == Mini.tortillaA.id)
+        let withoutHistory = try recommendation(select(entries: field))
+
+        // Then the two agree. The oracle is the rule's own answer with no history at all, so a
+        // window widened to four days breaks this without anyone having to predict the winner
+        #expect(withHistory.id == withoutHistory.id)
     }
 
-    @Test("Convenience never beats craving")
-    func convenienceNeverBeatsCraving() throws {
-        let recommendation = try recommendation(
-            select(
-                constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyBowlB.id]),
-                context: DailyContext(dinnerTime: .quick, craving: .riceBowls)
-            )
-        )
-        // Tortilla A matches two preferred convenience tags against Bowl A's one, but Bowl A is
-        // the craving match — craving, ranked above convenience (D46), decides regardless
-        #expect(recommendation.id == Mini.bowlA.id)
-    }
-
-    // MARK: - Alternative
+    // MARK: - The alternative
 
     @Test("The alternative prefers a different family over a different variant")
     func alternativePrefersADifferentFamily() throws {
-        let yesterday = try #require(TestCalendar.madrid.date(byAdding: .day, value: -1, to: Self.day))
-        let outcome = select(
-            constraints: DietaryConstraints(profile: .vegan),
-            context: DailyContext(dinnerTime: .quick),
-            recentSelections: [RecentDishSelection(variantID: Mini.bowlB.id, family: .riceBowls, date: yesterday)]
+        // Given two rice bowls and a tortilla, with a rice bowl shown yesterday so the tortilla
+        // leads and the two bowls follow it
+        let yesterday = try yesterday()
+        let result = try #require(
+            select(
+                entries: [Mini.bowlA, Mini.bowlB, Mini.tortillaA],
+                recentSelections: [RecentDishSelection(variantID: Mini.bowlA.id, family: .riceBowls, date: yesterday)]
+            )
         )
-        guard case let .selected(recommendation, alternative) = outcome else {
-            Issue.record("Expected .selected, got \(outcome)")
-            return
-        }
-        #expect(recommendation.id == Mini.tortillaA.id)
-        // Bowl A outranks Bowl B within riceBowls (recency 1 vs 2), so it is the alternative
-        #expect(alternative?.id == Mini.bowlA.id)
+
+        // Then the alternative is from the other family rather than the other tortilla variant
+        #expect(result.recommendation.id == Mini.tortillaA.id)
+        #expect(result.alternative?.family == .riceBowls)
     }
 
     @Test("The alternative falls back to a different variant when only one family survives")
-    func alternativeFallsBackToADifferentVariant() {
-        let outcome = select(
-            constraints: DietaryConstraints(profile: .vegan, excludedIngredientIDs: [Mini.onlyTortillaA.id])
-        )
-        guard case let .selected(recommendation, alternative) = outcome, let alternative else {
-            Issue.record("Expected a selected recommendation with an alternative")
-            return
-        }
-        #expect(alternative.family == recommendation.family)
-        #expect(alternative.id != recommendation.id)
-        #expect(Set([recommendation.id, alternative.id]) == Set([Mini.bowlA.id, Mini.bowlB.id]))
+    func alternativeFallsBackToADifferentVariant() throws {
+        // Given a field of two variants from the same family
+        let result = try #require(select(entries: [Mini.bowlA, Mini.bowlB]))
+
+        // Then the alternative is the other variant of that same family
+        #expect(result.alternative?.family == result.recommendation.family)
+        #expect(result.alternative?.id != result.recommendation.id)
+        #expect(Set([result.recommendation.id, result.alternative?.id]) == Set([Mini.bowlA.id, Mini.bowlB.id]))
     }
 
     @Test("The alternative is nil when only one candidate survives")
-    func alternativeIsNilWithOneCandidate() {
-        let outcome = select(
-            constraints: DietaryConstraints(
-                profile: .vegan,
-                excludedIngredientIDs: [Mini.onlyBowlB.id, Mini.onlyTortillaA.id]
-            )
-        )
-        guard case let .selected(recommendation, alternative) = outcome else {
-            Issue.record("Expected .selected, got \(outcome)")
-            return
-        }
-        #expect(recommendation.id == Mini.bowlA.id)
-        #expect(alternative == nil)
+    func alternativeIsNilWithOneCandidate() throws {
+        // Given a field with exactly one balanced candidate
+        let result = try #require(select(entries: [Mini.bowlA]))
+
+        // Then there is nothing to offer alongside it, and none is invented
+        #expect(result.recommendation.id == Mini.bowlA.id)
+        #expect(result.alternative == nil)
     }
 
     // MARK: - Determinism
 
     @Test("A clear winner is unaffected by the input array's order")
     func winnerIsUnaffectedByShuffledInput() throws {
-        // Given a scenario where convenience alone already decides the winner, so rotation —
-        // the only value that changes when the array is reshuffled — is never consulted
+        // Given a scenario where recency alone already decides the winner, so rotation — the
+        // only value that changes when the array is reshuffled — never breaks the tie
+        let yesterday = try yesterday()
+        let history = [RecentDishSelection(variantID: Mini.bowlA.id, family: .riceBowls, date: yesterday)]
+
         for _ in 0 ..< 5 {
             let recommendation = try recommendation(
-                select(
-                    entries: Mini.all.shuffled(),
-                    constraints: DietaryConstraints(profile: .vegan),
-                    context: DailyContext(dinnerTime: .quick)
-                )
+                select(entries: [Mini.bowlA, Mini.bowlB, Mini.tortillaA].shuffled(), recentSelections: history)
             )
             #expect(recommendation.id == Mini.tortillaA.id)
         }
@@ -389,22 +275,24 @@ struct DishSelectionTests {
 
     // MARK: - Real catalogue
 
-    @Test("No diet profile alone ever produces a no-match, in any category")
-    func noDietAloneEverProducesNoMatch() {
+    @Test("Every category offers something to every diet profile")
+    func everyCategoryOffersEveryDietProfile() {
+        // This is the invariant that lets `select` have no "nothing fits" outcome to report
+        // (D139). It fails the moment a category's last vegan or vegetarian variant is edited
+        // away — which is exactly when the app would otherwise start returning no dinner.
         for category in DinnerCategory.allCases {
             for profile in DietProfile.allCases {
-                let outcome = DishSelection.select(
+                let result = DishSelection.select(
                     from: DishCatalogue.entries,
                     request: DishSelectionRequest(
                         category: category,
-                        constraints: DietaryConstraints(profile: profile),
-                        context: .empty
+                        constraints: DietaryConstraints(profile: profile)
                     ),
                     on: Self.day,
                     calendar: TestCalendar.madrid
                 )
-                if case .noMatch = outcome {
-                    Issue.record("\(category)/\(profile) produced a no-match with nothing excluded")
+                if result == nil {
+                    Issue.record("\(category) offers nothing to a \(profile) diet")
                 }
             }
         }

@@ -24,7 +24,6 @@ extension SyntheticScenarios {
         case .noHealthData: noHealthData
         case .shortSleep: shortSleep
         case .dstSpringForward: dstSpringForward
-        case .noCompatibleDish: noCompatibleDish
         }
     }
 }

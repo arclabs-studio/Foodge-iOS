@@ -76,18 +76,11 @@ struct CaseDetailView: View {
 
             // `narrationText` is nil for every case recorded before narration existed, and stays
             // nil whenever the model did not produce a validated line. The reviewed template
-            // covers all of that. The one case it does not cover is a no-match, where the section
-            // renders nothing at all rather than promising a candidate that was never found
-            // (D106) — so History shows a flourish for every case except those.
+            // covers all of that, so History shows a flourish for every case.
             NarrationSection(
                 text: revision.narrationText,
-                category: revision.decision.category,
-                dishOutcome: revision.dishOutcome
+                category: revision.decision.category
             )
-
-            ForEach(revision.appeals) { appeal in
-                AppealRecordedSection(choice: appeal.choice)
-            }
 
             Section("Recorded") {
                 LabeledContent("Rule version", value: revision.decision.ruleVersion)
@@ -96,20 +89,9 @@ struct CaseDetailView: View {
         }
     }
 
-    @ViewBuilder
     private func dishSection(for dishOutcome: PersistedDishOutcome) -> some View {
-        switch dishOutcome {
-        case let .selected(variantID, family, _, _):
-            Section {
-                DishSummaryRow(variantID: variantID, family: family)
-            }
-        case .noMatch:
-            Section {
-                Text("No catalogue dish matched your constraints that night.")
-                Text("Nothing was relaxed to force a match.")
-                    .font(.footnote)
-                    .foregroundStyle(.appBurgundyMuted)
-            }
+        Section {
+            DishSummaryRow(variantID: dishOutcome.variantID, family: dishOutcome.family)
         }
     }
 }
@@ -133,83 +115,13 @@ struct CaseDetailView: View {
                         ),
                         evidence: SyntheticScenarios.modestAllowance.snapshot,
                         catalogueVersion: DishCatalogue.version,
-                        dishOutcome: .selected(
+                        dishOutcome: PersistedDishOutcome(
                             variantID: "dish.pasta.pesto",
                             family: .pasta,
                             alternativeVariantID: nil,
                             alternativeFamily: nil
                         ),
-                        narrationText: nil,
-                        appeals: []
-                    ),
-                ]
-            )
-        )
-    }
-}
-
-#Preview("No match", traits: .sampleData) {
-    NavigationStack {
-        CaseDetailView(
-            savedCase: SavedCase(
-                localDayKey: "2026-09-17",
-                revisions: [
-                    SavedRevision(
-                        id: UUID(),
-                        sequence: 0,
-                        createdAt: SyntheticScenarios.evaluationDate,
-                        decision: VerdictDecision(
-                            category: .balanced,
-                            basis: .energyBalance(SampleDecisions.moderateAllowance),
-                            reasonCodes: [.moderateAllowance],
-                            isProvisional: false,
-                            ruleVersion: CheatMealAllowanceRule.ruleVersion
-                        ),
-                        evidence: SyntheticScenarios.noCompatibleDish.snapshot,
-                        catalogueVersion: DishCatalogue.version,
-                        dishOutcome: .noMatch(blockingIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id]),
-                        narrationText: nil,
-                        appeals: []
-                    ),
-                ]
-            )
-        )
-    }
-}
-
-#Preview("Appealed", traits: .sampleData) {
-    NavigationStack {
-        CaseDetailView(
-            savedCase: SavedCase(
-                localDayKey: "2026-09-16",
-                revisions: [
-                    SavedRevision(
-                        id: UUID(),
-                        sequence: 0,
-                        createdAt: SyntheticScenarios.evaluationDate,
-                        decision: VerdictDecision(
-                            category: .light,
-                            basis: .energyBalance(SampleDecisions.slimAllowance),
-                            reasonCodes: [.slimAllowance],
-                            isProvisional: false,
-                            ruleVersion: CheatMealAllowanceRule.ruleVersion
-                        ),
-                        evidence: SyntheticScenarios.slimAllowance.snapshot,
-                        catalogueVersion: DishCatalogue.version,
-                        dishOutcome: .selected(
-                            variantID: "dish.lentilSalad.tomato",
-                            family: .lentilSalad,
-                            alternativeVariantID: nil,
-                            alternativeFamily: nil
-                        ),
-                        narrationText: nil,
-                        appeals: [
-                            SavedAppeal(
-                                id: UUID(),
-                                createdAt: SyntheticScenarios.evaluationDate,
-                                choice: .catalogue(variantID: "dish.tacos.beef", family: .tacos)
-                            ),
-                        ]
+                        narrationText: nil
                     ),
                 ]
             )

@@ -5,16 +5,26 @@
 //  Created by ARC Labs Studio on 25/09/2026.
 //
 
+import Accessibility
 import SwiftUI
 
-/// Where the user gives the four figures a resting-energy estimate needs (D117).
+/// The last onboarding step: the diet, the four figures a resting-energy estimate needs (D117),
+/// and the single write.
 ///
-/// **Skippable, and honestly so.** Without these figures Foodge simply cannot estimate resting
-/// energy on a phone that has none recorded, and it says that rather than inventing one. Nothing on
-/// this screen is stored until onboarding finishes.
+/// **The figures are skippable, and honestly so.** Without them Foodge simply cannot estimate
+/// resting energy on a phone that has none recorded, and it says that rather than inventing one.
+/// Nothing on this screen is stored until the button at the bottom succeeds.
+///
+/// The diet moved here when the preferences step was deleted (D138). It is the one thing that step
+/// gathered which the app still needs: the judge would otherwise propose a burger to a vegetarian
+/// with no way of knowing.
 @MainActor
 struct BodyBasicsView: View {
     @Bindable var vm: OnboardingViewModel
+
+    private var saveFailureMessage: LocalizedStringResource {
+        "Foodge couldn’t save your choices. Nothing has been lost — try again."
+    }
 
     var body: some View {
         Form {
@@ -57,12 +67,37 @@ struct BodyBasicsView: View {
                 }
             }
 
+            DietProfileSection(dietProfile: $vm.draft.dietProfile)
+
             Section {
-                NavigationLink("Continue", value: OnboardingRoute.preferences)
-                    .disabled(vm.hasStartedBodyBasics && vm.bodyBasicsFromInputs == nil)
+                // Both buttons write. The difference is only what they write: a complete set of
+                // figures, or none. `applyBodyBasics()` records whatever currently parses, which
+                // is `nil` for a half-filled step — so skipping discards the partial answer
+                // rather than storing three quarters of a body (D126).
+                Button("Save and finish") {
+                    vm.applyBodyBasics()
+                    Task { await vm.finish() }
+                }
+                .disabled(vm.saveState == .saving || (vm.hasStartedBodyBasics && vm.bodyBasicsFromInputs == nil))
 
                 if vm.canSkipBodyBasics {
-                    NavigationLink("Skip for now", value: OnboardingRoute.preferences)
+                    Button("Finish without the figures") {
+                        vm.applyBodyBasics()
+                        Task { await vm.finish() }
+                    }
+                    .disabled(vm.saveState == .saving)
+                }
+
+                if vm.saveState == .saving {
+                    ProgressView()
+                }
+
+                if case .failed = vm.saveState {
+                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
+                    // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `AppBurgundyMuted` is
+                    // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
+                    Text(saveFailureMessage)
+                        .foregroundStyle(.appBurgundyMuted)
                 }
             } footer: {
                 Text("Skipping is fine. On a day Health records no resting energy, Foodge will ask how your day went instead.")
@@ -70,10 +105,12 @@ struct BodyBasicsView: View {
         }
         .navigationTitle("About you")
         .navigationBarTitleDisplayMode(.inline)
-        // Applied on the way out rather than on every keystroke: the draft holds a whole body or
-        // nothing, never three answers and a half.
-        .onDisappear {
-            vm.applyBodyBasics()
+        // Nothing navigates on a failed save: the row appears inside the form the user is already
+        // on, so VoiceOver has no reason to visit it (WCAG 4.1.3). `finish()` passes through
+        // `.saving`, so a failed retry is a real state change and announces again.
+        .onChange(of: vm.saveState) { _, newValue in
+            guard case .failed = newValue else { return }
+            AccessibilityNotification.Announcement(String(localized: saveFailureMessage)).post()
         }
     }
 }

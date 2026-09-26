@@ -66,7 +66,7 @@ struct DemonstrationSessionTests {
             ),
             evidence: scenario.snapshot,
             catalogueVersion: DishCatalogue.version,
-            dishOutcome: .selected(
+            dishOutcome: PersistedDishOutcome(
                 variantID: "dish.pasta.pesto",
                 family: .pasta,
                 alternativeVariantID: nil,
@@ -130,21 +130,24 @@ struct DemonstrationSessionTests {
 
     @Test("The demonstration store is seeded from the scenario, so it opens past onboarding")
     func theDemonstrationContainerIsSeededSoOnboardingIsSkipped() async throws {
-        // Given a demonstration of the one scenario whose constraints are the point of it
+        // Given a demonstration of the scenario whose body basics are the point of it — the only
+        // thing a seed still carries that a scenario cannot demonstrate from its snapshot alone,
+        // now that per-ingredient exclusions are gone (D138)
         let (launch, _) = makeSUT()
         await launch.load()
-        await launch.startDemonstration(.noCompatibleDish)
+        await launch.startDemonstration(.estimatedResting)
         let demo = try readySession(launch)
 
         // When the seeded preferences are read back through a fresh context on that container
         let context = ModelContext(demo.container)
         let stored = try #require(try context.fetch(FetchDescriptor<UserPreferences>()).first)
 
-        // Then onboarding is already complete, and the scenario's own constraints are what the
-        // dish pick will read — the oracle is `SyntheticScenarios.noCompatibleDish`'s declaration
+        // Then onboarding is already complete, and the scenario's own body basics are what the
+        // resting estimate will read — the oracle is `SyntheticScenarios.estimatedResting`'s own
+        // declaration, and this fails if the seed stops deriving them from the snapshot (D100)
         #expect(stored.hasCompletedOnboarding)
-        #expect(stored.dietProfile == .vegan)
-        #expect(Set(stored.excludedIngredientIDs) == [Ingredient.rice.id, Ingredient.pasta.id])
+        #expect(stored.bodyBasics == SyntheticScenarios.estimatedResting.snapshot.body)
+        #expect(stored.bodyBasics != nil)
     }
 
     @Test("A demonstration session holds nothing that can reach the device")

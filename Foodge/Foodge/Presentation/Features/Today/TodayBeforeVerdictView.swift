@@ -8,8 +8,13 @@
 import Accessibility
 import SwiftUI
 
-/// Today, before a verdict has been asked for: optional context, the check-ins the category rule
-/// needs, and the one button that starts an evaluation.
+/// Today, before a verdict has been asked for: the check-ins the category rule needs, and the one
+/// button that starts an evaluation.
+///
+/// Nothing on this screen asks the user what they feel like eating. The dinner-time, energy and
+/// craving pickers and the free note all left with D138 — every one of them existed to steer the
+/// dish, and Foodge chooses the dish. What remains is what the rule cannot work out on its own:
+/// what was eaten today, and, on a day with no readable active energy, how the day went.
 @MainActor
 struct TodayBeforeVerdictView: View {
     @Bindable var vm: TodayViewModel
@@ -35,44 +40,12 @@ struct TodayBeforeVerdictView: View {
                     // `.secondary` measures ~3.4:1 against the row background in standard-contrast
                     // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is
                     // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
-                    Text("Tell the judge about tonight, or just ask for a verdict.")
+                    Text("Foodge reads today from Health and names dinner. Tell it what you have eaten if Health has not recorded it.")
                         .font(.footnote)
                         .foregroundStyle(.appBurgundyMuted)
                         .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .listRowBackground(Color.clear)
-
-                Section {
-                    Picker("Time for dinner", selection: $vm.dinnerTime) {
-                        Text("No preference").tag(DinnerTime?.none)
-                        ForEach(DinnerTime.allCases, id: \.self) { time in
-                            Text(time.displayName).tag(DinnerTime?.some(time))
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    Picker("Energy", selection: $vm.energyLevel) {
-                        Text("No preference").tag(EnergyLevel?.none)
-                        ForEach(EnergyLevel.allCases, id: \.self) { level in
-                            Text(level.displayName).tag(EnergyLevel?.some(level))
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    Picker("Craving", selection: $vm.craving) {
-                        Text("No preference").tag(DishFamily?.none)
-                        ForEach(DishFamily.allCases, id: \.self) { family in
-                            Text(family.displayName).tag(DishFamily?.some(family))
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
-                    TextField("Add a note", text: $vm.noteText, axis: .vertical)
-                        .accessibilityHint(
-                            "Optional, up to \(Note.maximumLength) characters. Colours the judge’s humour only."
-                        )
-                } header: {
-                    Text("Tonight")
-                } footer: {
-                    Text("Optional. This never changes the category — only the pick inside it.")
-                }
 
                 IntakeCheckInSection(vm: vm)
 
@@ -98,6 +71,15 @@ struct TodayBeforeVerdictView: View {
                     SelfReportCheckInSection { report in
                         Task { await vm.submitSelfReport(report) }
                     }
+                case let .noDishAvailable(decision):
+                    Section {
+                        // Unreachable for every shipped diet profile, and said plainly rather than
+                        // papered over with a dish nothing chose (D139).
+                        Text("Tonight’s category is \(decision.category.displayName), and nothing in Foodge’s menu fits it on your diet.")
+                        Text("Nothing was recorded for tonight.")
+                            .font(.footnote)
+                            .foregroundStyle(.appBurgundyMuted)
+                    }
                 case .gathering, .evaluating, .verdict, .saveFailed:
                     EmptyView()
                 }
@@ -114,7 +96,7 @@ struct TodayBeforeVerdictView: View {
                             Text("Tonight’s verdict")
                         }
                     }
-                case .gathering, .evaluating, .needsSelfReport, .evidenceUnavailable, .saveFailed:
+                case .gathering, .evaluating, .needsSelfReport, .evidenceUnavailable, .noDishAvailable, .saveFailed:
                     Section {
                         Button("Give me a verdict") {
                             Task { await vm.requestVerdict() }

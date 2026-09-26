@@ -17,6 +17,5 @@ protocol VerdictNarrator: Sendable {
     func flourish(
         for decision: VerdictDecision,
         dishName: String,
-        note: Note?
     ) async -> String?
 }

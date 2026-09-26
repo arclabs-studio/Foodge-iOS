@@ -22,7 +22,7 @@ struct JudgeFlourish {
 
 /// Asks the on-device model for a flourish, and gives up quietly on anything at all going wrong.
 ///
-/// **Privacy invariant: the prompt, the note and the model's output never reach a `Logger`.**
+/// **Privacy invariant: the prompt and the model's output never reach a `Logger`.**
 /// Only the case label of a failure is ever logged — never `errorDescription`, which can echo
 /// prompt content.
 ///
@@ -46,7 +46,6 @@ struct FoundationModelsNarrator: VerdictNarrator {
     func flourish(
         for decision: VerdictDecision,
         dishName: String,
-        note: Note?
     ) async -> String? {
         let status = availability()
         guard status.canNarrate else {
@@ -66,15 +65,15 @@ struct FoundationModelsNarrator: VerdictNarrator {
 
         do {
             let response = try await session.respond(
-                to: NarrationPrompt.prompt(for: decision, dishName: dishName, note: note),
+                to: NarrationPrompt.prompt(for: decision, dishName: dishName),
                 generating: JudgeFlourish.self,
                 includeSchemaInPrompt: true,
                 options: options
             )
             return response.content.line
         } catch let error as LanguageModelSession.GenerationError {
-            // The case label only. `errorDescription` can quote the prompt, which would put the
-            // user's note in the log.
+            // The case label only. `errorDescription` can quote the prompt, and a prompt is not
+            // something this file puts in a log.
             NarrationLog.logger.info("NARRATION generation=\(Self.label(for: error), privacy: .public)")
             return nil
         } catch {

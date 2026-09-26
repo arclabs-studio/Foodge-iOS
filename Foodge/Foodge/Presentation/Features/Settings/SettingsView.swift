@@ -27,7 +27,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    NavigationLink("Preferences", value: SettingsRoute.preferences)
+                    NavigationLink("Diet", value: SettingsRoute.preferences)
                 }
 
                 // Hidden during a demonstration, both of them, because neither can tell the truth
@@ -50,12 +50,6 @@ struct SettingsView: View {
                 switch route {
                 case .preferences:
                     SettingsPreferencesView(vm: vm)
-                case .ingredientExclusions:
-                    IngredientExclusionsView(
-                        excludedIngredientIDs: vm.draft.excludedIngredientIDs
-                    ) { ingredientID in
-                        Task { await vm.toggleExclusion(ingredientID) }
-                    }
                 case .demonstration:
                     DemonstrationScenariosView(controls: demonstration)
                 }

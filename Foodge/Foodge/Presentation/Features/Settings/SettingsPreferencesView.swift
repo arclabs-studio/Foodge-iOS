@@ -7,14 +7,15 @@
 
 import SwiftUI
 
-/// Editing, after onboarding, the same four things onboarding gathered.
+/// Editing the diet profile after onboarding.
 ///
-/// The difference from `PreferencesView` is when it writes: onboarding holds everything in memory
-/// until one Save, because someone who abandons it must leave nothing behind. Here the profile
-/// already exists, so each change is saved as it is made and a failure is shown next to it.
+/// The difference from the onboarding step is when it writes: onboarding holds everything in
+/// memory until one Save, because someone who abandons it must leave nothing behind. Here the
+/// profile already exists, so the change is saved as it is made and a failure is shown next to it.
 ///
-/// The favourites and exclusions controls are the onboarding ones, reused rather than copied
-/// (D63/D70/D71).
+/// One section, where there were four: favourites, the exclusions link and the dinner routine all
+/// left with D138. `DietProfileSection` is still the onboarding control, reused rather than copied
+/// (D63).
 @MainActor
 struct SettingsPreferencesView: View {
     @Bindable var vm: SettingsViewModel
@@ -25,27 +26,9 @@ struct SettingsPreferencesView: View {
                 Task { await vm.preferencesChanged() }
             }
 
-            IngredientExclusionsLinkSection(
-                excludedCount: vm.draft.excludedIngredientIDs.count,
-                route: SettingsRoute.ingredientExclusions
-            )
-
-            ForEach(DinnerCategory.allCases, id: \.self) { category in
-                FavouriteFamiliesSection(
-                    category: category,
-                    favourites: vm.draft.favouriteFamilies
-                ) { family in
-                    Task { await vm.toggleFavourite(family) }
-                }
-            }
-
-            DinnerRoutineSection(dinnerRoutine: $vm.draft.dinnerRoutine) {
-                Task { await vm.preferencesChanged() }
-            }
-
             SettingsSaveFailureSection(saveState: vm.saveState)
         }
-        .navigationTitle("Preferences")
+        .navigationTitle("Diet")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

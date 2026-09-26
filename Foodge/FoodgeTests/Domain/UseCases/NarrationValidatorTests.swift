@@ -22,7 +22,7 @@ struct NarrationValidatorTests {
         let candidate = "   The court finds   the defence charming.  "
 
         // When it is validated
-        let result = NarrationValidator.validate(candidate, note: nil)
+        let result = NarrationValidator.validate(candidate)
 
         // Then it is accepted trimmed and whitespace-collapsed, exactly
         #expect(result == .accepted("The court finds the defence charming."))
@@ -34,7 +34,7 @@ struct NarrationValidatorTests {
         let candidate = "El tribunal declara la cena aprobada sin objeciones."
 
         // When it is validated
-        let result = NarrationValidator.validate(candidate, note: nil)
+        let result = NarrationValidator.validate(candidate)
 
         // Then it survives intact — accents and all
         #expect(result == .accepted("El tribunal declara la cena aprobada sin objeciones."))
@@ -48,7 +48,7 @@ struct NarrationValidatorTests {
         for category in DinnerCategory.allCases {
             let english = String(localized: category.flourishTemplate)
             #expect(
-                NarrationValidator.validate(english, note: nil) == .accepted(english),
+                NarrationValidator.validate(english) == .accepted(english),
                 "The \(category) template does not satisfy the rules it imposes on model output"
             )
         }
@@ -63,16 +63,16 @@ struct NarrationValidatorTests {
         let overLimit = String(repeating: "a", count: NarrationValidator.maximumCharacters + 1)
 
         // Then the boundary itself is inclusive, and one character more is not
-        #expect(NarrationValidator.validate(atLimit, note: nil) == .accepted(atLimit))
-        #expect(NarrationValidator.validate(overLimit, note: nil) == .rejected(.tooLong))
+        #expect(NarrationValidator.validate(atLimit) == .accepted(atLimit))
+        #expect(NarrationValidator.validate(overLimit) == .rejected(.tooLong))
     }
 
     // MARK: - Shape
 
     @Test("Nothing at all is rejected as empty")
     func emptyCandidateIsRejected() {
-        #expect(NarrationValidator.validate("", note: nil) == .rejected(.empty))
-        #expect(NarrationValidator.validate("   \n\t  ", note: nil) == .rejected(.empty))
+        #expect(NarrationValidator.validate("") == .rejected(.empty))
+        #expect(NarrationValidator.validate("   \n\t  ") == .rejected(.empty))
     }
 
     @Test(
@@ -84,7 +84,7 @@ struct NarrationValidatorTests {
         ]
     )
     func unsuitableShapesAreRejected(candidate: String) {
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.unsuitableShape))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.unsuitableShape))
     }
 
     // MARK: - Numeric claims
@@ -99,7 +99,7 @@ struct NarrationValidatorTests {
         ]
     )
     func numeralsAreRejected(candidate: String) {
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.numericClaim))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.numericClaim))
     }
 
     @Test(
@@ -113,7 +113,7 @@ struct NarrationValidatorTests {
         ]
     )
     func numberWordsAreRejected(candidate: String) {
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.numericClaim))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.numericClaim))
     }
 
     @Test(
@@ -126,7 +126,7 @@ struct NarrationValidatorTests {
         ]
     )
     func measurementUnitsAreRejected(candidate: String) {
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.numericClaim))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.numericClaim))
     }
 
     @Test(
@@ -142,7 +142,7 @@ struct NarrationValidatorTests {
         // This test fails the moment someone "completes" the number-word list with one/un/una/uno.
         // Without it, that change would silently reject nearly every valid Spanish flourish while
         // every other test in this suite still passed.
-        #expect(NarrationValidator.validate(candidate, note: nil) == .accepted(candidate))
+        #expect(NarrationValidator.validate(candidate) == .accepted(candidate))
     }
 
     // MARK: - Banned phrases
@@ -162,7 +162,7 @@ struct NarrationValidatorTests {
         ]
     )
     func bannedPhrasesAreRejected(candidate: String) {
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.bannedPhrase))
     }
 
     @Test(
@@ -178,7 +178,7 @@ struct NarrationValidatorTests {
         // string removals: the product is a judge granting a cheat meal, and a validator that
         // refused the words could never let it say so. This test fails if any of the three is put
         // back into `bannedPhrases`.
-        #expect(NarrationValidator.validate(candidate, note: nil) == .accepted(candidate))
+        #expect(NarrationValidator.validate(candidate) == .accepted(candidate))
     }
 
     @Test(
@@ -195,7 +195,7 @@ struct NarrationValidatorTests {
         // that it swallows the bare "guilt" ban with it. Each of these contains a guilt word that
         // is *not* part of the exempt phrase, and each must still be refused — otherwise the
         // exemption has quietly reopened exactly what D118 keeps banned.
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.bannedPhrase))
     }
 
     @Test("The hyphenated spelling is exempt too, because the word scan strips the hyphen")
@@ -204,7 +204,7 @@ struct NarrationValidatorTests {
         // written for one must cover the other. This is the spelling D119's rationale actually
         // named — "a guilt-free burger".
         let candidate = "A guilt-free burger, by order of the bench."
-        #expect(NarrationValidator.validate(candidate, note: nil) == .accepted(candidate))
+        #expect(NarrationValidator.validate(candidate) == .accepted(candidate))
     }
 
     @Test(
@@ -218,7 +218,7 @@ struct NarrationValidatorTests {
         // *Comida trampa* is not the Spanish for a cheat meal in this product's voice: *trampa* is
         // cheating-as-transgression. The Spanish copy says *capricho*, and this is what stops a
         // well-meaning future edit from "matching" the English relaxation (D118).
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.bannedPhrase))
     }
 
     @Test(
@@ -230,45 +230,7 @@ struct NarrationValidatorTests {
         ]
     )
     func injectionArtifactsAreRejected(candidate: String) {
-        #expect(NarrationValidator.validate(candidate, note: nil) == .rejected(.bannedPhrase))
-    }
-
-    // MARK: - Note echo
-
-    @Test("A candidate that quotes the note back is rejected")
-    func quotingTheNoteIsRejected() throws {
-        // Given a note long enough to quote
-        let note = try #require(Note("I had a rough meeting with the whole leadership team today"))
-
-        // When the candidate repeats a long stretch of it verbatim
-        let candidate = "The court notes: a rough meeting with the whole leadership team."
-
-        // Then it is rejected — colouring the humour never requires quoting
-        #expect(NarrationValidator.validate(candidate, note: note) == .rejected(.echoesNote))
-    }
-
-    @Test("Writing about the same subject without quoting is fine")
-    func benignSameSubjectIsAccepted() throws {
-        // Given the same note
-        let note = try #require(Note("I had a rough meeting with the whole leadership team today"))
-
-        // When the candidate is about the same day without reproducing it
-        let candidate = "The court has heard about your afternoon and rules with sympathy."
-
-        // Then it is accepted — the echo rule catches quotation, not subject matter
-        #expect(NarrationValidator.validate(candidate, note: note) == .accepted(candidate))
-    }
-
-    @Test("A note shorter than the echo window cannot be echoed")
-    func shortNotesCannotBeEchoed() throws {
-        // Given a note shorter than the 24-character window
-        let note = try #require(Note("pasta"))
-
-        // When the candidate contains it
-        let candidate = "The court proposes pasta."
-
-        // Then there is no echo to reject: a five-letter overlap is a coincidence, not a quotation
-        #expect(NarrationValidator.validate(candidate, note: note) == .accepted(candidate))
+        #expect(NarrationValidator.validate(candidate) == .rejected(.bannedPhrase))
     }
 
     // MARK: - Determinism
@@ -279,8 +241,8 @@ struct NarrationValidatorTests {
         let candidate = "You earned 400 of something."
 
         // When it is validated twice
-        let first = NarrationValidator.validate(candidate, note: nil)
-        let second = NarrationValidator.validate(candidate, note: nil)
+        let first = NarrationValidator.validate(candidate)
+        let second = NarrationValidator.validate(candidate)
 
         // Then both report the earlier rule in the documented order — numeric before banned
         #expect(first == .rejected(.numericClaim))

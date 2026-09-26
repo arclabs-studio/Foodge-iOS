@@ -52,7 +52,6 @@
         static func reopeningSavedCase(
             _ scenario: SyntheticScenario = SyntheticScenarios.modestAllowance,
             preferencesDraft: PreferencesDraft? = nil,
-            appealFailure: FoodgeError? = nil,
             decision: VerdictDecision
         ) -> AppDependencies {
             let evidence = scenario.snapshot
@@ -68,20 +67,19 @@
                 decision: decision,
                 evidence: evidence,
                 catalogueVersion: DishCatalogue.version,
-                dishOutcome: .selected(
+                dishOutcome: PersistedDishOutcome(
                     variantID: "dish.pasta.pesto",
                     family: .pasta,
                     alternativeVariantID: nil,
                     alternativeFamily: nil
                 ),
-                narrationText: nil,
-                appeals: []
+                narrationText: nil
             )
             return AppDependencies(
                 authorization: dependencies.authorization,
                 evidence: dependencies.evidence,
                 store: dependencies.store,
-                caseStore: PreviewCaseStore(seeded: seeded, matching: evidence, appealFailure: appealFailure),
+                caseStore: PreviewCaseStore(seeded: seeded, matching: evidence),
                 clock: dependencies.clock,
                 narrator: dependencies.narrator,
                 reminders: dependencies.reminders,
@@ -89,9 +87,9 @@
             )
         }
 
-        /// Four days of History: a dish match, a treat day with no appeal, a no-match day, and a
-        /// day with a recorded appeal — enough variety for `HistoryListView` and every
-        /// `CaseDetailView` outcome to preview from one dependency set.
+        /// Three days of History — a balanced day, a treat day and a light day — enough variety
+        /// for `HistoryListView` and every `CaseDetailView` outcome to preview from one dependency
+        /// set. The no-match day and the appealed day left with D138/D139: neither outcome exists.
         static var historyPopulated: AppDependencies {
             let base = make(
                 authorization: PreviewAuthorization(isHealthDataAvailable: true),
@@ -185,7 +183,7 @@
     /// `nil` here instead would show the reviewed template, which every template preview already
     /// covers.
     private struct PreviewNarrator: VerdictNarrator {
-        func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+        func flourish(for _: VerdictDecision, dishName _: String) async -> String? {
             "The defence pleaded tiredness; the court finds pasta a proportionate remedy."
         }
     }
@@ -255,21 +253,15 @@
     /// or refuses them all — mirroring `PreviewStore`'s shape for `CaseStore`.
     private actor PreviewCaseStore: CaseStore {
         private let failure: FoodgeError?
-        /// Scripted separately from `failure`: an appeal preview reopens a case that already
-        /// saved successfully, then fails only the appeal itself.
-        private let appealFailure: FoodgeError?
         private var seeded: SavedCase?
-        private(set) var recordedAppeals: [(draft: AppealDraft, revisionID: UUID)] = []
 
         init(failure: FoodgeError? = nil) {
             self.failure = failure
-            appealFailure = nil
             seeded = nil
         }
 
-        init(seeded revision: SavedRevision, matching evidence: EvidenceSnapshot, appealFailure: FoodgeError? = nil) {
+        init(seeded revision: SavedRevision, matching evidence: EvidenceSnapshot) {
             failure = nil
-            self.appealFailure = appealFailure
             seeded = SavedCase(localDayKey: Self.localDayKey(for: evidence), revisions: [revision])
         }
 
@@ -292,21 +284,13 @@
                 evidence: draft.evidence,
                 catalogueVersion: draft.catalogueVersion,
                 dishOutcome: draft.dishOutcome,
-                narrationText: nil,
-                appeals: []
+                narrationText: nil
             )
             seeded = SavedCase(
                 localDayKey: Self.localDayKey(for: draft.evidence),
                 revisions: priorRevisions + [revision]
             )
             return revision
-        }
-
-        func recordAppeal(_ draft: AppealDraft, to revisionID: UUID) async throws {
-            if let appealFailure {
-                throw appealFailure
-            }
-            recordedAppeals.append((draft, revisionID))
         }
 
         @discardableResult
@@ -364,12 +348,9 @@
                 evidence: draft.evidence,
                 catalogueVersion: draft.catalogueVersion,
                 dishOutcome: draft.dishOutcome,
-                narrationText: nil,
-                appeals: []
+                narrationText: nil
             )
         }
-
-        func recordAppeal(_: AppealDraft, to _: UUID) async throws {}
 
         @discardableResult
         func attachNarration(_: String, to _: UUID) async throws -> SavedRevision {
@@ -449,8 +430,7 @@
             sequence: Int = 0,
             evidence: EvidenceSnapshot,
             decision: VerdictDecision,
-            dishOutcome: PersistedDishOutcome,
-            appeals: [SavedAppeal] = []
+            dishOutcome: PersistedDishOutcome
         ) -> SavedRevision {
             SavedRevision(
                 id: UUID(),
@@ -460,8 +440,7 @@
                 evidence: evidence,
                 catalogueVersion: DishCatalogue.version,
                 dishOutcome: dishOutcome,
-                narrationText: nil,
-                appeals: appeals
+                narrationText: nil
             )
         }
 
@@ -474,7 +453,7 @@
                     revision(
                         evidence: day,
                         decision: decision(category: .balanced, share: 0.27, reasonCode: .moderateAllowance, evidence: day),
-                        dishOutcome: .selected(
+                        dishOutcome: PersistedDishOutcome(
                             variantID: "dish.pasta.pesto",
                             family: .pasta,
                             alternativeVariantID: nil,
@@ -485,7 +464,7 @@
             )
         }()
 
-        /// A treat day, no appeal.
+        /// A treat day.
         static let treatDay: SavedCase = {
             let day = evidence(SyntheticScenarios.generousAllowance, shiftedByDays: 1)
             return SavedCase(
@@ -494,7 +473,7 @@
                     revision(
                         evidence: day,
                         decision: decision(category: .treat, share: 0.45, reasonCode: .generousAllowance, evidence: day),
-                        dishOutcome: .selected(
+                        dishOutcome: PersistedDishOutcome(
                             variantID: "dish.burgers.blackBean",
                             family: .burgers,
                             alternativeVariantID: nil,
@@ -505,50 +484,28 @@
             )
         }()
 
-        /// A no-match day: constraints left every balanced-family variant blocked.
-        static let noMatchDay: SavedCase = {
-            let day = evidence(SyntheticScenarios.noCompatibleDish, shiftedByDays: 2)
-            return SavedCase(
-                localDayKey: localDayKey(for: day),
-                revisions: [
-                    revision(
-                        evidence: day,
-                        decision: decision(category: .balanced, share: 0.27, reasonCode: .moderateAllowance, evidence: day),
-                        dishOutcome: .noMatch(blockingIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id])
-                    ),
-                ]
-            )
-        }()
-
-        /// A light day with a recorded appeal.
-        static let appealedDay: SavedCase = {
-            let day = evidence(SyntheticScenarios.slimAllowance, shiftedByDays: 3)
+        /// A light day.
+        static let lightDay: SavedCase = {
+            let day = evidence(SyntheticScenarios.slimAllowance, shiftedByDays: 2)
             return SavedCase(
                 localDayKey: localDayKey(for: day),
                 revisions: [
                     revision(
                         evidence: day,
                         decision: decision(category: .light, share: 0.12, reasonCode: .slimAllowance, evidence: day),
-                        dishOutcome: .selected(
+                        dishOutcome: PersistedDishOutcome(
                             variantID: "dish.lentilSalad.tomato",
                             family: .lentilSalad,
                             alternativeVariantID: nil,
                             alternativeFamily: nil
-                        ),
-                        appeals: [
-                            SavedAppeal(
-                                id: UUID(),
-                                createdAt: day.evaluatedAt,
-                                choice: .catalogue(variantID: "dish.tacos.beef", family: .tacos)
-                            ),
-                        ]
+                        )
                     ),
                 ]
             )
         }()
 
         static var all: [SavedCase] {
-            [dishMatch, treatDay, noMatchDay, appealedDay]
+            [dishMatch, treatDay, lightDay]
         }
 
         private static func localDayKey(for evidence: EvidenceSnapshot) -> String {

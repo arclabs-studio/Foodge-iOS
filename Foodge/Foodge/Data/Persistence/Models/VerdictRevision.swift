@@ -27,20 +27,19 @@ final class VerdictRevision {
     var evidenceData: Data
     var catalogueVersion: String
 
-    // `PersistedDishOutcome` flattened to columns.
-    var recommendedVariantID: String?
-    var recommendedFamilyRawValue: String?
+    // `PersistedDishOutcome` flattened to columns. The recommendation is always present since
+    // D139 — the rule no longer has an outcome without one — but the columns stay optional-free
+    // only where the type is: a family arrives as its raw value and is parsed back on the way
+    // out, where a value that does not parse is a corrupted row, not a silent fallback.
+    var recommendedVariantID: String
+    var recommendedFamilyRawValue: String
     var alternativeVariantID: String?
     var alternativeFamilyRawValue: String?
-    var blockingIngredientIDs: [String]
 
     /// A validated on-device model line, written once by `attachNarration(_:to:)` and never
     /// overwritten. Stays `nil` whenever no model line was produced — the reviewed template is
     /// never persisted.
     var narrationText: String?
-
-    @Relationship(deleteRule: .cascade, inverse: \Appeal.revision)
-    var appeals: [Appeal] = []
 
     init(
         id: UUID = UUID(),
@@ -59,21 +58,10 @@ final class VerdictRevision {
         self.evidenceData = evidenceData
         self.catalogueVersion = catalogueVersion
         self.narrationText = narrationText
-
-        switch dishOutcome {
-        case let .selected(variantID, family, alternativeVariantID, alternativeFamily):
-            self.recommendedVariantID = variantID
-            self.recommendedFamilyRawValue = family.rawValue
-            self.alternativeVariantID = alternativeVariantID
-            self.alternativeFamilyRawValue = alternativeFamily?.rawValue
-            self.blockingIngredientIDs = []
-        case let .noMatch(blockingIngredientIDs):
-            self.recommendedVariantID = nil
-            self.recommendedFamilyRawValue = nil
-            self.alternativeVariantID = nil
-            self.alternativeFamilyRawValue = nil
-            self.blockingIngredientIDs = Array(blockingIngredientIDs).sorted()
-        }
+        self.recommendedVariantID = dishOutcome.variantID
+        self.recommendedFamilyRawValue = dishOutcome.family.rawValue
+        self.alternativeVariantID = dishOutcome.alternativeVariantID
+        self.alternativeFamilyRawValue = dishOutcome.alternativeFamily?.rawValue
     }
 }
 
@@ -98,22 +86,23 @@ extension VerdictRevision {
 
     /// Reassembles the flattened columns into a ``PersistedDishOutcome``.
     ///
-    /// Falls back to `.noMatch(blockingIngredientIDs: [])` only if `recommendedFamilyRawValue`
-    /// somehow fails to parse as a `DishFamily` — unreachable in practice, since this project
-    /// writes the raw value itself, but never force-unwrapped regardless.
-    var dishOutcome: PersistedDishOutcome {
-        if let recommendedVariantID,
-           let recommendedFamilyRawValue,
-           let family = DishFamily(rawValue: recommendedFamilyRawValue) {
-            let alternativeFamily = alternativeFamilyRawValue.flatMap(DishFamily.init(rawValue:))
-            return .selected(
-                variantID: recommendedVariantID,
-                family: family,
-                alternativeVariantID: alternativeVariantID,
-                alternativeFamily: alternativeFamily
-            )
+    /// Throws rather than substituting a dish when the stored family does not parse. It is
+    /// unreachable in practice — this project writes the raw value itself — but a row whose
+    /// family is unreadable is a corrupted row, and inventing a family here would put a dish in
+    /// front of the user that nothing ever chose. `allCases()` already skips a corrupted day
+    /// rather than failing the whole list.
+    ///
+    /// - Throws: ``FoodgeError/caseCorrupted`` if the stored family raw value does not parse.
+    func decodedDishOutcome() throws -> PersistedDishOutcome {
+        guard let family = DishFamily(rawValue: recommendedFamilyRawValue) else {
+            throw FoodgeError.caseCorrupted
         }
-        return .noMatch(blockingIngredientIDs: Set(blockingIngredientIDs))
+        return PersistedDishOutcome(
+            variantID: recommendedVariantID,
+            family: family,
+            alternativeVariantID: alternativeVariantID,
+            alternativeFamily: alternativeFamilyRawValue.flatMap(DishFamily.init(rawValue:))
+        )
     }
 
     /// - Throws: ``FoodgeError/caseCorrupted`` if either stored blob does not decode.
@@ -125,9 +114,8 @@ extension VerdictRevision {
             decision: try decodedDecision(),
             evidence: try decodedEvidence(),
             catalogueVersion: catalogueVersion,
-            dishOutcome: dishOutcome,
-            narrationText: narrationText,
-            appeals: appeals.compactMap { $0.asSavedAppeal() }
+            dishOutcome: try decodedDishOutcome(),
+            narrationText: narrationText
         )
     }
 }

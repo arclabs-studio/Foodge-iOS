@@ -27,17 +27,16 @@ struct TodayNarrationViewModelTests {
         scripted: String? = "The court finds the defence charming.",
         narrationEnabled: Bool = true,
         seededNarration: String? = nil,
-        dishOutcome: PersistedDishOutcome = .selected(
+        dishOutcome: PersistedDishOutcome = PersistedDishOutcome(
             variantID: "dish.pasta.pesto",
             family: .pasta,
             alternativeVariantID: nil,
             alternativeFamily: nil
         ),
-        note: Note? = nil,
         attachFailure: (any Error)? = nil,
         beforeNarratorReturns: (@Sendable () async -> Void)? = nil
     ) -> SUT {
-        let evidence = Self.evidence(note: note)
+        let evidence = Self.evidence()
         let revision = Self.revision(
             evidence: evidence,
             dishOutcome: dishOutcome,
@@ -64,14 +63,14 @@ struct TodayNarrationViewModelTests {
         )
     }
 
-    private static func evidence(note: Note?) -> EvidenceSnapshot {
+    private static func evidence() -> EvidenceSnapshot {
         let base = SyntheticScenarios.modestAllowance.snapshot
         return EvidenceSnapshot(
             evaluatedAt: base.evaluatedAt,
             timeZoneIdentifier: base.timeZoneIdentifier,
             today: base.today,
             availability: base.availability,
-            context: DailyContext(note: note),
+            context: base.context,
             constraints: base.constraints,
             intake: base.intake,
             body: base.body,
@@ -98,8 +97,7 @@ struct TodayNarrationViewModelTests {
             evidence: evidence,
             catalogueVersion: DishCatalogue.version,
             dishOutcome: dishOutcome,
-            narrationText: narrationText,
-            appeals: []
+            narrationText: narrationText
         )
     }
 
@@ -201,40 +199,6 @@ struct TodayNarrationViewModelTests {
         #expect(sut.viewModel.narrationStage.text == nil)
     }
 
-    @Test("A no-match night never reaches the narrator")
-    func noMatchNeverReachesTheNarrator() async {
-        // Given a night where no catalogue dish matched
-        let sut = makeSUT(dishOutcome: .noMatch(blockingIngredientIDs: [Ingredient.rice.id]))
-        await sut.viewModel.onAppear()
-
-        // When narration is asked for
-        await sut.viewModel.narrateIfNeeded()
-
-        // Then there was no dish to be playful about, so nothing was generated — inventing one
-        // would contradict the honest no-match the product rule requires
-        #expect(await sut.narrator.callCount == 0)
-        #expect(sut.viewModel.narrationStage == .template)
-    }
-
-    @Test("A no-match night shows no flourish at all, not even the template")
-    func aNoMatchShowsNoFlourish() {
-        // Given the two outcomes a recorded verdict can carry
-        let selected = PersistedDishOutcome.selected(
-            variantID: "dish.pasta.pesto",
-            family: .pasta,
-            alternativeVariantID: nil,
-            alternativeFamily: nil
-        )
-        let noMatch = PersistedDishOutcome.noMatch(blockingIngredientIDs: [Ingredient.rice.id])
-
-        // Then only the one with a dish shows a flourish. Falling back to the template on a
-        // no-match is what the ledger caught on stage: every template speaks of a candidate that
-        // was found, so a Balanced no-match promised "Tonight's leading candidate is on the table"
-        // with nothing on it (D106). The stage above only stops the *model* from being asked.
-        #expect(selected.showsFlourish)
-        #expect(noMatch.showsFlourish == false)
-    }
-
     // MARK: - What the narrator is given
 
     @Test("The narrator receives the dish name, never the stored variant id")
@@ -253,22 +217,6 @@ struct TodayNarrationViewModelTests {
         #expect(received == String(localized: entry.variant.displayName))
         #expect(received != "dish.pasta.pesto")
     }
-
-    @Test("The narrator receives the note the verdict was decided with")
-    func narratorReceivesTheNote() async throws {
-        // Given a verdict recorded with a note
-        let note = try #require(Note("Rough meeting, I need something comforting"))
-        let sut = makeSUT(note: note)
-        await sut.viewModel.onAppear()
-
-        // When narration runs
-        await sut.viewModel.narrateIfNeeded()
-
-        // Then the note travels with it — the validator needs it to detect an echo
-        #expect(await sut.narrator.receivedNotes.first == note)
-    }
-
-    // MARK: - Failure is always silent
 
     @Test("A narrator that produces nothing leaves the template showing")
     func nothingProducedLeavesTheTemplate() async {
@@ -368,17 +316,15 @@ private actor NarrationFixtureNarrator: VerdictNarrator {
     private let beforeReturn: (@Sendable () async -> Void)?
     private(set) var callCount = 0
     private(set) var receivedDishNames: [String] = []
-    private(set) var receivedNotes: [Note?] = []
 
     init(scripted: String?, beforeReturn: (@Sendable () async -> Void)? = nil) {
         self.scripted = scripted
         self.beforeReturn = beforeReturn
     }
 
-    func flourish(for _: VerdictDecision, dishName: String, note: Note?) async -> String? {
+    func flourish(for _: VerdictDecision, dishName: String) async -> String? {
         callCount += 1
         receivedDishNames.append(dishName)
-        receivedNotes.append(note)
         await beforeReturn?()
         return scripted
     }
@@ -410,15 +356,10 @@ private actor NarrationFixtureCaseStore: CaseStore {
             evidence: draft.evidence,
             catalogueVersion: draft.catalogueVersion,
             dishOutcome: draft.dishOutcome,
-            narrationText: nil,
-            appeals: []
+            narrationText: nil
         )
         seeded = SavedCase(localDayKey: seeded?.localDayKey ?? "2026-09-18", revisions: revisions + [revision])
         return revision
-    }
-
-    func recordAppeal(_: AppealDraft, to _: UUID) async throws {
-        // Not exercised this suite — see `TodayAppealViewModelTests`.
     }
 
     @discardableResult

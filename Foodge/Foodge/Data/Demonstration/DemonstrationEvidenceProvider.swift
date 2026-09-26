@@ -9,15 +9,14 @@ import Foundation
 
 /// Serves one labelled demonstration scenario instead of reading Health.
 ///
-/// Unlike `PreviewEvidence`, which returns its scripted snapshot verbatim, this **merges the
-/// caller's ``DailyContext`` over the scenario's** (D101). `TodayViewModel.finish()` feeds
-/// `snapshot.context` — not the caller's — into `DishSelection`, and `NarrationPrompt` reads the
-/// note from the same place, so a verbatim return would silently delete the "add context" step
-/// from the walkthrough while still looking like it worked.
+/// Unlike `PreviewEvidence`, which returns its scripted snapshot verbatim, this **carries the
+/// caller's ``DailyContext`` through** (D101). What the user answers on stage has to reach the
+/// recorded evidence, and a verbatim return would silently delete the check-in from the
+/// walkthrough while still looking like it worked.
 ///
-/// Merge rather than replace, because a scenario's own context is part of what it demonstrates:
-/// `shortSleep` ships `energyLevel: .low` deliberately, and a replace would erase it the moment
-/// the user set any other field.
+/// It used to merge the caller's context over the scenario's. With D138 a context is one field —
+/// the self-report — no scenario declares one, and a merge over an always-empty base is a
+/// no-op dressed as a rule.
 ///
 /// Everything Health-derived comes from the scenario untouched, `isSynthetic` included — that flag
 /// is what makes every screen print "Demonstration data" instead of "From Health".
@@ -39,7 +38,7 @@ struct DemonstrationEvidenceProvider: HealthEvidenceProvider {
             timeZoneIdentifier: scripted.timeZoneIdentifier,
             today: scripted.today,
             availability: scripted.availability,
-            context: context.merged(over: scripted.context),
+            context: context,
             constraints: constraints,
             // The scenario's own questionnaire and body basics are carried through: they are the
             // only way `estimatedIntake` and `estimatedResting` can demonstrate an estimated
@@ -47,19 +46,6 @@ struct DemonstrationEvidenceProvider: HealthEvidenceProvider {
             intake: scripted.intake,
             body: scripted.body,
             isSynthetic: scripted.isSynthetic
-        )
-    }
-}
-
-private extension DailyContext {
-    /// This context laid over `base`: each field this one answers wins, and `base` fills the rest.
-    func merged(over base: DailyContext) -> DailyContext {
-        DailyContext(
-            dinnerTime: dinnerTime ?? base.dinnerTime,
-            energyLevel: energyLevel ?? base.energyLevel,
-            craving: craving ?? base.craving,
-            selfReportedActivity: selfReportedActivity ?? base.selfReportedActivity,
-            note: note ?? base.note
         )
     }
 }

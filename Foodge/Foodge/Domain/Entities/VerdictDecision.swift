@@ -35,7 +35,6 @@ enum ReasonCode: String, Codable, CaseIterable, Hashable, Sendable {
     case intakeEstimated
     case strongActivityToday
     case shortSleep
-    case lowReportedEnergy
     case selfReportedMore
     case selfReportedUsual
     case selfReportedLess

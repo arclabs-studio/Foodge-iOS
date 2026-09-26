@@ -30,7 +30,6 @@ enum DemonstrationScenarioID: String, CaseIterable, Hashable, Sendable, Identifi
     case noHealthData
     case shortSleep
     case dstSpringForward
-    case noCompatibleDish
 
     var id: String { rawValue }
 }

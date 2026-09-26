@@ -48,7 +48,7 @@ struct CaseStoreTests {
     }
 
     private func makeDishOutcome(variantID: String = "burger.classic") -> PersistedDishOutcome {
-        .selected(variantID: variantID, family: .burgers, alternativeVariantID: nil, alternativeFamily: nil)
+        PersistedDishOutcome(variantID: variantID, family: .burgers, alternativeVariantID: nil, alternativeFamily: nil)
     }
 
     private func makeDraft(
@@ -148,49 +148,6 @@ struct CaseStoreTests {
         #expect(savedFive.latestRevision?.decision.category == .treat)
         #expect(savedSix.revisions.count == 1)
         #expect(savedSix.latestRevision?.decision.category == .light)
-    }
-
-    // MARK: - Appeals
-
-    @Test("An appeal attaches to one specific revision")
-    func anAppealAttachesToOneSpecificRevision() async throws {
-        // Given two revisions recorded for one day
-        let sut = try makeSUT()
-        let evidence = makeEvidence(day: 5)
-        let firstRevision = try await sut.recordRevision(makeDraft(evidence: evidence, decision: makeDecision(category: .treat)))
-        let secondEvidence = makeEvidence(day: 5, hour: 20, minute: 0)
-        let secondRevision = try await sut.recordRevision(makeDraft(evidence: secondEvidence, decision: makeDecision(category: .light)))
-
-        // When an appeal is recorded against the first revision only
-        let appeal = AppealDraft(createdAt: evidence.evaluatedAt, choice: .catalogue(variantID: "tacos.classic", family: .tacos))
-        try await sut.recordAppeal(appeal, to: firstRevision.id)
-
-        // Then only that revision shows the appeal
-        let saved = try #require(try await sut.savedCase(matching: evidence))
-        let reloadedFirst = try #require(saved.revisions.first { $0.id == firstRevision.id })
-        let reloadedSecond = try #require(saved.revisions.first { $0.id == secondRevision.id })
-        #expect(reloadedFirst.appeals.count == 1)
-        #expect(reloadedFirst.appeals.first?.choice == appeal.choice)
-        #expect(reloadedSecond.appeals.isEmpty)
-    }
-
-    @Test("An unknown revision id fails honestly")
-    func anUnknownRevisionIDFailsHonestly() async throws {
-        // Given a case with one recorded revision
-        let sut = try makeSUT()
-        let evidence = makeEvidence(day: 5)
-        let revision = try await sut.recordRevision(makeDraft(evidence: evidence))
-
-        // When an appeal is addressed to a revision id that does not exist
-        let appeal = AppealDraft(createdAt: evidence.evaluatedAt, choice: .freeText("Grandma's paella"))
-        await #expect(throws: FoodgeError.revisionNotFound) {
-            try await sut.recordAppeal(appeal, to: UUID())
-        }
-
-        // Then nothing was recorded against the real revision either
-        let saved = try #require(try await sut.savedCase(matching: evidence))
-        let reloaded = try #require(saved.revisions.first { $0.id == revision.id })
-        #expect(reloaded.appeals.isEmpty)
     }
 
     // MARK: - Narration

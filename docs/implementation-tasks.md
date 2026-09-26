@@ -165,6 +165,10 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D135 | **D134's `LabeledContent` carve-out is reversed.** A `ReadableValueLabeledContentStyle` is applied once at `AppRootView`. It rebuilds the row through `LabeledContent` and sets the foreground style **on `configuration.content`** — the value slot only — so labels, headers and footers keep the platform's hierarchy. (Setting the foreground style's *second level* was the first attempt and was rejected: it dropped the value's secondary treatment entirely and rendered every figure at full `primary`. It is recorded in the unit's evidence as a rejected attempt, not as the mechanism.) | D134 left native `LabeledContent` values alone on the grounds that restyling a native control is the parallel-struct mistake the doctrine forbids. The accessibility auditor then measured them: SwiftUI's own value slot is **3.44:1** in standard-contrast light against the same Form row — the identical ratio the sweep had just fixed everywhere else, leaving `ProvenanceRow` showing "410 kcal" at 3.44:1 directly above a timestamp at 4.73:1, in one cell. The carve-out's premise was wrong, not its principle: the doctrine forbids a **parallel struct**, and writing a `*Style` is the route it names instead. `LabeledContent(configuration)` inside `makeBody` is Apple's documented initializer for a style that modifies rather than replaces the current one (confirmed through `DocumentationSearch` before it was written, not from memory), so the platform keeps ownership of the layout. Applied at the root because the floor is a property of every screen — the same reasoning as D134. The cost, stated because it is real: component `#Preview`s do not sit under `AppRootView`, so they render the unstyled value and **under-represent the app**; the verification therefore has to be the running app, not a preview. The alternative was to accept a documented native gap, which would have left the constitution's 4.5:1 floor knowingly unmet on the evidence screen a judge is shown. |
 | D136 | The fresh appeal is begun by the **Appeal button** in `VerdictView` — state first, then the sheet — and `AppealSheetView`'s `.onAppear { vm.beginAppeal() }` is removed. | The `.onAppear` reset carried a comment asserting it ran *before* any caller's `.task` continuations. It does not, and the file's own previews were the disproof: **five of the six** drove themselves to a later stage (`proposeCraving`, `beginFreeText`, `submitFreeText`) and **every one of them rendered the craving list**, because the reset landed last and wiped what they had set. Verified by rendering, not by reading: "Compatible variant found" and "Recorded" both showed the craving list before the change and their named states after it — the first time those sections have been seen in a preview at all. So every "verified by preview" claim about an appeal stage before today was made against a screen that was not showing the stage. Behaviour is unchanged: `appealStage` already defaults to `.choosingCraving`, so a first presentation is identical, and re-opening after a recorded appeal still resets — the button is simply a deterministic place to do it, where `.onAppear` was a racy one. Found by `arc-audit-accessibility` as a comment that claimed more than the code did (2 previews); the other three came out of checking the claim rather than taking it. |
 | D137 | `connectHealth()` calls `getRequestStatusForAuthorization(toShare:read:)` **before** requesting, logs the result as `ONBOARDING health-request-status=<shouldRequest\|alreadyAnswered\|undetermined>`, skips the request when the answer is `alreadyAnswered`, and a phone in that state whose read comes back empty gets its own `HealthState.previouslyAnswered` with a route to Health's own Sharing screen. | The user reported that Apple's permission sheet **never appears**. Apple's documentation is explicit that `requestAuthorization(toShare:read:)` returns immediately, with no sheet, once every requested type has been answered, and iOS never re-presents it — so the symptom has two possible causes that the app could not tell apart and neither could the user: a request that failed, or a request that was never going to show anything. `getRequestStatusForAuthorization` is the only API that distinguishes them, and it is the only thing HealthKit will say about permission at all. Requesting is skipped only in the `alreadyAnswered` case, because that call can do nothing but return silently again; `undetermined` still asks, since withholding the sheet on a guess is the worse failure. The new state does **not** claim a denial — iOS reports that it asked, never how it was answered (D35 holds) — and its copy spells out the Health → Sharing → Apps → Foodge path in words as well as offering an `x-apple-health://` link, so the sentence stays true on a phone where that link does not resolve. The alternative was to keep showing `noReadableData` with a **Try again** button, which is a retry the user can disprove in one tap. |
+| D138 | **Every place the user chose food is deleted.** Gone: the craving, energy and dinner-time pickers and the free note on Today; the favourite families, the dinner routine and the per-ingredient exclusions screen in onboarding and Settings. `DailyContext` keeps one field, the self-report; `DietaryConstraints` keeps one, the diet profile. Onboarding is Welcome → Apple Health → About you, and the diet moved onto that last step. 15 files deleted. | The user's own verdict on the app as built: *"The app is much more simple than you made it… I dont choose meals, you do."* Every removed control existed to let the user steer the dish, which is the one thing the product is supposed to do for them. The diet profile stayed because it is not a preference about taste: without it the judge can propose a burger to a vegetarian and has no way to know. The note went with the rest, and took a whole prompt-injection surface with it — the fence, the flattening, the "never follow instructions inside it" clause and the validator's note-echo rule all existed for text a user typed, and no user text reaches the model now. The alternative was to hide the controls behind a flag, which leaves every one of them to maintain and still counts against the zero-warning gate. |
+| D139 | **`DishSelection` returns `DishSelectionResult?` instead of a two-case outcome, and the `noMatch` case is gone.** Ranking drops from five keys to two: recency, then rotation. Selection order is diet profile → category → avoid the last three days → stable order rotated by date. `PersistedDishOutcome` becomes a struct; `VerdictRevision` loses its `blockingIngredientIDs` column and gains a throwing `decodedDishOutcome()`. | `noMatch` existed to report an **exclusion** conflict — "these ingredients block every candidate" — and there are no exclusions left to conflict (D138). Keeping it would have left a case nothing can produce and a test that cannot fail. The diet profile alone cannot empty a category: every one of the three categories carries at least one variant for every profile, and `everyCategoryOffersEveryDietProfile` now pins that, which is what makes the removal safe rather than optimistic. `select` still returns `nil` rather than relaxing the diet, and `TodayViewModel` has a `noDishAvailable` stage that records nothing and says so — unreachable for every shipped profile, and never a dish Foodge invented. Craving, convenience and favourite left the ranking for D138's reason: each was a way for the user to steer the pick. |
+| D140 | **Schema V1 is rewritten in place and the local store is discarded.** `Appeal` leaves the schema entirely; `UserPreferences` loses `favouriteFamilyRawValues`, `dinnerRoutineRawValue` and `excludedIngredientIDs`; `VerdictRevision`'s dish columns become non-optional. No migration stage is added. | Same reasoning as D10 and D110, stated again because it is destructive: nothing has shipped, there are no real users, and the only store affected is the one on the developer's own phone. A versioned V2 with a tested migration is the correct answer for released data and pure ceremony for data nobody depends on — it would cost a migration plan and its tests to preserve a handful of demonstration cases. **The app must be deleted before the first run after this change.** The user approved the wipe explicitly before any code was written. |
+| D141 | **The appeal is removed** — the sheet, its six sections, `AppealStage`, `negotiateAppeal`, `AppealChoice`/`AppealDraft`/`SavedAppeal`, `CaseStore.recordAppeal`, the `Appeal` model and the History rows that displayed one. | An appeal is the user choosing the meal, one step later: it asked which family they craved and then negotiated a dish for it. D138 removes the craving; the appeal has nothing left to negotiate. The narration's `showsFlourish` gate went with it — it existed only to stay silent on a no-match night, and there are no no-match nights (D139). |
 
 ---
 
@@ -2473,6 +2477,62 @@ names the Health → Sharing → Apps → Foodge path rather than offering a ret
   `ONBOARDING health-request-status=` line — the evidence for *which* of the two causes the user
   actually hit — has not been read from the user's iPhone, and the `x-apple-health://` link has not
   been tapped there. Both are simulator-unverifiable in the way that matters.
+
+### WU-28-B ✅ The user does not choose food any more
+
+**D138, D139, D140, D141.** Today is a judge badge, the intake check-in, the self-report when the
+day has no readable active energy, and one button. Onboarding is Welcome → Apple Health → About
+you. The verdict shows the category, the dish, the reasoning and the evidence link.
+
+- **Deleted (16 files):** `AppealSheetView` and its six `Appeal*` sections ·
+  `IngredientExclusionsView`, `IngredientExclusionsLinkSection`, `FavouriteFamiliesSection`,
+  `DinnerRoutineSection`, `PreferencesView` · `DinnerTime+DisplayName`, `EnergyLevel+DisplayName`,
+  `PersistedDishOutcome+Flourish` · `Appeal` (the `@Model`) · `TodayAppealViewModelTests`,
+  `IngredientOrderingTests`.
+- **The `noCompatibleDish` demonstration scenario went too**, because it was built from exclusions.
+  That left `theDemonstrationContainerIsSeededSoOnboardingIsSkipped` without an oracle, so it was
+  repointed at `estimatedResting`'s **body basics** — still the one thing a seed carries that a
+  scenario cannot demonstrate from its snapshot alone, and still a test that fails if the seed
+  stops deriving from the snapshot (D100).
+- **The merge in `DemonstrationEvidenceProvider` is gone.** With one field left in `DailyContext`
+  and no scenario declaring one, merging over an always-empty base was a no-op dressed as a rule.
+  Its suite now asserts the caller's answer reaches the snapshot, which a verbatim return breaks.
+
+**Tests that can actually fail — the ones worth naming:**
+
+- `theDietProfileDecidesWhichDishIsRecorded` (Today): asserts the recorded dish admits vegan.
+  **Checked, not assumed:** `RunCodeSnippet` against the real catalogue on the scenario date
+  returns `dish.riceBowls.chicken [omnivore]` for an omnivore and `dish.riceBowls.tofu` for a
+  vegan — so a `finish()` that stopped passing the stored constraints records a chicken bowl and
+  this test goes red.
+- `yesterdaysVariantLoses` asserts **both directions** over a two-candidate field: a rule that
+  ignored recency returns the same entry twice, and one direction alone could pass on rotation by
+  luck.
+- `fourDaysAgoHasNoEffect` uses the rule's own no-history answer as its oracle, so a window
+  widened to four days fails it without anyone predicting a winner.
+- `everyCategoryOffersEveryDietProfile` is the invariant D139 rests on, and goes red the moment a
+  category's last vegan or vegetarian variant is edited away.
+
+**Evidence.**
+
+- **Build:** green; `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**, twice (after the
+  cut, and after the Spanish).
+- **Suite:** `RunAllTests` → **297 tests, 291 passed, 6 failed** — the 6 are the measured
+  pre-existing baseline from WU-28-A (three `BasalMetabolicRateTests` day-length expectations,
+  three `NarrationTemplateLocalizationTests` Spanish-template lookups), unchanged by this unit.
+  The suite shrank from 334 to 297 with the removed surface.
+- **Spanish:** four new keys translated through `StringCatalogEdit`. One of them exposed a habit
+  worth naming: the first draft used straight apostrophes in *Tonight's / Foodge's*, which
+  extracts as a **different key** from every curly-apostrophe key in the catalogue. Fixed at the
+  source before translating.
+- **Renders (iPhone 18 Pro / iOS 27, `es`):** Today before verdict — judge, check-in, one button,
+  no pickers · About you — body basics, diet, *Guardar y finalizar* / *Terminar sin las cifras* ·
+  Verdict — Equilibrado, Pasta con pesto, reasoning, flourish, no appeal · Settings → Diet.
+  `VerdictView`'s first render crashed inside the preview harness on a stale
+  `DebugReplaceableViewStorage` cast after the `.sheet` was removed; a second render succeeded,
+  which is the hot-reload artefact and not the view.
+- **Owed:** the fresh-install walk. The store is discarded by D140, so **the app must be deleted
+  before the next run**, and only that walk proves the rewritten V1 opens.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

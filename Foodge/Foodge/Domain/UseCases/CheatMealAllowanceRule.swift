@@ -157,8 +157,7 @@ enum CheatMealAllowanceRule {
     /// reintroduced).
     static func decide(
         allowance: EnergyAllowance,
-        today: HealthAggregates,
-        context: DailyContext
+        today: HealthAggregates
     ) -> VerdictDecision {
         var reasonCodes: [ReasonCode] = [bandReason(forShare: allowance.share)]
 
@@ -179,10 +178,6 @@ enum CheatMealAllowanceRule {
         if hasShortSleep(in: today) {
             reasonCodes.append(.shortSleep)
         }
-        if context.energyLevel == .low {
-            reasonCodes.append(.lowReportedEnergy)
-        }
-
         return VerdictDecision(
             category: category(forShare: allowance.share),
             basis: .energyBalance(allowance),

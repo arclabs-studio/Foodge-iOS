@@ -376,18 +376,14 @@ struct OnboardingViewModelTests {
 
     @Test("Finishing writes everything the user chose, once, stamped with the injected clock")
     func finishingWritesTheCompletedDraftExactlyOnce() async throws {
-        // Given a user who has made every choice onboarding offers
+        // Given a user who has made every choice onboarding still offers: a diet and four figures
         let sut = makeSUT()
         sut.viewModel.draft.dietProfile = .pescatarian
-        sut.viewModel.draft.dinnerRoutine = .relaxed
-        sut.viewModel.toggleFavourite(.tacos)
-        sut.viewModel.toggleFavourite(.pasta)
         sut.viewModel.bodySex = .male
         sut.viewModel.ageText = "41"
         sut.viewModel.heightText = "181"
         sut.viewModel.weightText = "78"
         sut.viewModel.applyBodyBasics()
-        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
 
         // When they save and finish
         await sut.viewModel.finish()
@@ -396,75 +392,12 @@ struct OnboardingViewModelTests {
         let saved = try #require(await sut.store.savedDrafts.first)
         #expect(await sut.store.savedDrafts.count == 1)
         #expect(saved.dietProfile == .pescatarian)
-        #expect(saved.dinnerRoutine == .relaxed)
-        #expect(saved.favouriteFamilies == [.tacos, .pasta])
         #expect(saved.bodyBasics?.sex == .male)
         #expect(saved.bodyBasics?.ageYears == 41)
-        #expect(saved.excludedIngredientIDs == [Ingredient.mushroom.id])
         // Stamped from the injected clock, not from `Date()`
         #expect(saved.onboardingCompletedAt == SyntheticScenarios.evaluationDate)
         #expect(sut.viewModel.draft.onboardingCompletedAt == SyntheticScenarios.evaluationDate)
         #expect(sut.viewModel.didFinish)
-    }
-
-    @Test("Tapping a favourite a second time takes it off the list")
-    func tappingAFavouriteTwiceRemovesIt() async throws {
-        // Given two favourites chosen
-        let sut = makeSUT()
-        sut.viewModel.toggleFavourite(.tacos)
-        sut.viewModel.toggleFavourite(.pasta)
-
-        // When the first is tapped again
-        sut.viewModel.toggleFavourite(.tacos)
-        await sut.viewModel.finish()
-
-        // Then only the second is saved, in the order it was chosen — an implementation that
-        // only ever appends would save tacos twice and never let anyone change their mind
-        let saved = try #require(await sut.store.savedDrafts.first)
-        #expect(saved.favouriteFamilies == [.pasta])
-    }
-
-    // MARK: - Ingredient exclusions
-
-    @Test("Toggling an ingredient excludes it")
-    func togglingAnIngredientExcludesIt() {
-        // Given a user with nothing excluded
-        let sut = makeSUT()
-
-        // When they exclude mushroom
-        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
-
-        // Then it is recorded as excluded
-        #expect(sut.viewModel.draft.excludedIngredientIDs == [Ingredient.mushroom.id])
-    }
-
-    @Test("Toggling the same ingredient twice removes the exclusion, not appends it again")
-    func togglingTwiceRemovesTheExclusion() {
-        // Given an ingredient already excluded
-        let sut = makeSUT()
-        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
-
-        // When it is toggled a second time
-        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
-
-        // Then nothing is excluded — a Set already prevents a literal duplicate, so this proves
-        // the toggle actually removes rather than merely failing to add a second time
-        #expect(sut.viewModel.draft.excludedIngredientIDs.isEmpty)
-    }
-
-    @Test("Finishing saves the excluded ingredient ids that were chosen")
-    func finishingSavesExcludedIngredients() async throws {
-        // Given two ingredients excluded
-        let sut = makeSUT()
-        sut.viewModel.toggleExclusion(Ingredient.mushroom.id)
-        sut.viewModel.toggleExclusion(Ingredient.olive.id)
-
-        // When the user saves and finishes
-        await sut.viewModel.finish()
-
-        // Then both are written
-        let saved = try #require(await sut.store.savedDrafts.first)
-        #expect(saved.excludedIngredientIDs == [Ingredient.mushroom.id, Ingredient.olive.id])
     }
 
     @Test("A failed save is never reported as a save")

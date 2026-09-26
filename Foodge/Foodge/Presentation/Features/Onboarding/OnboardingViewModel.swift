@@ -274,25 +274,7 @@ final class OnboardingViewModel {
         }
     }
 
-    // MARK: - Preferences
-
-    /// Adds or removes a favourite, preserving the order they were chosen in.
-    func toggleFavourite(_ family: DishFamily) {
-        if let index = draft.favouriteFamilies.firstIndex(of: family) {
-            draft.favouriteFamilies.remove(at: index)
-        } else {
-            draft.favouriteFamilies.append(family)
-        }
-    }
-
-    /// Adds or removes an ingredient exclusion.
-    func toggleExclusion(_ ingredientID: String) {
-        if draft.excludedIngredientIDs.contains(ingredientID) {
-            draft.excludedIngredientIDs.remove(ingredientID)
-        } else {
-            draft.excludedIngredientIDs.insert(ingredientID)
-        }
-    }
+    // MARK: - Finishing
 
     /// Writes the preferences, and only then reports onboarding complete.
     ///

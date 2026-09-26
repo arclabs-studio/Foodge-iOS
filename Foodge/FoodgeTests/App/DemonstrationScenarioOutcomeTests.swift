@@ -22,7 +22,7 @@ import Testing
 /// Mifflin–St Jeor equation and the real length of the local day, not from `BasalMetabolicRate`.
 ///
 /// Two cases fail specifically when the seeding rule (D100) is dropped — `.estimatedResting`, whose
-/// body basics are read from stored preferences, and `.noCompatibleDish`, whose constraints are.
+/// body basics are read from stored preferences.
 @Suite("Demonstration scenario outcomes", .tags(.integration, .critical))
 @MainActor
 struct DemonstrationScenarioOutcomeTests {
@@ -115,9 +115,7 @@ struct DemonstrationScenarioOutcomeTests {
 
         // And a dish is still recommended: a negative result never suppresses dinner
         let display = try #require(viewModel.currentDisplay)
-        guard case .selected = display.dishOutcome else {
-            throw FixtureFailure("Expected a dish even on a spent allowance, got \(display.dishOutcome).")
-        }
+        #expect(!display.dishOutcome.variantID.isEmpty)
     }
 
     // MARK: - Estimated components
@@ -203,10 +201,8 @@ struct DemonstrationScenarioOutcomeTests {
         #expect(allowance.allowanceKilocalories == 540)
         #expect(try decision(viewModel).category == .balanced)
 
-        // And both observations appear as reasons instead
-        let reasonCodes = try decision(viewModel).reasonCodes
-        #expect(reasonCodes.contains(.shortSleep))
-        #expect(reasonCodes.contains(.lowReportedEnergy))
+        // And the observation appears as a reason instead
+        #expect(try decision(viewModel).reasonCodes.contains(.shortSleep))
     }
 
     // MARK: - Daylight saving
@@ -235,46 +231,23 @@ struct DemonstrationScenarioOutcomeTests {
         #expect(allowance.intakeIsEstimated)
     }
 
-    // MARK: - No match
+    // MARK: - The check-in
 
-    @Test("A scenario whose exclusions block every dish reports an honest no-match")
-    func noCompatibleDishReachesNoMatch() async throws {
-        // Given the demonstration session for the vegan day with rice and pasta excluded
-        let viewModel = try await makeSUT(.noCompatibleDish)
-
-        // When a verdict is requested
-        await viewModel.requestVerdict()
-
-        // Then the category is still reached, and the dish pick says no match rather than
-        // relaxing an exclusion (D58). This is the case that fails if the seed stops deriving
-        // constraints from the snapshot (D100): `DishSelection` is built from stored preferences.
-        let display = try #require(viewModel.currentDisplay)
-        #expect(display.decision.category == .balanced)
-        guard case let .noMatch(blockingIngredientIDs) = display.dishOutcome else {
-            throw FixtureFailure("Expected a no-match, got \(display.dishOutcome).")
-        }
-        #expect(blockingIngredientIDs == [Ingredient.rice.id, Ingredient.pasta.id])
-
-        // And the allowance is still there to show: a no-match night now carries a figure
-        #expect(try allowance(viewModel).allowanceKilocalories == 540)
-    }
-
-    // MARK: - Context
-
-    @Test("Context the user adds during a demonstration reaches the recorded evidence")
+    @Test("What the presenter answers during a demonstration reaches the recorded evidence")
     func contextAddedOnStageSurvivesIntoTheVerdict() async throws {
-        // Given a demonstration session where the presenter adds a craving before asking
-        let viewModel = try await makeSUT(.modestAllowance)
-        viewModel.craving = .pasta
-
-        // When a verdict is requested
+        // Given a demonstration session on the day with no readable Health data, which is the one
+        // that asks for the self-report at all
+        let viewModel = try await makeSUT(.noHealthData)
         await viewModel.requestVerdict()
 
-        // Then the evidence behind the verdict carries it — a provider that returned its scenario
-        // snapshot verbatim would silently drop this, taking the walkthrough's context step with
-        // it (D101)
+        // When the presenter answers the check-in
+        await viewModel.submitSelfReport(.less)
+
+        // Then the evidence behind the verdict carries the answer — a provider that returned its
+        // scenario snapshot verbatim would silently drop it, taking the walkthrough's check-in
+        // step with it (D101)
         let display = try #require(viewModel.currentDisplay)
-        #expect(display.evidence.context.craving == .pasta)
+        #expect(display.evidence.context.selfReportedActivity == .less)
         #expect(display.evidence.isSynthetic)
     }
 }

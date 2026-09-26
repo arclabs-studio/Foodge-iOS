@@ -7,19 +7,19 @@
 
 import Foundation
 
-/// What the user will and will not eat.
+/// What the user will not eat.
 ///
-/// These always come from the user. Foodge never infers a diet or an exclusion from Health, and
-/// never silently relaxes one to produce a match.
+/// Always from the user, never inferred from Health, and never relaxed to produce a match. The
+/// per-ingredient exclusion list left with D138 along with the screen that gathered it; the diet
+/// profile stayed, because without it the judge can propose a burger to a vegetarian and has no
+/// way to know.
 struct DietaryConstraints: Hashable, Codable, Sendable {
     let profile: DietProfile
-    let excludedIngredientIDs: Set<String>
 
-    init(profile: DietProfile = .omnivore, excludedIngredientIDs: Set<String> = []) {
+    init(profile: DietProfile = .omnivore) {
         self.profile = profile
-        self.excludedIngredientIDs = excludedIngredientIDs
     }
 
-    /// Omnivore with nothing excluded.
+    /// Omnivore — nothing ruled out.
     static let unrestricted = DietaryConstraints()
 }

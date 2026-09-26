@@ -278,7 +278,6 @@ enum SyntheticScenarios {
                 dietaryEnergy: energy(1460)
             ),
             availability: .readable(missing: []),
-            context: DailyContext(energyLevel: .low),
             isSynthetic: true
         )
     )
@@ -308,32 +307,6 @@ enum SyntheticScenarios {
         )
     )
 
-    /// ``modestAllowance``'s figures with constraints — vegan, rice and pasta excluded — that block
-    /// every balanced dish, so the pick honestly reports no match (D58). **The allowance figure is
-    /// still shown**, which is what makes a no-match night more useful than it used to be.
-    static let noCompatibleDish = SyntheticScenario(
-        id: "noCompatibleDish",
-        clock: clock,
-        snapshot: EvidenceSnapshot(
-            evaluatedAt: evaluationDate,
-            timeZoneIdentifier: timeZoneIdentifier,
-            today: HealthAggregates(
-                activeEnergy: energy(400),
-                restingEnergy: energy(1600),
-                steps: steps(8400),
-                sleep: sleep(hours: 7, minutes: 15),
-                workouts: [],
-                dietaryEnergy: energy(1460)
-            ),
-            availability: .readable(missing: []),
-            constraints: DietaryConstraints(
-                profile: .vegan,
-                excludedIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id]
-            ),
-            isSynthetic: true
-        )
-    )
-
     /// Every scenario, in the order demonstration mode offers them.
     static let all: [SyntheticScenario] = [
         generousAllowance,
@@ -345,6 +318,5 @@ enum SyntheticScenarios {
         noHealthData,
         shortSleep,
         dstSpringForward,
-        noCompatibleDish,
     ]
 }

@@ -76,7 +76,7 @@ struct NarrationTemplateLocalizationTests {
         for category in DinnerCategory.allCases {
             let spanish = try #require(Self.spanishStrings[Self.englishTemplate(for: category)])
             #expect(
-                NarrationValidator.validate(spanish, note: nil) == .accepted(spanish),
+                NarrationValidator.validate(spanish) == .accepted(spanish),
                 "The Spanish \(category) template does not satisfy the narration voice rules"
             )
         }

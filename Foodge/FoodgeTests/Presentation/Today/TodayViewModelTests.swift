@@ -69,14 +69,13 @@ struct TodayViewModelTests {
             ),
             evidence: evidence,
             catalogueVersion: DishCatalogue.version,
-            dishOutcome: .selected(
+            dishOutcome: PersistedDishOutcome(
                 variantID: "dish.pasta.pesto",
                 family: .pasta,
                 alternativeVariantID: nil,
                 alternativeFamily: nil
             ),
-            narrationText: nil,
-            appeals: []
+            narrationText: nil
         )
     }
 
@@ -401,46 +400,28 @@ struct TodayViewModelTests {
 
     // MARK: - The dish pick
 
-    @Test("A no-match dish selection still reaches a verdict, honestly")
-    func noMatchDishSelectionStillReachesVerdict() async throws {
-        // Given constraints that leave no balanced-family variant compatible
-        let draft = PreferencesDraft(
-            dietProfile: .vegan,
-            excludedIngredientIDs: [Ingredient.rice.id, Ingredient.pasta.id]
+    @Test("A vegan day is given a dish its diet allows, and it is recorded")
+    func theDietProfileDecidesWhichDishIsRecorded() async throws {
+        // Given someone whose stored diet is vegan
+        let sut = makeSUT(
+            snapshot: SyntheticScenarios.modestAllowance.snapshot,
+            preferencesDraft: PreferencesDraft(dietProfile: .vegan)
         )
-        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot, preferencesDraft: draft)
 
         // When a verdict is requested
         await sut.viewModel.requestVerdict()
 
-        // Then the category still rules, but the dish outcome honestly reports no match —
-        // nothing is invented to fill the gap
+        // Then the recorded dish is one the vegan diet admits. The oracle is the catalogue's own
+        // declaration, read back by id — this fails if `finish()` stops passing the stored
+        // constraints into the pick, which is exactly how a vegetarian gets offered a burger
         guard case .verdict = sut.viewModel.stage else {
             Issue.record("Expected .verdict, got \(sut.viewModel.stage.logLabel)")
             return
         }
         let recorded = try #require(await sut.caseStore.recordedDrafts.first)
-        guard case .noMatch = recorded.dishOutcome else {
-            Issue.record("Expected a .noMatch dish outcome")
-            return
-        }
-    }
-
-    // MARK: - The note
-
-    @Test("An oversized note is dropped safely, never force-unwrapped")
-    func oversizedNoteIsDroppedSafely() async throws {
-        // Given a note one character over the limit
-        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot)
-        sut.viewModel.noteText = String(repeating: "a", count: Note.maximumLength + 1)
-
-        // When a verdict is requested
-        await sut.viewModel.requestVerdict()
-
-        // Then the context carries no note — `Note(_:)`'s failable init was respected, not
-        // bypassed with a force unwrap
-        let context = try #require(await sut.evidence.receivedContexts.first)
-        #expect(context.note == nil)
+        let entry = try #require(DishCatalogue.entries.first { $0.id == recorded.dishOutcome.variantID })
+        #expect(entry.variant.diets.contains(.vegan))
+        #expect(entry.category == recorded.decision.category)
     }
 }
 
@@ -450,7 +431,7 @@ struct TodayViewModelTests {
 /// answers leaves every assertion here about the verdict itself. See
 /// `TodayNarrationViewModelTests` for the narration contract.
 private struct SilentNarrator: VerdictNarrator {
-    func flourish(for _: VerdictDecision, dishName _: String, note _: Note?) async -> String? {
+    func flourish(for _: VerdictDecision, dishName _: String) async -> String? {
         nil
     }
 }
@@ -537,13 +518,8 @@ private actor TodayFixtureCaseStore: CaseStore {
             evidence: draft.evidence,
             catalogueVersion: draft.catalogueVersion,
             dishOutcome: draft.dishOutcome,
-            narrationText: nil,
-            appeals: []
+            narrationText: nil
         )
-    }
-
-    func recordAppeal(_: AppealDraft, to _: UUID) async throws {
-        // Not exercised this suite — see `TodayAppealViewModelTests`.
     }
 
     @discardableResult

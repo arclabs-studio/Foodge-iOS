@@ -11,13 +11,15 @@ import SwiftData
 /// The first shipped schema.
 ///
 /// Versioned from the start so that the first real change is a migration rather than a
-/// reinstall. `DailyCase`, `VerdictRevision` and `Appeal` join this same version on Day 21,
-/// while nothing has shipped and growing V1 is still a development reinstall (D10).
+/// reinstall. `DailyCase` and `VerdictRevision` joined this same version on Day 21, and `Appeal`
+/// left it on Day 28 along with the appeal itself (D141) — while nothing has shipped, editing V1
+/// in place is a development reinstall rather than a migration (D10, D140). Anything already in a
+/// local store is discarded on the next install, which is the cost that decision accepted.
 enum FoodgeSchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     static var models: [any PersistentModel.Type] {
-        [UserPreferences.self, DailyCase.self, VerdictRevision.self, Appeal.self]
+        [UserPreferences.self, DailyCase.self, VerdictRevision.self]
     }
 }
 

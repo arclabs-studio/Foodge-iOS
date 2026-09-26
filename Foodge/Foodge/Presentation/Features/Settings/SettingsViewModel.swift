@@ -109,26 +109,6 @@ final class SettingsViewModel {
 
     // MARK: - Preferences
 
-    /// Adds or removes a favourite, preserving the order they were chosen in, then saves.
-    func toggleFavourite(_ family: DishFamily) async {
-        if let index = draft.favouriteFamilies.firstIndex(of: family) {
-            draft.favouriteFamilies.remove(at: index)
-        } else {
-            draft.favouriteFamilies.append(family)
-        }
-        await persist()
-    }
-
-    /// Adds or removes an ingredient exclusion, then saves.
-    func toggleExclusion(_ ingredientID: String) async {
-        if draft.excludedIngredientIDs.contains(ingredientID) {
-            draft.excludedIngredientIDs.remove(ingredientID)
-        } else {
-            draft.excludedIngredientIDs.insert(ingredientID)
-        }
-        await persist()
-    }
-
     /// Saves an edit the view bound straight into ``draft`` — diet, dinner routine, narration.
     func preferencesChanged() async {
         await persist()

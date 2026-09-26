@@ -12,7 +12,6 @@ import SwiftUI
 @MainActor
 struct VerdictView: View {
     @Bindable var vm: TodayViewModel
-    @State private var showingAppeal = false
     @State private var showingAlternative = false
 
     private var saveFailureMessage: LocalizedStringResource {
@@ -33,9 +32,6 @@ struct VerdictView: View {
         // on disappear — navigation away is handled by the framework, with no stored `Task` here.
         .task(id: vm.currentRevision?.id) {
             await vm.narrateIfNeeded()
-        }
-        .sheet(isPresented: $showingAppeal) {
-            AppealSheetView(vm: vm)
         }
         // The first failure pushes `.verdict` onto the path, so VoiceOver announces a screen
         // change — but that reads the navigation title, not what went wrong, and a failed *retry*
@@ -75,14 +71,12 @@ struct VerdictView: View {
             }
 
             if vm.currentRevision != nil {
-                // Gated on a saved revision for the same reason the Appeal section below is: a
-                // decorative flourish over a verdict that has not actually been recorded reads as
-                // if everything went fine. `arc-audit-hig` caught this — `.saveFailed` still has a
+                // Gated on a saved revision: a decorative flourish over a verdict that has not
+                // actually been recorded reads as if everything went fine. `arc-audit-hig` caught this — `.saveFailed` still has a
                 // `display`, so an ungated section showed the template over an unsaved verdict.
                 NarrationSection(
                     text: vm.narrationStage.text,
-                    category: display.decision.category,
-                    dishOutcome: display.dishOutcome
+                    category: display.decision.category
                 )
             }
 
@@ -101,13 +95,6 @@ struct VerdictView: View {
 
             if vm.currentRevision != nil {
                 Section {
-                    // State first, then the sheet: `AppealSheetView` no longer resets itself on
-                    // appear, because that reset raced whatever drove the sheet to a later
-                    // stage — see D136 and the comment on that view.
-                    Button("Appeal") {
-                        vm.beginAppeal()
-                        showingAppeal = true
-                    }
                     NavigationLink(value: TodayRoute.evidenceDetails) {
                         Text("Evidence details")
                     }
@@ -116,28 +103,20 @@ struct VerdictView: View {
         }
     }
 
-    @ViewBuilder
     private func dishSection(for dishOutcome: PersistedDishOutcome) -> some View {
-        switch dishOutcome {
-        case let .selected(variantID, family, alternativeVariantID, alternativeFamily):
-            let displayedVariantID = showingAlternative ? (alternativeVariantID ?? variantID) : variantID
-            let displayedFamily = showingAlternative ? (alternativeFamily ?? family) : family
-            Section {
-                DishSummaryRow(variantID: displayedVariantID, family: displayedFamily)
-                Button("See alternative") {
-                    showingAlternative.toggle()
-                }
-                .disabled(alternativeVariantID == nil)
+        let displayedVariantID = showingAlternative
+            ? (dishOutcome.alternativeVariantID ?? dishOutcome.variantID)
+            : dishOutcome.variantID
+        let displayedFamily = showingAlternative
+            ? (dishOutcome.alternativeFamily ?? dishOutcome.family)
+            : dishOutcome.family
+
+        return Section {
+            DishSummaryRow(variantID: displayedVariantID, family: displayedFamily)
+            Button("See alternative") {
+                showingAlternative.toggle()
             }
-        case .noMatch:
-            Section {
-                Text("No catalogue dish matched your constraints tonight.")
-                // Same WCAG 1.4.3 fix as the "Why" section's disclaimer above: `.secondary`
-                // falls short of 4.5:1 at footnote size here.
-                Text("Nothing was relaxed to force a match — you can adjust your exclusions in Preferences.")
-                    .font(.footnote)
-                    .foregroundStyle(.appBurgundyMuted)
-            }
+            .disabled(dishOutcome.alternativeVariantID == nil)
         }
     }
 }

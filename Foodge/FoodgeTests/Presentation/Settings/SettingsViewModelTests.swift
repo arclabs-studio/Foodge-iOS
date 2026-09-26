@@ -66,8 +66,6 @@ struct SettingsViewModelTests {
         // Given a profile already on disk with a reminder at 21:15
         let stored = PreferencesDraft(
             dietProfile: .vegetarian,
-            excludedIngredientIDs: ["ingredient.rice"],
-            favouriteFamilies: [.tacos],
             onboardingCompletedAt: SyntheticScenarios.evaluationDate,
             narrationEnabled: false,
             reminderHour: 21,
@@ -125,31 +123,15 @@ struct SettingsViewModelTests {
         let sut = makeSUT(seeded: PreferencesDraft(), storeFailure: FoodgeError.saveFailed)
         await sut.viewModel.load()
 
-        // When the user excludes an ingredient
-        await sut.viewModel.toggleExclusion("ingredient.rice")
+        // When the user changes their diet
+        sut.viewModel.draft.dietProfile = .vegan
+        await sut.viewModel.preferencesChanged()
 
         // Then the failure is visible, the choice is still on screen, and nothing was written
         #expect(sut.viewModel.saveState == .failed(.saveFailed))
-        #expect(sut.viewModel.draft.excludedIngredientIDs.contains("ingredient.rice"))
+        #expect(sut.viewModel.draft.dietProfile == .vegan)
         let saved = await sut.store.savedDrafts
         #expect(saved.isEmpty)
-    }
-
-    @Test("Favourites keep the order they were chosen in")
-    func favouritesKeepTheirOrder() async throws {
-        // Given a loaded profile with no favourites
-        let sut = makeSUT(seeded: PreferencesDraft())
-        await sut.viewModel.load()
-
-        // When three are chosen and the first is taken back
-        await sut.viewModel.toggleFavourite(.tacos)
-        await sut.viewModel.toggleFavourite(.pasta)
-        await sut.viewModel.toggleFavourite(.vegetableSoup)
-        await sut.viewModel.toggleFavourite(.tacos)
-
-        // Then what was saved is the remaining two, in the order they were picked
-        let saved = try #require(await sut.store.savedDrafts.last)
-        #expect(saved.favouriteFamilies == [.pasta, .vegetableSoup])
     }
 
     // MARK: - The reminder

@@ -36,11 +36,10 @@ struct DeadlineNarrator: VerdictNarrator {
     func flourish(
         for decision: VerdictDecision,
         dishName: String,
-        note: Note?
     ) async -> String? {
         await withTaskGroup(of: Outcome.self) { group in
             group.addTask {
-                .produced(await wrapped.flourish(for: decision, dishName: dishName, note: note))
+                .produced(await wrapped.flourish(for: decision, dishName: dishName))
             }
             group.addTask {
                 // A cancelled sleep throws; the value it would have returned is then discarded

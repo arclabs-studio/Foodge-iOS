@@ -56,11 +56,6 @@ extension ReasonCode {
                 "Last night’s sleep was on the short side.",
                 comment: "Verdict reason: sleep duration was short"
             )
-        case .lowReportedEnergy:
-            LocalizedStringResource(
-                "You said your energy was low today.",
-                comment: "Verdict reason: self-reported energy level was low"
-            )
         case .selfReportedMore:
             LocalizedStringResource(
                 "You said today was more active than usual.",

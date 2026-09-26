@@ -92,13 +92,7 @@ extension EvidenceSnapshot {
             timeZoneIdentifier: timeZoneIdentifier,
             today: today,
             availability: availability,
-            context: DailyContext(
-                dinnerTime: context.dinnerTime,
-                energyLevel: context.energyLevel,
-                craving: context.craving,
-                selfReportedActivity: report,
-                note: context.note
-            ),
+            context: DailyContext(selfReportedActivity: report),
             constraints: constraints,
             intake: intake,
             body: body,

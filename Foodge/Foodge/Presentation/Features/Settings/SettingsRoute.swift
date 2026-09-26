@@ -12,7 +12,7 @@ import Foundation
 /// Same shape as `OnboardingRoute` and `TodayRoute`: a typed route driven by
 /// `NavigationLink(value:)` and `navigationDestination(for:)`, never a router object.
 enum SettingsRoute: Hashable, Sendable {
+    /// The diet profile — all that is left of what used to be four preference controls (D138).
     case preferences
-    case ingredientExclusions
     case demonstration
 }

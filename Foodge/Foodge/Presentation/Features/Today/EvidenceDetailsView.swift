@@ -49,14 +49,13 @@ struct EvidenceDetailsView: View {
                 ),
                 evidence: SyntheticScenarios.modestAllowance.snapshot,
                 catalogueVersion: DishCatalogue.version,
-                dishOutcome: .selected(
+                dishOutcome: PersistedDishOutcome(
                     variantID: "dish.pasta.pesto",
                     family: .pasta,
                     alternativeVariantID: nil,
                     alternativeFamily: nil
                 ),
-                narrationText: nil,
-                appeals: []
+                narrationText: nil
             )
         )
     }

@@ -37,14 +37,13 @@ struct HistoryViewModelTests {
                     ),
                     evidence: SyntheticScenarios.modestAllowance.snapshot,
                     catalogueVersion: DishCatalogue.version,
-                    dishOutcome: .selected(
+                    dishOutcome: PersistedDishOutcome(
                         variantID: "dish.pasta.pesto",
                         family: .pasta,
                         alternativeVariantID: nil,
                         alternativeFamily: nil
                     ),
-                    narrationText: nil,
-                    appeals: []
+                    narrationText: nil
                 ),
             ]
         )
@@ -166,11 +165,6 @@ private actor HistoryFixtureCaseStore: CaseStore {
 
     @discardableResult
     func recordRevision(_: NewRevisionDraft) async throws -> SavedRevision {
-        // Not exercised this suite — History only ever reads.
-        throw FoodgeError.saveFailed
-    }
-
-    func recordAppeal(_: AppealDraft, to _: UUID) async throws {
         // Not exercised this suite — History only ever reads.
         throw FoodgeError.saveFailed
     }
