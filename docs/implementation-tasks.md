@@ -2299,7 +2299,7 @@ during Pass B.
 |---|---|---|---|
 | 24 | WU-24-B | Evening reminder (single local notification, generic content), complete ES/EN copy, feature freeze | Reminder tests green |
 | 25 | WU-25-A | Accessibility, privacy, regression and performance verification. Defect fixes only | ⚠️ Audits returned no blockers; the on-device walk, D93 and the performance sweep are owed to Day 26 |
-| 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package. **Inherits WU-25-A's five device findings** — the ~51 s verdict and the tab bar over the flourish are the two that show on stage | Clean checkout builds and runs; findings 2 and 3 fixed or consciously accepted |
+| 26 | WU-26-A | Release candidate, clean-checkout validation, README, demo rehearsal, submission package. **Inherits WU-25-A's five device findings** — the ~51 s verdict and the tab bar over the flourish are the two that show on stage | ✅ Findings 1–4 closed, measured or instrumented (D129–D133); README written; fresh-install rehearsal walked end to end; clean checkout validated by comparison; `main` brought up to date through PR #2. Owed: the suite run (⌘U — the MCP runner is wedged) and an interactive iOS 26 walk (not reachable from this tooling) |
 | 27 | — | Contingency buffer and final verification; user submits by 21:00 Europe/Madrid | Submitted |
 
 If time tightens, cut decorative variants and AI flourish variety first. Preserve Health
