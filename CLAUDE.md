@@ -1,11 +1,16 @@
 # Foodge — project instructions
 
 **Foodge turns your day into a dinner verdict.** It reads what Apple Health actually recorded,
-applies transparent rules, and has a playful food judge propose one dinner — Treat, Balanced or
-Light. You can inspect the reasoning, add context, or appeal with a craving.
+applies transparent rules, and has a playful food judge name one dinner — Treat, Balanced or
+Light. You can inspect the reasoning.
 
-The ritual is: **review today → add optional context → request a verdict → see dinner and
-reasoning → optionally appeal.**
+The ritual is: **answer what Health could not record → request a verdict → see dinner and
+reasoning.**
+
+**The user never chooses the meal (D138).** They are asked only for what the rule cannot compute:
+today's intake when Health has none, the self-report on a day with no readable active energy, the
+body basics behind a resting estimate, and the diet profile. Any new control that shapes the dish
+is the thing this app was rejected for once already.
 
 Built for the ACoding Hackathon 2026. Internal submission deadline:
 **27 Sep 2026, 21:00 Europe/Madrid** (the organizer says 23:00 CET; we use the earlier time to
@@ -124,8 +129,10 @@ and is never rendered as one. Negative results never suppress a dinner suggestio
 
 **Catalogue.** Nine families: burgers, pizza, tacos (Treat) · rice bowls, tortilla, pasta
 (Balanced) · lentil salad, vegetable soup, vegetable wraps (Light). Selection order is fixed:
-exclusions → category → craving and convenience → avoid the last three days → favourites →
-stable order rotated by date. Never silently relax an exclusion; show an honest no-match.
+**diet profile → category → avoid the last three days → stable order rotated by date** (D139).
+Never silently relax the diet to find a match — `select` returns nothing rather than a dish the
+person will not eat, and every category is required to serve every diet profile, which
+`everyCategoryOffersEveryDietProfile` pins.
 
 **Voice (D118, D119).** Witty, encouraging, concise. Jokes about the case, never about a person's
 body, discipline or worth. **Cheat-meal framing is allowed in English**; Spanish says *capricho* and

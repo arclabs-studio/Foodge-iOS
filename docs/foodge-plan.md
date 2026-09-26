@@ -1,5 +1,14 @@
 # Foodge — product, design and implementation plan
 
+> **Amended 2026-09-26 by D138–D141 — read this first.** The user rejected the app as built
+> ("I dont choose meals, you do"). Everything below that describes the user *choosing* food is
+> superseded: the craving, energy and dinner-time context controls, the free note, favourite
+> families, the dinner routine, per-ingredient exclusions and the whole appeal flow are **deleted**,
+> not deferred. What survives is the diet profile plus the answers the rule cannot compute (intake
+> check-in, self-report, body basics). Selection order is now diet profile → category → avoid the
+> last three days → date rotation, and there is no no-match outcome. `docs/implementation-tasks.md`
+> carries the reasoning; the code is the authority where this file disagrees with it.
+
 ## 1. Product direction and project foundation
 
 **Foodge turns your day into a dinner verdict.** It reads the available evidence from Apple Health, applies transparent rules, and proposes one dinner with a playful food judge. You can inspect its reasoning, add context, or appeal with a craving.

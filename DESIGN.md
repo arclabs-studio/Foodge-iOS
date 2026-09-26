@@ -1,5 +1,14 @@
 # Foodge — screen and visual specification
 
+> **Amended 2026-09-26 by D138–D141 — read this first.** The user rejected the app as built
+> ("I dont choose meals, you do"). Everything below that describes the user *choosing* food is
+> superseded: the craving, energy and dinner-time context controls, the free note, favourite
+> families, the dinner routine, per-ingredient exclusions and the whole appeal flow are **deleted**,
+> not deferred. What survives is the diet profile plus the answers the rule cannot compute (intake
+> check-in, self-report, body basics). Selection order is now diet profile → category → avoid the
+> last three days → date rotation, and there is no no-match outcome. `docs/implementation-tasks.md`
+> carries the reasoning; the code is the authority where this file disagrees with it.
+
 Derived from `docs/foodge-plan.md` §2. This file is the authority for navigation, screen content,
 visual identity, voice and asset naming. Product rules live in the plan; engineering rules in `CLAUDE.md`.
 
