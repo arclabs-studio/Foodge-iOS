@@ -29,7 +29,12 @@ struct BodyBasicsView: View {
     var body: some View {
         Form {
             Section {
-                Text("Apple Health doesn’t always record resting energy. When it doesn’t, these four figures let Foodge estimate it instead of leaving tonight’s verdict to a guess.")
+                Text(
+                    """
+                    Apple Health doesn’t always record resting energy. When it doesn’t, these four \
+                    figures let Foodge estimate it instead of leaving tonight’s verdict to a guess.
+                    """
+                )
                 Text("They stay on this iPhone, and Foodge never shows them to anyone.")
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
@@ -63,7 +68,12 @@ struct BodyBasicsView: View {
                 }
             } footer: {
                 if vm.hasStartedBodyBasics, vm.bodyBasicsFromInputs == nil {
-                    Text("Foodge needs all four, in centimetres and kilograms, before it can estimate anything. Until then it will ask you about your day instead.")
+                    Text(
+                        """
+                        Foodge needs all four, in centimetres and kilograms, before it can estimate \
+                        anything. Until then it will ask you about your day instead.
+                        """
+                    )
                 }
             }
 
@@ -86,6 +96,11 @@ struct BodyBasicsView: View {
                         Task { await vm.finish() }
                     }
                     .disabled(vm.saveState == .saving)
+                    // Both buttons write, and read next to each other their labels already say
+                    // what differs — but only the label. The hint spells out the one part that
+                    // is not obvious from "Save and finish" sitting right above it: anything
+                    // already typed above is discarded, not stored partially (WCAG 3.3.2).
+                    .accessibilityHint("Discards anything typed above rather than saving part of it.")
                 }
 
                 if vm.saveState == .saving {
@@ -100,7 +115,12 @@ struct BodyBasicsView: View {
                         .foregroundStyle(.appBurgundyMuted)
                 }
             } footer: {
-                Text("Skipping is fine. On a day Health records no resting energy, Foodge will ask how your day went instead.")
+                Text(
+                    """
+                    Skipping is fine. On a day Health records no resting energy, Foodge will ask how \
+                    your day went instead.
+                    """
+                )
             }
         }
         .navigationTitle("About you")

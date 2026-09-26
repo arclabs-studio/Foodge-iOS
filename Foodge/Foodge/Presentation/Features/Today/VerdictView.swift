@@ -113,8 +113,19 @@ struct VerdictView: View {
 
         return Section {
             DishSummaryRow(variantID: displayedVariantID, family: displayedFamily)
-            Button("See alternative") {
+            // The row above changes in place with no navigation, so VoiceOver has no reason to
+            // land on it on its own (WCAG 4.1.3) — the announcement is what tells a screen-reader
+            // user which dish is now shown. The label carries the same information for anyone
+            // revisiting the button afterwards, rather than always reading "See alternative" once
+            // the alternative is already what's on screen (WCAG 4.1.2).
+            Button(showingAlternative ? "See original dish" : "See alternative") {
                 showingAlternative.toggle()
+                let shownVariantID = showingAlternative
+                    ? (dishOutcome.alternativeVariantID ?? dishOutcome.variantID)
+                    : dishOutcome.variantID
+                let shownName = DishCatalogue.displayName(forVariantID: shownVariantID)
+                let message = String(localized: "Now showing \(shownName).")
+                AccessibilityNotification.Announcement(message).post()
             }
             .disabled(dishOutcome.alternativeVariantID == nil)
         }

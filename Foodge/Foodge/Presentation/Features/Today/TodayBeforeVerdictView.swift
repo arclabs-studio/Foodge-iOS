@@ -23,6 +23,10 @@ struct TodayBeforeVerdictView: View {
         "Foodge couldn’t finish reading today’s evidence."
     }
 
+    private var noDishAvailableMessage: LocalizedStringResource {
+        "Nothing in Foodge’s menu fits tonight’s category on your diet. Nothing was recorded for tonight."
+    }
+
     private var isEvaluating: Bool {
         if case .evaluating = vm.stage {
             true
@@ -40,10 +44,15 @@ struct TodayBeforeVerdictView: View {
                     // `.secondary` measures ~3.4:1 against the row background in standard-contrast
                     // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is
                     // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
-                    Text("Foodge reads today from Health and names dinner. Tell it what you have eaten if Health has not recorded it.")
-                        .font(.footnote)
-                        .foregroundStyle(.appBurgundyMuted)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    Text(
+                        """
+                        Foodge reads today from Health and names dinner. Tell it what you have eaten if \
+                        Health has not recorded it.
+                        """
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.appBurgundyMuted)
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
                 .listRowBackground(Color.clear)
 
@@ -75,7 +84,12 @@ struct TodayBeforeVerdictView: View {
                     Section {
                         // Unreachable for every shipped diet profile, and said plainly rather than
                         // papered over with a dish nothing chose (D139).
-                        Text("Tonight’s category is \(decision.category.displayName), and nothing in Foodge’s menu fits it on your diet.")
+                        Text(
+                            """
+                            Tonight’s category is \(decision.category.displayName), and nothing in \
+                            Foodge’s menu fits it on your diet.
+                            """
+                        )
                         Text("Nothing was recorded for tonight.")
                             .font(.footnote)
                             .foregroundStyle(.appBurgundyMuted)
@@ -123,10 +137,17 @@ struct TodayBeforeVerdictView: View {
         // The row replaces the check-in section in place, with no navigation, so VoiceOver has
         // no reason to land on it (WCAG 4.1.3). `logLabel` is the change key because `Stage`
         // carries a draft and an error and is deliberately not `Equatable`; "Try again" passes
-        // through `.evaluating`, so a second failure announces too.
+        // through `.evaluating`, so a second failure announces too. `.noDishAvailable` is the same
+        // shape of change — a section swapped in with no push — so it announces the same way.
         .onChange(of: vm.stage.logLabel) { _, _ in
-            guard case .evidenceUnavailable = vm.stage else { return }
-            AccessibilityNotification.Announcement(String(localized: evidenceFailureMessage)).post()
+            switch vm.stage {
+            case .evidenceUnavailable:
+                AccessibilityNotification.Announcement(String(localized: evidenceFailureMessage)).post()
+            case .noDishAvailable:
+                AccessibilityNotification.Announcement(String(localized: noDishAvailableMessage)).post()
+            case .gathering, .evaluating, .needsSelfReport, .verdict, .saveFailed:
+                break
+            }
         }
     }
 }

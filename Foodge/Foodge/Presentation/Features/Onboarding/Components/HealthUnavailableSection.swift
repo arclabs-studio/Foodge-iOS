@@ -54,11 +54,21 @@ struct HealthUnavailableSection: View {
                 // open. Still no word about a denial: iOS reports that it asked, never how it
                 // was answered.
                 Text("Health has already been asked about Foodge, so iOS won’t show its sheet again.")
-                Text("Open Health, then Sharing → Apps → Foodge to change what Foodge may read. Until then it will ask you about your day instead.")
-                    .font(.footnote)
-                    .foregroundStyle(.appBurgundyMuted)
+                Text(
+                    """
+                    Open Health, then Sharing → Apps → Foodge to change what Foodge may read. Until \
+                    then it will ask you about your day instead.
+                    """
+                )
+                .font(.footnote)
+                .foregroundStyle(.appBurgundyMuted)
                 if let url = URL.healthApp {
                     Link("Open Health", destination: url)
+                        // "Open Health" already names the destination, but not that it is a
+                        // different app — worth a hint since the sentence above already promises
+                        // the same trip and a VoiceOver user reaching this row would otherwise
+                        // learn only from leaving Foodge that it does (WCAG 3.3.2).
+                        .accessibilityHint("Leaves Foodge and opens the Health app.")
                 }
             }
         case .requestFailed:

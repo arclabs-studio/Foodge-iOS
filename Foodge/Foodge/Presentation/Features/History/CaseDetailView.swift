@@ -122,7 +122,7 @@ struct CaseDetailView: View {
                             alternativeFamily: nil
                         ),
                         narrationText: nil
-                    ),
+                    )
                 ]
             )
         )
