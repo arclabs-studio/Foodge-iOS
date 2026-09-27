@@ -1,0 +1,434 @@
+//
+//  OnboardingViewModelTests.swift
+//  FoodgeTests
+//
+//  Created by ARC Labs Studio on 19/09/2026.
+//
+
+@testable import Foodge
+import Foundation
+import Testing
+
+/// Onboarding is where Foodge decides what it is allowed to say about someone's Health data.
+///
+/// Every test here is about a claim the app must not make: that an absence is a denial, that a
+/// failed request is an absence, that a missing day is a zero, or that a failed save was a save.
+@Suite("Onboarding view model", .tags(.unit, .critical))
+@MainActor
+struct OnboardingViewModelTests {
+    private struct SUT {
+        let viewModel: OnboardingViewModel
+        let authorization: FixtureHealthAuthorization
+        let evidence: FixtureEvidenceProvider
+        let store: FixturePreferencesStore
+    }
+
+    private func makeSUT(
+        isHealthDataAvailable: Bool = true,
+        requestStatus: HealthRequestStatus = .shouldRequest,
+        authorizationFailure: (any Error)? = nil,
+        snapshot: EvidenceSnapshot = SyntheticScenarios.modestAllowance.snapshot,
+        evidenceFailure: (any Error)? = nil,
+        storeFailure: (any Error)? = nil,
+        clock: FixedClock = SyntheticScenarios.clock
+    ) -> SUT {
+        let authorization = FixtureHealthAuthorization(
+            isHealthDataAvailable: isHealthDataAvailable,
+            requestStatus: requestStatus,
+            failure: authorizationFailure
+        )
+        let evidence = evidenceFailure.map(FixtureEvidenceProvider.init(failure:))
+            ?? FixtureEvidenceProvider(snapshot: snapshot)
+        let store = FixturePreferencesStore(failure: storeFailure)
+
+        return SUT(
+            viewModel: OnboardingViewModel(
+                authorization: authorization,
+                evidence: evidence,
+                store: store,
+                clock: clock
+            ),
+            authorization: authorization,
+            evidence: evidence,
+            store: store
+        )
+    }
+
+    /// A snapshot with exactly the readings a test wants, for the cases no scenario covers.
+    private func makeSnapshot(
+        today: HealthAggregates,
+        missing: Set<HealthKind> = []
+    ) -> EvidenceSnapshot {
+        EvidenceSnapshot(
+            evaluatedAt: SyntheticScenarios.evaluationDate,
+            timeZoneIdentifier: SyntheticScenarios.timeZoneIdentifier,
+            today: today,
+            availability: .readable(missing: missing)
+        )
+    }
+
+    // MARK: - Connecting to Health
+
+    @Test("A device without Health is told so, and is asked for nothing")
+    func anUnavailableDeviceIsNeverQueried() async {
+        // Given a device that has no Health data at all
+        let sut = makeSUT(isHealthDataAvailable: false)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the state says unavailable — the one refusal that is provable — and neither the
+        // authorization sheet nor the evidence reader was touched
+        #expect(sut.viewModel.healthState == .unavailable)
+        #expect(await sut.authorization.requestCount == 0)
+        #expect(await sut.evidence.callCount == 0)
+    }
+
+    @Test("A phone that has never been asked is asked exactly once")
+    func aFirstRunPresentsTheSheet() async {
+        // Given a phone iOS says it would show the sheet for
+        let sut = makeSUT(requestStatus: .shouldRequest)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the status was consulted and the request was made
+        #expect(await sut.authorization.statusCount == 1)
+        #expect(await sut.authorization.requestCount == 1)
+    }
+
+    @Test("A phone that has already answered is not asked again, but is still read")
+    func anAlreadyAnsweredPhoneSkipsTheRequestAndReadsAnyway() async {
+        // Given a phone that has been asked about every type Foodge reads
+        let sut = makeSUT(requestStatus: .alreadyAnswered)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then no request was made — iOS would return silently, and this expectation fails the
+        // moment the guard in `connectHealth()` is dropped — while the read still happened, so
+        // a phone that *did* grant access reaches its verdict
+        #expect(await sut.authorization.requestCount == 0)
+        #expect(await sut.evidence.callCount == 1)
+        #expect(sut.viewModel.healthState == .connected(missing: []))
+    }
+
+    @Test("A status the system cannot determine still asks")
+    func anUndeterminedStatusStillPresentsTheSheet() async {
+        // Given a phone whose request status could not be worked out
+        let sut = makeSUT(requestStatus: .undetermined)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the sheet is still requested: withholding it on a guess is the worse failure
+        #expect(await sut.authorization.requestCount == 1)
+    }
+
+    @Test("An already-answered phone with nothing readable is told the sheet is not coming back")
+    func anAlreadyAnsweredPhoneWithNoDataGetsItsOwnState() async {
+        // Given a phone that has answered already and has nothing readable for today
+        let sut = makeSUT(
+            requestStatus: .alreadyAnswered,
+            snapshot: SyntheticScenarios.noHealthData.snapshot
+        )
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the state is the one with a way out — Health's own Sharing screen — rather than
+        // `.noReadableData`, which would offer a retry that cannot change anything (D137)
+        #expect(sut.viewModel.healthState == .previouslyAnswered)
+    }
+
+    @Test(
+        "An authorization failure is reported as a failure, never as an absence",
+        arguments: [
+            (
+                FixtureFailure("sheet could not present") as any Error,
+                OnboardingViewModel.HealthState.requestFailed
+            ),
+            (
+                FoodgeError.healthUnavailable as any Error,
+                OnboardingViewModel.HealthState.unavailable
+            )
+        ]
+    )
+    func authorizationFailuresAreMappedHonestly(
+        failure: any Error,
+        expected: OnboardingViewModel.HealthState
+    ) async {
+        // Given an authorization request that will not complete
+        let sut = makeSUT(authorizationFailure: failure)
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the state distinguishes "the request failed" from "there is no data": claiming
+        // an absence the app never observed is the same lie as claiming a denial
+        #expect(sut.viewModel.healthState == expected)
+        // And nothing was read, because there was never an authorized read to make
+        #expect(await sut.evidence.callCount == 0)
+    }
+
+    @Test("A read that fails is a failed read, not an empty Health store")
+    func anEvidenceReadFailureIsReportedAsAFailedRequest() async {
+        // Given authorization that completes, and a read that then fails
+        let sut = makeSUT(evidenceFailure: FixtureFailure("the read did not complete"))
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then the state says the attempt failed. `.noReadableData` would assert an absence
+        // nothing ever observed — the read never returned at all — which is the same false
+        // claim as saying permission was denied.
+        #expect(sut.viewModel.healthState == .requestFailed)
+        #expect(sut.viewModel.healthState != .noReadableData)
+    }
+
+    @Test("A cancelled read puts back the state the user last saw")
+    func aCancelledReadDoesNotLeaveASpinnerOnScreen() async {
+        // Given a read that is cancelled rather than failing
+        let sut = makeSUT(evidenceFailure: CancellationError())
+
+        // When the user taps Connect
+        await sut.viewModel.connectHealth()
+
+        // Then they are back where they started. Leaving `.requesting` would strand them on a
+        // spinner that can never resolve, and `.requestFailed` would blame a failure on
+        // someone who simply moved on.
+        #expect(sut.viewModel.healthState == .idle)
+    }
+
+    @Test("Health with nothing in it says so, and does not pretend to be connected")
+    func anEmptyHealthStoreIsReportedAsNoReadableData() async {
+        // Given a Health store that returns nothing for any kind
+        let sut = makeSUT(snapshot: SyntheticScenarios.noHealthData.snapshot)
+
+        // When Health is connected
+        await sut.viewModel.connectHealth()
+
+        // Then the state is the absence wording, never a connected summary over empty numbers
+        #expect(sut.viewModel.healthState == .noReadableData)
+    }
+
+    @Test("An empty workout list is not a reading")
+    func anEmptyWorkoutListDoesNotCountAsData() async {
+        // Given today's readings that are all missing, with an empty — not absent — workout list
+        let snapshot = makeSnapshot(
+            today: HealthAggregates(
+                activeEnergy: nil,
+                restingEnergy: nil,
+                steps: nil,
+                sleep: nil,
+                workouts: [],
+                dietaryEnergy: nil
+            ),
+            missing: Set(HealthKind.allCases)
+        )
+        let sut = makeSUT(snapshot: snapshot)
+
+        // When Health is connected
+        await sut.viewModel.connectHealth()
+
+        // Then there is still no readable data. `today != .empty` is true here — `.empty` has a
+        // nil workout list and this one has an empty array — so that shortcut would report a
+        // connected Health store to someone who has recorded nothing.
+        #expect(sut.viewModel.healthState == .noReadableData)
+    }
+
+    @Test("A connected read reports which kinds came back empty")
+    func connectingReportsTheKindsThatCameBackEmpty() async throws {
+        // Given a day Health recorded everything but resting energy
+        let sut = makeSUT(snapshot: SyntheticScenarios.estimatedResting.snapshot)
+
+        // When Health is connected
+        await sut.viewModel.connectHealth()
+
+        // Then the screen can say exactly what is missing — never that it was refused, which
+        // HealthKit cannot tell an app
+        let missing = try #require(sut.viewModel.healthState.missingKinds)
+        #expect(missing == [.restingEnergy])
+    }
+
+    @Test("Nothing missing is still a connected state, and is not the same as not asking")
+    func anEmptyMissingSetIsStillConnected() async throws {
+        // Given a day Health recorded in full
+        let sut = makeSUT(snapshot: SyntheticScenarios.modestAllowance.snapshot)
+
+        // When Health is connected
+        await sut.viewModel.connectHealth()
+
+        // Then `missingKinds` is empty rather than `nil`: empty means "connected, nothing
+        // missing", `nil` means the read has not happened
+        let missing = try #require(sut.viewModel.healthState.missingKinds)
+        #expect(missing.isEmpty)
+    }
+
+    // MARK: - Body basics
+
+    @Test("All four figures produce a body; three do not")
+    func bodyBasicsNeedAllFourFigures() {
+        // Given a user who has answered everything but their weight
+        let sut = makeSUT()
+        sut.viewModel.bodySex = .male
+        sut.viewModel.ageText = "35"
+        sut.viewModel.heightText = "175"
+
+        // Then there is no body yet, and nothing is recorded on the draft
+        #expect(sut.viewModel.bodyBasicsFromInputs == nil)
+        sut.viewModel.applyBodyBasics()
+        #expect(sut.viewModel.draft.bodyBasics == nil)
+
+        // When the last figure arrives
+        sut.viewModel.weightText = "70"
+        sut.viewModel.applyBodyBasics()
+
+        // Then the whole body is recorded at once
+        #expect(sut.viewModel.draft.bodyBasics?.weightKilograms == 70)
+        #expect(sut.viewModel.draft.bodyBasics?.ageYears == 35)
+    }
+
+    @Test("An implausible figure records no body rather than a clamped one")
+    func anImplausibleFigureRecordsNoBody() {
+        // Given a height typed in inches by mistake
+        let sut = makeSUT()
+        sut.viewModel.bodySex = .female
+        sut.viewModel.ageText = "35"
+        sut.viewModel.heightText = "69"
+        sut.viewModel.weightText = "62"
+
+        // When the step is left
+        sut.viewModel.applyBodyBasics()
+
+        // Then no estimate is possible, which is the honest answer — never 69 cm clamped to 120
+        #expect(sut.viewModel.draft.bodyBasics == nil)
+        #expect(sut.viewModel.hasStartedBodyBasics)
+    }
+
+    @Test("An untouched body-basics step is not a half-answered one")
+    func anUntouchedStepReportsItself() {
+        let sut = makeSUT()
+
+        #expect(sut.viewModel.hasStartedBodyBasics == false)
+        #expect(sut.viewModel.bodyBasicsFromInputs == nil)
+    }
+
+    @Test("A half-answered step is still escapable, and a complete one needs no escape (D126)")
+    func aHalfAnsweredStepIsStillSkippable() {
+        // Given a user who gives their sex and age and will not give their weight
+        let sut = makeSUT()
+        sut.viewModel.bodySex = .female
+        sut.viewModel.ageText = "34"
+
+        // Then Skip is still offered. Continue is disabled in this state, so keying the skip on
+        // "has typed anything" left the step with no way forward at all.
+        #expect(sut.viewModel.bodyBasicsFromInputs == nil)
+        #expect(sut.viewModel.hasStartedBodyBasics)
+        #expect(sut.viewModel.canSkipBodyBasics)
+
+        // When the remaining figures arrive
+        sut.viewModel.heightText = "165"
+        sut.viewModel.weightText = "62"
+
+        // Then Continue is the way on, and the escape hatch is gone
+        #expect(sut.viewModel.bodyBasicsFromInputs != nil)
+        #expect(sut.viewModel.canSkipBodyBasics == false)
+    }
+
+    @Test("Continuing without Health clears a failed attempt and moves on")
+    func skippingHealthClearsTheFailureAndAdvances() async {
+        // Given an authorization attempt that failed
+        let sut = makeSUT(authorizationFailure: FixtureFailure())
+        await sut.viewModel.connectHealth()
+        #expect(sut.viewModel.healthState == .requestFailed)
+
+        // When the user chooses to continue without Health
+        sut.viewModel.skipHealth()
+
+        // Then the failure is not left on screen behind them, and the flow advances
+        #expect(sut.viewModel.healthState == .idle)
+        #expect(sut.viewModel.path == [.bodyBasics])
+    }
+
+    // MARK: - The injected clock
+
+    @Test("Health is read at the injected instant, in the injected time zone")
+    func theEvidenceReaderIsHandedTheInjectedClock() async {
+        // Given a clock frozen at 19:30 on 18 September 2026 in Europe/Madrid, and a user who
+        // has already chosen a diet
+        let sut = makeSUT()
+        sut.viewModel.draft.dietProfile = .vegan
+
+        // When Health is connected
+        await sut.viewModel.connectHealth()
+
+        // Then the reader was handed that instant and that calendar. Any `Date()` or
+        // `Calendar.current` in the view model puts a different value here, while every
+        // state-based assertion in this suite would still pass.
+        #expect(await sut.evidence.receivedDates == [SyntheticScenarios.evaluationDate])
+        #expect(await sut.evidence.receivedCalendars.first?.timeZone.identifier == "Europe/Madrid")
+        // And it was told what the user will eat, rather than the unrestricted default
+        #expect(await sut.evidence.receivedConstraints.first?.profile == .vegan)
+    }
+
+    // MARK: - Finishing
+
+    @Test("Finishing writes everything the user chose, once, stamped with the injected clock")
+    func finishingWritesTheCompletedDraftExactlyOnce() async throws {
+        // Given a user who has made every choice onboarding still offers: a diet and four figures
+        let sut = makeSUT()
+        sut.viewModel.draft.dietProfile = .pescatarian
+        sut.viewModel.bodySex = .male
+        sut.viewModel.ageText = "41"
+        sut.viewModel.heightText = "181"
+        sut.viewModel.weightText = "78"
+        sut.viewModel.applyBodyBasics()
+
+        // When they save and finish
+        await sut.viewModel.finish()
+
+        // Then exactly one write happened, carrying all of it
+        let saved = try #require(await sut.store.savedDrafts.first)
+        #expect(await sut.store.savedDrafts.count == 1)
+        #expect(saved.dietProfile == .pescatarian)
+        #expect(saved.bodyBasics?.sex == .male)
+        #expect(saved.bodyBasics?.ageYears == 41)
+        // Stamped from the injected clock, not from `Date()`
+        #expect(saved.onboardingCompletedAt == SyntheticScenarios.evaluationDate)
+        #expect(sut.viewModel.draft.onboardingCompletedAt == SyntheticScenarios.evaluationDate)
+        #expect(sut.viewModel.didFinish)
+    }
+
+    @Test("A failed save is never reported as a save")
+    func aFailedSaveLeavesNothingClaimingOnboardingHappened() async {
+        // Given a store that will refuse the write
+        let sut = makeSUT(storeFailure: FoodgeError.saveFailed)
+
+        // When the user saves and finishes
+        await sut.viewModel.finish()
+
+        // Then the failure is visible, and nothing anywhere claims onboarding completed
+        #expect(sut.viewModel.saveState == .failed(.saveFailed))
+        #expect(sut.viewModel.didFinish == false)
+        #expect(sut.viewModel.draft.onboardingCompletedAt == nil)
+        #expect(await sut.store.savedDrafts.isEmpty)
+    }
+
+    @Test("Retrying after a failed save completes, and writes only once")
+    func retryingAfterAFailedSaveWritesOnce() async {
+        // Given a save that failed
+        let sut = makeSUT(storeFailure: FoodgeError.saveFailed)
+        await sut.viewModel.finish()
+
+        // When the store recovers and the user taps Save again
+        await sut.store.stopFailing()
+        await sut.viewModel.finish()
+
+        // Then onboarding completes, with a single record rather than the wreckage of the
+        // first attempt plus a second one
+        #expect(sut.viewModel.didFinish)
+        #expect(sut.viewModel.saveState == .editing)
+        #expect(await sut.store.savedDrafts.count == 1)
+    }
+}
