@@ -1,0 +1,175 @@
+# Stale keys in `Localizable.xcstrings`
+
+Generated 2026-09-27 from the catalogue itself: **165 stale** of 365 keys (200 live).
+
+A key goes stale when no source file references it any more. `StringCatalogEdit` only writes translations — it has no delete — and this repository forbids hand-editing `.xcstrings`, so pruning these is a manual pass in **Xcode's own String Catalog editor**: open `Foodge/Resources/Localizable.xcstrings`, sort by state, select the stale rows and delete them.
+
+The split is Xcode's own extraction state, not a claim of mine: a key is stale exactly when the last build found no reference to it. Dynamically resolved keys (the catalogue's dish and ingredient names) are kept live by `CatalogueNameLocalizationTests`, which asserts each one resolves to a shipped Spanish string — so a wrongly pruned name fails a test rather than shipping as an identifier. These 165 are dead weight that ships, not a correctness problem.
+
+## The keys
+
+- `A quiet day you’ve confirmed was really that quiet.`
+- `A quiet day, not yet confirmed`
+- `A rest day`
+- `A typical day`
+- `A usual day`
+- `A usual day’s activity on a night that was anything but.`
+- `Accept this instead`
+- `Add a note`
+- `An active day`
+- `Appeal`
+- `Avocado`
+- `Based on %lld recorded days.`
+- `Basil`
+- `Beef burger`
+- `Beef patty`
+- `Beef tacos`
+- `Bell pepper`
+- `Below your pattern, with the check-in still waiting for an answer.`
+- `Black bean burger`
+- `Black bean tacos`
+- `Black beans`
+- `Bread`
+- `Burger bun`
+- `Carrot`
+- `Chicken breast`
+- `Chicken rice bowl`
+- `Chickpea and spinach soup`
+- `Chickpeas`
+- `Chorizo`
+- `Chorizo tortilla`
+- `Compared to pattern`
+- `Cooked lentils`
+- `Coriander`
+- `Corn tortilla`
+- `Craving`
+- `Cucumber`
+- `Days recorded`
+- `Dinner routine`
+- `Does that reflect today — or is something like a forgotten watch more likely?`
+- `Done`
+- `Egg`
+- `Energy`
+- `Energy is missing on most days, so steps carry the comparison.`
+- `Every dish in the category is blocked, and no exclusion is relaxed.`
+- `Every dish in the tier is blocked, and no exclusion is relaxed.`
+- `Exclude ingredients`
+- `Falafel`
+- `Falafel wrap`
+- `Feta`
+- `Feta and roasted pepper wrap`
+- `Foodge can suggest dinners worth taking time over.`
+- `Foodge compares today with the fortnight Health already recorded.`
+- `Foodge couldn’t save this appeal. Nothing has been lost — try again.`
+- `Foodge leans towards dinners that are ready fast.`
+- `Foodge reads what Apple Health actually recorded, weighs today against your usual fortnight, and proposes one dinner.`
+- `Foodge will suggest both quick and slower dinners.`
+- `Garden vegetable soup with toast`
+- `Garlic`
+- `Halloumi`
+- `Halloumi burger`
+- `Health didn’t return anything readable for these days.`
+- `Health has readings for %lld of the last %lld days. Foodge needs at least %lld to see a pattern.`
+- `Hummus`
+- `Hummus and vegetable wrap`
+- `Ingredients to exclude`
+- `Keep the original — close this sheet to leave tonight’s verdict unchanged.`
+- `Lentil and feta salad`
+- `Lentil and tomato salad`
+- `Lentil and tuna salad`
+- `Lettuce`
+- `Lime`
+- `Low`
+- `Margherita pizza`
+- `Mayonnaise`
+- `Measured in`
+- `Minced beef`
+- `Most evenings`
+- `Mozzarella`
+- `Mushroom`
+- `No catalogue dish matched your constraints that night.`
+- `No catalogue dish matched your constraints tonight.`
+- `No compatible match for %@ tonight.`
+- `No preference`
+- `No usable comparison — this verdict is provisional.`
+- `No verdict yet`
+- `No, that’s not today`
+- `Noted: %@ (%@).`
+- `Noted: %@.`
+- `Nothing on the menu fits`
+- `Nothing was relaxed to force a match — you can adjust your exclusions in Preferences.`
+- `Nothing was relaxed to force a match.`
+- `Olive`
+- `Olive oil`
+- `Onion`
+- `Optional, up to %lld characters. Colours the judge’s humour only.`
+- `Optional. This never changes the category — only the pick inside it.`
+- `Parmesan`
+- `Pasta arrabbiata`
+- `Pasta bolognese`
+- `Pasta with pesto`
+- `Pizza base`
+- `Potato`
+- `Potato tortilla`
+- `Prawn tacos`
+- `Prawns`
+- `Preferences`
+- `Quick`
+- `Recorded activity`
+- `Recorded pattern`
+- `Recorded samples are not a complete measurement of your day. Foodge compares them, and says so.`
+- `Relaxed`
+- `Retry`
+- `Rice`
+- `Right inside the usual band, where dinner stays balanced.`
+- `Salmon`
+- `Salmon rice bowl`
+- `Setting up the demonstration…`
+- `Skip for now`
+- `Something else`
+- `Soy sauce`
+- `Spinach`
+- `Spinach tortilla`
+- `Steps instead of energy`
+- `Submit`
+- `Tell the judge about tonight, or just ask for a verdict.`
+- `The court is inclined towards something lighter tonight. The defence may still appeal.`
+- `The watch stayed on the table, and the recorded days say so.`
+- `There was no recorded pattern or check-in to go on, so this is a provisional call.`
+- `There wasn’t enough recorded history to build a pattern.`
+- `There’s no usable recorded pattern for today.`
+- `These days aren’t typical for me`
+- `Those days have no movement recorded, so there is nothing to compare tonight against.`
+- `Time for dinner`
+- `Today’s activity came in below your recorded pattern.`
+- `Today’s activity came in well above your recorded pattern.`
+- `Today’s activity sat within your recorded pattern.`
+- `Today’s recorded activity is well below your usual pattern.`
+- `Tofu`
+- `Tofu rice bowl`
+- `Tomato`
+- `Tomato sauce`
+- `Tomato soup with toast`
+- `Tonight`
+- `Tonight’s verdict stays as it was — this is recorded alongside it.`
+- `Tracking that doesn’t reflect the day`
+- `Try another craving`
+- `Tuna`
+- `Tuna and onion pizza`
+- `Use these days after all`
+- `Usual median`
+- `Vegetable pizza`
+- `Well above your recorded pattern, so the court is feeling generous.`
+- `What are you craving instead?`
+- `What would you rather have?`
+- `Wheat wrap`
+- `Yes, that’s today`
+- `You can always see the reasoning, and you can always appeal.`
+- `You said your energy was low today.`
+- `You said your recorded days don’t reflect how you usually live.`
+- `Your dinner`
+- `Your recorded pattern`
+- `You’ve said these days don’t reflect how you usually live, so Foodge won’t compare against them.`
+- `active energy`
+- `e.g. Grandma’s stew`
+- `steps`
