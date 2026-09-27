@@ -1,10 +1,16 @@
+<p align="center">
+  <img src="Foodge/Foodge/Resources/AppIcon.icon/Assets/JudgeBust_1024x1024.png"
+       alt="The Foodge app icon: a food judge in a wig, holding a gavel" width="168">
+</p>
+
 # Foodge
 
 **Foodge turns your day into a dinner verdict.**
 
 It reads what Apple Health actually recorded today, applies a transparent arithmetic rule, and has a
-playful food judge propose one dinner — **Treat**, **Balanced** or **Light**. You can inspect the
-reasoning line by line, add context, or appeal with a craving.
+playful food judge name one dinner — **Treat**, **Balanced** or **Light**. You can inspect the
+reasoning line by line. **You are never asked to choose the meal**: Foodge asks only for what the
+rule cannot compute on its own.
 
 Built for the ACoding Hackathon 2026. iPhone only, iOS 26+, Apple frameworks only, everything on
 device.
@@ -15,15 +21,14 @@ device.
 ## The ritual
 
 ```
-review today → add optional context → request a verdict → see dinner and reasoning → optionally appeal
+answer what Health could not record → request a verdict → see dinner and reasoning
 ```
 
 | Step | What happens |
 |---|---|
-| **Today** | The evidence Health could read today, optional context (dinner time, energy, craving, a note) and the *eaten so far* check-in |
+| **Today** | The *eaten so far* check-in when Health logged no food, the self-report when the day has no readable active energy, and one button |
 | **Verdict** | A category, one dish with its artwork, the deterministic explanation, and an optional on-device AI flourish |
 | **Evidence details** | Every component of the allowance, each line labelled *recorded* or *estimated*, with its source and window |
-| **Appeal** | Name a craving; Foodge offers a compatible dish inside the same category, or says honestly that nothing matched |
 | **History** | One case per local day, preserving the evidence, dish and rule version used at the time |
 
 ## The rule, in full
@@ -76,9 +81,9 @@ Nine dish families, three per category, 27 variants in total:
 | Balanced | Rice bowls · tortilla · pasta |
 | Light | Lentil salad · vegetable soup · vegetable wraps |
 
-Selection order is fixed and auditable: exclusions → category → craving and convenience → avoid the
-last three days → favourites → stable order rotated by date. **An exclusion is never silently
-relaxed** — if nothing matches, Foodge says so.
+Selection order is fixed and auditable: diet profile → category → avoid the last three days →
+stable order rotated by date. **The diet is never silently relaxed** — Foodge returns nothing rather
+than a dish you will not eat, and every category is required to serve every diet profile.
 
 Calories are shown for a dish only where a real `CalorieReference` backs the figure. Editorial
 ranges are never rendered as verified values.
@@ -120,9 +125,9 @@ open Foodge/Foodge.xcodeproj      # scheme: Foodge
   `UIStringLocalizationTests` reads the String Catalog through the build machine's own path and
   cannot pass on a physical device by construction.
 - The build gate is a zero-warning build (`SWIFT_TREAT_WARNINGS_AS_ERRORS = YES`, complete strict
-  concurrency). The last **recorded** full run was 268 tests across 33 suites with 0 failures on
-  iPhone 17 Pro (27.0); test functions have been added since, so `docs/implementation-tasks.md`
-  rather than this line is the place where each run's real numbers are kept.
+  concurrency). The last **recorded** full run was 297 tests, 297 passed, 0 failed; suites and
+  test functions change with the work, so `docs/implementation-tasks.md` rather than this line is
+  the place where each run's real numbers are kept.
 - No dependency resolution step: there are no third-party packages.
 - Nothing to configure. On a simulator Health has no data, which is a supported path — Foodge falls
   through to the self-report check-in.
