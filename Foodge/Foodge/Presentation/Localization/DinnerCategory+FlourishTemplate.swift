@@ -34,7 +34,7 @@ extension DinnerCategory {
             )
         case .light:
             LocalizedStringResource(
-                "The court is inclined towards something lighter tonight. The defence may still appeal.",
+                "The court is inclined towards something lighter tonight. The reasoning is on the record.",
                 comment: "The judge's decorative flourish for a Light verdict"
             )
         }

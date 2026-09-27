@@ -44,7 +44,7 @@ struct WelcomeView: View {
                 // `AppBurgundyMuted` is the brand's own dedicated secondary-text color, already
                 // tuned to ≥4.5:1 against these surfaces in all four appearance/contrast
                 // combinations, and was sitting unused in the asset catalog.
-                Text("You can always see the reasoning, and you can always appeal.")
+                Text("You can always see the reasoning behind the verdict.")
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
 

@@ -169,6 +169,8 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D139 | **`DishSelection` returns `DishSelectionResult?` instead of a two-case outcome, and the `noMatch` case is gone.** Ranking drops from five keys to two: recency, then rotation. Selection order is diet profile → category → avoid the last three days → stable order rotated by date. `PersistedDishOutcome` becomes a struct; `VerdictRevision` loses its `blockingIngredientIDs` column and gains a throwing `decodedDishOutcome()`. | `noMatch` existed to report an **exclusion** conflict — "these ingredients block every candidate" — and there are no exclusions left to conflict (D138). Keeping it would have left a case nothing can produce and a test that cannot fail. The diet profile alone cannot empty a category: every one of the three categories carries at least one variant for every profile, and `everyCategoryOffersEveryDietProfile` now pins that, which is what makes the removal safe rather than optimistic. `select` still returns `nil` rather than relaxing the diet, and `TodayViewModel` has a `noDishAvailable` stage that records nothing and says so — unreachable for every shipped profile, and never a dish Foodge invented. Craving, convenience and favourite left the ranking for D138's reason: each was a way for the user to steer the pick. |
 | D140 | **Schema V1 is rewritten in place and the local store is discarded.** `Appeal` leaves the schema entirely; `UserPreferences` loses `favouriteFamilyRawValues`, `dinnerRoutineRawValue` and `excludedIngredientIDs`; `VerdictRevision`'s dish columns become non-optional. No migration stage is added. | Same reasoning as D10 and D110, stated again because it is destructive: nothing has shipped, there are no real users, and the only store affected is the one on the developer's own phone. A versioned V2 with a tested migration is the correct answer for released data and pure ceremony for data nobody depends on — it would cost a migration plan and its tests to preserve a handful of demonstration cases. **The app must be deleted before the first run after this change.** The user approved the wipe explicitly before any code was written. |
 | D141 | **The appeal is removed** — the sheet, its six sections, `AppealStage`, `negotiateAppeal`, `AppealChoice`/`AppealDraft`/`SavedAppeal`, `CaseStore.recordAppeal`, the `Appeal` model and the History rows that displayed one. | An appeal is the user choosing the meal, one step later: it asked which family they craved and then negotiated a dish for it. D138 removes the craving; the appeal has nothing left to negotiate. The narration's `showsFlourish` gate went with it — it existed only to stay silent on a no-match night, and there are no no-match nights (D139). |
+| D142 | **Two test oracles were wrong, not the production code, and both are fixed at the oracle.** (1) `NarrationTemplateLocalizationTests` looked its Spanish values up by `String(localized:)`, which resolves in the **host's** locale — the XCTestDevices clone reports `es_ES`, so the key it searched with was the Spanish sentence. It now reads `category.flourishTemplate.key`, the String Catalog key itself. (2) `BasalMetabolicRateTests`' three day-length preconditions compared an optional-chained `duration` to an integer literal inside `#expect` and failed while printing equal operands; each now `#require`s the value out first. | These six failures were carried as a "measured baseline" through WU-28-A and WU-28-B, which is a polite way of saying two suites were red and nobody knew whether the product was. Neither was a product defect: `RunCodeSnippet` against the real Madrid calendar returned 86400 / 82800 / 90000 with **bit patterns identical** to the expected figures and `==` → `true`, and the three Spanish templates were present in the built `es.lproj` all along. Fixing the clone's language instead (the WU-25-A lever) works and has to be redone for every new device; reading the key is locale-independent for good. The literal-typing mechanism behind the `#expect` failure is **inferred, not proven** — recorded that way in `memory/expect-on-an-optional-can-fail-with-equal-operands.md`. |
+| D143 | **Two user-facing sentences still promised the appeal, and one screen showed two different kilocalorie formats.** `WelcomeView`'s footnote (*"…and you can always appeal."*) and the **Light** flourish template (*"The defence may still appeal."*) are rewritten and re-translated; `EvidenceSectionsView`'s three interpolated `"\(Int(kilocalories)) kcal"` values and its raw step count now go through `Measurement`/`.formatted`, the same call `AllowanceFigureRow` already uses. | Same class as D127: the appeal was deleted in WU-28-B and these two strings only *described* it, so they survived a search for appeal types and kept promising a button that no longer exists — one of them on the first screen a judge reads, the other inside the verdict itself. The formatting was WU-27-A's second walk finding, deferred then because it changes Spanish copy and the suite could not be run; both are now possible, so it is fixed rather than carried: `1200 kcal` beside `1,200 Cal` on one screen also put a unit outside the String Catalog, where no locale could reach it. The new English strings add two keys and leave the two old ones stale, which is the standing catalogue problem, not a new one. |
 
 ---
 
@@ -2550,6 +2552,52 @@ you. The verdict shows the category, the dish, the reasoning and the evidence li
   not this unit's to throw away without asking.
 - **Owed:** the fresh-install walk. The store is discarded by D140, so **the app must be deleted
   before the next run**, and only that walk proves the rewritten V1 opens.
+
+### WU-28-C ✅ The suite is green — 297/297, and the two red suites were the tests' fault
+
+**D142, D143.** Six failures carried as a "measured baseline" since WU-28-A turned out to be two
+wrong oracles and no product defect. Two sentences that still promised the removed appeal, and one
+screen's two kilocalorie formats, went with them.
+
+- **Suite: `RunAllTests` → 297 tests, 297 passed, 0 failed, 0 skipped, 0 not run.** First fully
+  green run since the energy-allowance rebuild. The count is unchanged from WU-28-B's 297, so
+  nothing was deleted to reach it.
+- **The BMR failures were not arithmetic.** `RunCodeSnippet` against the same Madrid calendar and
+  the same three dates returned `86400.0 / 82800.0 / 90000.0` with **bit patterns identical** to
+  `hours * 3600` (4680673776000565248 / 4680426385884315648 / 4680921166116814848) and `==` → true.
+  So `BasalMetabolicRate` was right all along and the expectation was the thing that could not pass.
+  Unwrapping with `#require` before comparing fixes all three; the reason the optional form failed
+  is **inferred, not proven**, and is written down as such.
+- **The narration failures were the clone's language.** The same probe printed
+  `locale=es_ES preferred=["es-ES"]`, and `String(localized: .treat.flourishTemplate)` returned
+  *"El tribunal ha examinado las pruebas y no ve inconveniente en algo generoso esta noche."* — so
+  the test was searching `es.lproj` for a Spanish sentence as its key. The three keys were present
+  in the built `es.lproj` all along (362 keys, verified with `plutil` against
+  `Debug-iphonesimulator/Foodge.app`). Reading `LocalizedStringResource.key` instead makes the
+  oracle locale-independent, which the WU-25-A clone-surgery lever never was.
+- **Two stale promises of the appeal, both user-facing.** `WelcomeView`: *"You can always see the
+  reasoning, and you can always appeal."* → *"You can always see the reasoning behind the
+  verdict."* The **Light** template: *"…The defence may still appeal."* → *"…The reasoning is on
+  the record."* Both re-translated through `StringCatalogEdit` against the catalogue's own
+  terminology (*razonamiento*, *veredicto*, *queda registrado*), and the new Spanish template still
+  satisfies `NarrationValidator` — which `spanishTemplatesPassTheValidator` now actually proves,
+  because it can find it.
+- **One screen, one energy format (WU-27-A's second walk finding, closed).** `EvidenceSectionsView`
+  built `"\(Int(kilocalories)) kcal"` by hand for active, resting and dietary energy and printed the
+  step count as raw digits. All four now go through `Measurement(value:unit:).formatted(.measurement(width:
+  .abbreviated, usage: .food))` and `.formatted(.number.precision(.fractionLength(0)))` — the same
+  call `AllowanceFigureRow` uses, so Sources and Tonight's allowance agree, and the unit is no
+  longer a literal outside the String Catalog.
+- **Build gate — met.** `BuildProject { buildForTesting: true }` green at 3.6 s, 8.6 s and 4.9 s,
+  each followed by `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**.
+- **No test was added for the copy or the formatting, deliberately.** An assertion over a literal
+  sentence or a format call would pass whenever the code compiles. The formatter change is covered
+  where it matters: `everyDeclaredUIStringShipsASpanishTranslation` fails if either new key ships
+  without Spanish, and it passes.
+- **Owed, unchanged by this unit**: the fresh-install walk (D140 discards the store, so the app must
+  be **deleted** before the next run), the interactive iOS 26 walk, WU-28-A's physical-device
+  `ONBOARDING health-request-status=` line, pruning the 163 stale catalogue keys in Xcode's own
+  editor, and `Artwork/Judge/JudgeAppeal.imageset`, which nothing references since the appeal left.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
