@@ -75,7 +75,8 @@ struct BasalMetabolicRateTests {
         let body = try makeBody()
         let midnight = TestCalendar.date(2026, 9, 15)
         let evaluation = TestCalendar.date(2026, 9, 15, 19, 30)
-        #expect(calendar.dateInterval(of: .day, for: evaluation)?.duration == 24 * 3600)
+        let dayLength = try #require(calendar.dateInterval(of: .day, for: evaluation)?.duration)
+        #expect(dayLength == 24 * 3600)
 
         // When the estimate is prorated up to 19:30
         let prorated = try #require(
@@ -116,7 +117,8 @@ struct BasalMetabolicRateTests {
         let body = try makeBody()
         let midnight = TestCalendar.date(2026, 3, 29)
         let evaluation = TestCalendar.date(2026, 3, 29, 3, 10)
-        #expect(calendar.dateInterval(of: .day, for: evaluation)?.duration == 23 * 3600)
+        let dayLength = try #require(calendar.dateInterval(of: .day, for: evaluation)?.duration)
+        #expect(dayLength == 23 * 3600)
 
         // When the estimate is prorated up to 03:10
         let prorated = try #require(
@@ -144,7 +146,8 @@ struct BasalMetabolicRateTests {
         let body = try makeBody()
         let midnight = TestCalendar.date(2026, 10, 25)
         let evaluation = TestCalendar.date(2026, 10, 25, 19, 30)
-        #expect(calendar.dateInterval(of: .day, for: evaluation)?.duration == 25 * 3600)
+        let dayLength = try #require(calendar.dateInterval(of: .day, for: evaluation)?.duration)
+        #expect(dayLength == 25 * 3600)
 
         // When the estimate is prorated up to 19:30
         let prorated = try #require(

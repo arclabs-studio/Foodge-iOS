@@ -28,10 +28,14 @@ struct NarrationTemplateLocalizationTests {
         return dictionary
     }()
 
-    /// The English source string for a category's template — which, with English as the source
-    /// language, is also its String Catalog key.
-    private static func englishTemplate(for category: DinnerCategory) -> String {
-        String(localized: category.flourishTemplate)
+    /// The String Catalog key for a category's template, read from the resource itself rather than
+    /// resolved through the current locale.
+    ///
+    /// `String(localized:)` resolves in the **running device's** locale, so on a simulator set to
+    /// Spanish it returned the Spanish template and every lookup below missed (D142). The key is
+    /// the English source string whatever locale the host runs in, which is what this oracle needs.
+    private static func catalogueKey(for category: DinnerCategory) -> String {
+        category.flourishTemplate.key
     }
 
     @Test("Every category ships a Spanish template")
@@ -44,7 +48,7 @@ struct NarrationTemplateLocalizationTests {
 
         // Then no category can fall back to English prose on a Spanish device
         for category in DinnerCategory.allCases {
-            let key = Self.englishTemplate(for: category)
+            let key = Self.catalogueKey(for: category)
             #expect(Self.spanishStrings[key] != nil, "\(category) ships no Spanish flourish template")
         }
     }
@@ -53,7 +57,7 @@ struct NarrationTemplateLocalizationTests {
     func spanishTemplatesAreDistinct() throws {
         // Given the shipped Spanish templates
         let templates = try DinnerCategory.allCases.map { category in
-            try #require(Self.spanishStrings[Self.englishTemplate(for: category)])
+            try #require(Self.spanishStrings[Self.catalogueKey(for: category)])
         }
 
         // Then each category says something of its own — a copy-paste that gave two categories the
@@ -74,7 +78,7 @@ struct NarrationTemplateLocalizationTests {
         // a template the app would happily ship while the validator rejects the model for saying
         // the same thing.
         for category in DinnerCategory.allCases {
-            let spanish = try #require(Self.spanishStrings[Self.englishTemplate(for: category)])
+            let spanish = try #require(Self.spanishStrings[Self.catalogueKey(for: category)])
             #expect(
                 NarrationValidator.validate(spanish) == .accepted(spanish),
                 "The Spanish \(category) template does not satisfy the narration voice rules"

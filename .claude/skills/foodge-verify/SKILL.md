@@ -29,50 +29,49 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
 [
   {"targetName": "FoodgeTests", "testIdentifier": "BasalMetabolicRateTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "BodyBasicsTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "CheatMealAllowanceRuleTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "IntakeEstimateTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "EvidenceWindowPlannerTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "SleepIntervalUnionTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "HealthEvidenceReaderTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "ContainerFactoryTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "DishCatalogueTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "IngredientOrderingTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "CatalogueNameLocalizationTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CalorieProvenanceTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "CalorieReferenceCatalogueTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "TodayViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "TodayAppealViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "SettingsViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "NarrationValidatorTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "NarrationPromptTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "NarrationTemplateLocalizationTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "ValidatingNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CaseStoreTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CatalogueNameLocalizationTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "CheatMealAllowanceRuleTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "ContainerFactoryTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DeadlineNarratorTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "FoundationModelsNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationEvidenceProviderTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationScenarioCatalogueTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationScenarioOutcomeTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationEvidenceProviderTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationSessionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DishCatalogueTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "EvidenceWindowPlannerTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "FoundationModelsNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "HealthEvidenceReaderTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "IntakeEstimateTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "LocalReminderServiceTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "UIStringLocalizationTests"}
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationPromptTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationTemplateLocalizationTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "NarrationValidatorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "SettingsViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "SleepIntervalUnionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "UIStringLocalizationTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "ValidatingNarratorTests"}
 ]
 ```
 
-These are **all 33 suites in the target as of WU-EB** (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`),
-which is what the energy-allowance rebuild left behind: `DinnerCategoryRuleTests` and
-`ActivityBaselineCalculatorTests` were **deleted** in Pass B and naming them makes `RunSomeTests`
-fail on an identifier that no longer exists.
+These are **all 31 suites in the target as of WU-28-C** (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`). `TodayAppealViewModelTests` and
+`IngredientOrderingTests` left with the appeal and the exclusions (D141); `DinnerCategoryRuleTests`
+and `ActivityBaselineCalculatorTests` left with the baseline engine (WU-EB Pass B). Naming any of
+them makes `RunSomeTests` fail on an identifier that no longer exists.
 
-`GetTestList` reports **265 enabled** test functions as of WU-EB.B. Do not compare that to
-WU-23's "241 passed" or WU-25-A's "278 run": a *run* expands every argument of a parameterized
-`@Test` while the *list* counts functions, so the two are different metrics. `RunAllTests` is no
-longer a wider net than this list — the XCTest UI bundle was removed in WU-25-A (D2). Add new
-suites here as they land.
+`RunAllTests` reported **297 tests, 297 passed** on 27 Sep 2026 (WU-28-C), on `iPhone 18 Pro`, and
+the runner answered in well under the 120 s tool window — the wedge WU-27-A hit is not permanent, so
+try the runner before falling back to ⌘U. Do not compare 297 to `GetTestList`'s function count: a
+*run* expands every argument of a parameterized `@Test` while the *list* counts functions.
+`RunAllTests` is no longer a wider net than this list — the XCTest UI bundle was removed in WU-25-A
+(D2). Add new suites here as they land.
 
 ## Destination
 
@@ -82,7 +81,12 @@ Tests and previews run on **iPhone 17 Pro (27.0)**. Switch with
 Switch to `iPhone de CR` only for a real device run, and switch back afterwards. Changing
 destination while the app is running on the phone disturbs that session.
 
-**The destination is not a preference — three tests cannot pass on a device at all.**
+**The narration templates no longer depend on the host's language.** Until 27 Sep 2026
+`NarrationTemplateLocalizationTests` resolved its key with `String(localized:)`, so it failed on any
+clone that came up Spanish; it now reads `LocalizedStringResource.key` and passes in either language
+(D142). `UIStringLocalizationTests` is still simulator-only, for the reason below.
+
+**The destination is not a preference — `UIStringLocalizationTests` cannot pass on a device at all.**
 `UIStringLocalizationTests` reads the String Catalog through `URL(fileURLWithPath: #filePath)`,
 the *build machine's* path. A simulator shares the Mac's filesystem; a device has no `/Users/…`
 tree, so `declaredKeys` falls back to `[]` and the test fails its own `#require`. On 2026-09-26 a
