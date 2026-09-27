@@ -25,10 +25,15 @@ struct EvidenceSectionsView: View {
     /// screen has one presentation, grouped and localized by the formatter.
     ///
     /// The interpolated `"\(Int(kilocalories)) kcal"` these rows used before put a unit outside the
-    /// String Catalog and printed `1200` next to the allowance's `1,200 Cal` (D142).
+    /// String Catalog and printed `1200` next to the allowance’s `1,200 Cal` (D143).
     private static func energyText(_ aggregate: EnergyAggregate) -> String {
-        Measurement(value: aggregate.kilocalories, unit: UnitEnergy.kilocalories)
-            .formatted(.measurement(width: .abbreviated, usage: .food))
+        // Both the measurement and its style carry explicit types. The preview thunk wraps every
+        // subexpression in `__designTimeSelection`, which erases `UnitEnergy.kilocalories` to
+        // `Dimension` and leaves `formatted` with a `Measurement<Dimension>` it cannot accept —
+        // the app target compiles either spelling, the previews in this file only compile this one.
+        let energy = Measurement<UnitEnergy>(value: aggregate.kilocalories, unit: .kilocalories)
+        let style: Measurement<UnitEnergy>.FormatStyle = .measurement(width: .abbreviated, usage: .food)
+        return energy.formatted(style)
     }
 
     /// A step count, grouped by the locale's own separator rather than printed as raw digits.
