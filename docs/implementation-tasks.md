@@ -2594,8 +2594,47 @@ screen's two kilocalorie formats, went with them.
   sentence or a format call would pass whenever the code compiles. The formatter change is covered
   where it matters: `everyDeclaredUIStringShipsASpanishTranslation` fails if either new key ships
   without Spanish, and it passes.
-- **Owed, unchanged by this unit**: the fresh-install walk (D140 discards the store, so the app must
-  be **deleted** before the next run), the interactive iOS 26 walk, WU-28-A's physical-device
+- **The fresh-install walk is done, and it is the D140 evidence.** The app was deleted from the
+  simulator through the Home screen — the confirming alert said *"Deleting this app will also delete
+  its data"*, so the store went with it — then installed and launched. **The rewritten schema V1
+  opens on a wiped device**: the app came up on Welcome, walked onboarding → Today → verdict →
+  evidence → History with no hang, no crash and no dead end, pid 95825 constant throughout, and the
+  console carried no SwiftData, migration or app-level error at all (only simulator noise:
+  `WebKit.axbundle`, a missing keyboard `hapticpatternlibrary.plist`, a PointerUI XPC line).
+- **No appeal survives anywhere in the running app.** `grep -il appeal` over all **65** captured UI
+  hierarchies returns **0 files**. `WelcomeView`'s footnote read back verbatim from the hierarchy as
+  *"You can always see the reasoning behind the verdict."*
+- **The walk in one line each.** Health sheet **did** appear (six topics selected, all data allowed)
+  and the honest wording held — *"Foodge asked Health for access. Nothing readable came back for
+  today."*, never "denied" · About you took 35 / 175 cm / 70 kg / omnivore · Today offered the
+  check-in and one button, then the self-report (*"There isn't enough readable data to work out
+  today's allowance."*) · verdict **Balanced / Chicken rice bowl**, why *"You said today was about as
+  active as usual."* · the deterministic flourish rendered first and the on-device model replaced it
+  ~15 s later with *"This dinner trial was more juicy than the verdict: acquitt-o-roast!"* — no
+  number in either · History listed exactly one case, whose detail repeated the same verdict and
+  carried `Rule version 2.0.0` / `Catalogue version 1.0.0`.
+- **The kcal-format check could not be made on this walk, and is not claimed.** A wiped simulator has
+  no Health samples, so every Sources row and the Sleep row read *"No readable data"* and Tonight's
+  allowance showed only *"Your account / About usual"* — **not one kilocalorie figure or step count
+  rendered**. The two sections were compared in the **previews** instead (`es` and `en`, both showing
+  400 / 1600 / 1460 in one format across both sections); proving it in the running app needs
+  demonstration mode or real Health data.
+- **Five findings from the walk, none blocking, none fixed here.** (1) On **About you** the decimal
+  pad has no Done key and tapping the copy above does not dismiss it, so the diet picker and *Save
+  and finish* sit underneath until the form is scrolled — and a stray tap on the pad silently
+  appended a digit to Weight (70 → 702). (2) That invalid figure disables *Save and finish* with no
+  inline message; the only cue is the section footer, which was behind the keyboard. (3) The same
+  screen's footer still describes *Finish without the figures* after that button has disappeared.
+  (4) **Evidence details opens with a card containing only the words *From Health* and nothing
+  under it**, above the separate `Sources` header. (5) The self-report answer navigates straight to
+  the verdict, bypassing the *Give me a verdict* button visible below it.
+- **One thing that wants a decision, not a fix:** `See alternative` on the verdict flips between two
+  dishes Foodge itself chose (Chicken rice bowl ↔ Potato tortilla, both Balanced, both omnivore) and
+  relabels itself *See original dish*. It is a two-state toggle inside the app's own choice rather
+  than a picker, so it does not contradict D138 as written — but it is the only control that changes
+  which dish is on screen, and D138 is the rule the product was once rejected for breaking.
+
+- **Owed, unchanged by this unit**: the interactive iOS 26 walk, WU-28-A's physical-device
   `ONBOARDING health-request-status=` line, pruning the 163 stale catalogue keys in Xcode's own
   editor, and `Artwork/Judge/JudgeAppeal.imageset`, which nothing references since the appeal left.
 
