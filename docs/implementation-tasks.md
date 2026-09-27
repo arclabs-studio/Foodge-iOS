@@ -2619,7 +2619,7 @@ screen's two kilocalorie formats, went with them.
   rendered**. The two sections were compared in the **previews** instead (`es` and `en`, both showing
   400 / 1600 / 1460 in one format across both sections); proving it in the running app needs
   demonstration mode or real Health data.
-- **Five findings from the walk, none blocking, none fixed here.** (1) On **About you** the decimal
+- **Five findings from the walk; two fixed here, three left for a decision.** (1) On **About you** the decimal
   pad has no Done key and tapping the copy above does not dismiss it, so the diet picker and *Save
   and finish* sit underneath until the form is scrolled — and a stray tap on the pad silently
   appended a digit to Weight (70 → 702). (2) That invalid figure disables *Save and finish* with no
@@ -2628,12 +2628,29 @@ screen's two kilocalorie formats, went with them.
   (4) **Evidence details opens with a card containing only the words *From Health* and nothing
   under it**, above the separate `Sources` header. (5) The self-report answer navigates straight to
   the verdict, bypassing the *Give me a verdict* button visible below it.
+  **(3) and (4) are fixed.** The *About you* footer is now gated on `canSkipBodyBasics`, the same
+  condition as the button it describes — proven by a new **Complete** preview, the state the other
+  two could not show: all four figures valid, skip button gone, footer gone. The provenance line is
+  now a section **footer** rather than a `Section { Text }`, so it renders as the caption it always
+  was — and `CaseDetailView`'s own *Demonstration data* banner is respelled the same way, so the two
+  screens that share `EvidenceSectionsView` agree on the line above it too. The render also shows
+  *Datos de demostración* above `Fuentes` with both sections agreeing on
+  one energy format (400 / 1600 / 1460 kcal in Sources, 1600 / 400 / 2000 / 1460 / 540 kcal in the
+  allowance) — **the comparison the walk could not make, made against real figures**. (1), (2) and
+  (5) are behaviour changes and are left for a decision.
 - **One thing that wants a decision, not a fix:** `See alternative` on the verdict flips between two
   dishes Foodge itself chose (Chicken rice bowl ↔ Potato tortilla, both Balanced, both omnivore) and
   relabels itself *See original dish*. It is a two-state toggle inside the app's own choice rather
   than a picker, so it does not contradict D138 as written — but it is the only control that changes
   which dish is on screen, and D138 is the rule the product was once rejected for breaking.
 
+- **The re-run after the three presentation edits is owed, and the runner wedged again.** The
+  **297/297** above is against the tree as of the `D143` commit; the *About you* footer gate, the two
+  provenance captions and the new **Complete** preview landed after it. Build green and
+  `totalFound: 0` warnings on that later tree, and no test touches any of the three — but that is an
+  argument, not a run. `RunAllTests` sat at **12 m 40 s** with no result and a four-suite
+  `RunSomeTests` at **5 m** after it, the same wedge WU-27-A recorded, and both were stopped. ⌘U by
+  hand remains the only path that has produced a number here.
 - **Owed, unchanged by this unit**: the interactive iOS 26 walk, WU-28-A's physical-device
   `ONBOARDING health-request-status=` line, pruning the 163 stale catalogue keys in Xcode's own
   editor, and `Artwork/Judge/JudgeAppeal.imageset`, which nothing references since the appeal left.

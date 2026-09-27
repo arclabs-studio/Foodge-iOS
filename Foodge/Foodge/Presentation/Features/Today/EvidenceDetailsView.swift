@@ -18,11 +18,16 @@ struct EvidenceDetailsView: View {
 
     var body: some View {
         Form {
+            // A caption, not a row: written as a section footer so it reads as the provenance
+            // line it is. As a `Section { Text }` it rendered as a card holding one short phrase
+            // and nothing else, which reads as a header that lost its content.
             Section {
+                EmptyView()
+            } footer: {
                 Text(revision.evidence.isSynthetic ? "Demonstration data" : "From Health")
-                    .font(.footnote)
-                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
-                    // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is ≥4.5:1 (D134).
+                    // `.secondary` measures ~3.4:1 against the grouped background in
+                    // standard-contrast light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted`
+                    // is ≥4.5:1 (D134).
                     .foregroundStyle(.appBurgundyMuted)
             }
 

@@ -115,12 +115,17 @@ struct BodyBasicsView: View {
                         .foregroundStyle(.appBurgundyMuted)
                 }
             } footer: {
-                Text(
-                    """
-                    Skipping is fine. On a day Health records no resting energy, Foodge will ask how \
-                    your day went instead.
-                    """
-                )
+                // Gated on the same condition as the button it describes: once all four figures
+                // parse, `Finish without the figures` is gone and this footer was still telling
+                // the user that skipping is fine.
+                if vm.canSkipBodyBasics {
+                    Text(
+                        """
+                        Skipping is fine. On a day Health records no resting energy, Foodge will ask how \
+                        your day went instead.
+                        """
+                    )
+                }
             }
         }
         .navigationTitle("About you")
@@ -150,5 +155,21 @@ struct BodyBasicsView: View {
     .task {
         vm.bodySex = .female
         vm.ageText = "34"
+    }
+}
+
+#Preview("Complete") {
+    @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
+
+    NavigationStack {
+        BodyBasicsView(vm: vm)
+    }
+    // The state the other two previews cannot show: with all four figures valid, both the
+    // skip button and the footer describing it are gone, and only `Save and finish` is left.
+    .task {
+        vm.bodySex = .male
+        vm.ageText = "35"
+        vm.heightText = "175"
+        vm.weightText = "70"
     }
 }

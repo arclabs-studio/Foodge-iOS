@@ -32,10 +32,14 @@ struct CaseDetailView: View {
     private func content(for revision: SavedRevision) -> some View {
         Form {
             if revision.evidence.isSynthetic {
+                // A caption, not a row — the same spelling `EvidenceDetailsView` uses for the
+                // same line, so the two screens that share `EvidenceSectionsView` also agree on
+                // how the provenance above it reads.
                 Section {
+                    EmptyView()
+                } footer: {
                     Text("Demonstration data")
-                        .font(.footnote)
-                        // `.secondary` measures ~3.4:1 against the row background in
+                        // `.secondary` measures ~3.4:1 against the grouped background in
                         // standard-contrast light — below WCAG 1.4.3's 4.5:1.
                         // `appBurgundyMuted` is ≥4.5:1 (D134).
                         .foregroundStyle(.appBurgundyMuted)
