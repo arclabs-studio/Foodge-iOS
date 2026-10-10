@@ -98,13 +98,8 @@ struct AllowanceDisclaimerFooter: View {
     var body: some View {
         switch basis {
         case .energyBalance:
-            // A footer is already footnote-sized, so only the color is set here. `.secondary`
-            // measures ~3.4:1 against the grouped background in standard-contrast light
-            // appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is the brand's
-            // dedicated secondary-text color, tuned to ≥4.5:1 in every appearance/contrast
-            // combination.
             Text("These figures are estimates, not nutritional advice.")
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         case .selfReported, .provisional:
             EmptyView()
         }

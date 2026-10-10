@@ -37,15 +37,13 @@ struct CaseReasonsSection: View {
                     date
                 }
             }
-            // Headers, like footers, are drawn in `.secondary` — about 3.3:1 on the light grouped
-            // background. `appBurgundyMuted` is ≥4.5:1 there (D134, D148).
-            .foregroundStyle(.appBurgundyMuted)
+            .formCaption()
             .accessibilityElement(children: .combine)
         } footer: {
             // It qualifies the reasons above it, so it is a footer rather than one more row among them
             // (`arc-audit-hig`, WU-EB); `VerdictReasonsCard` closes its card with the same sentence.
             Text("These are prototype product heuristics, not nutritional advice.")
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         }
     }
 

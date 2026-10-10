@@ -19,8 +19,7 @@ struct CaseRecordSection: View {
             LabeledContent("Catalogue version", value: catalogueVersion)
         } header: {
             Text("Recorded")
-                // `.secondary` is about 3.3:1 on the light grouped background (D134, D148).
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         }
     }
 }

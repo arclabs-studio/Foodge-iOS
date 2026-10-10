@@ -39,10 +39,7 @@ struct CaseDetailView: View {
                     EmptyView()
                 } footer: {
                     Text("Demonstration data")
-                        // `.secondary` measures ~3.3:1 against the grouped background in
-                        // standard-contrast light — below WCAG 1.4.3's 4.5:1.
-                        // `appBurgundyMuted` is ≥4.5:1 (D134).
-                        .foregroundStyle(.appBurgundyMuted)
+                        .formCaption()
                 }
             }
 

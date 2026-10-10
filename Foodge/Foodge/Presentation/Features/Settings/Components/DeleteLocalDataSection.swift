@@ -61,9 +61,7 @@ struct DeleteLocalDataSection: View {
             }
         } footer: {
             Text("Removes your preferences, every saved case and any pending reminder. Your Apple Health records are never touched.")
-                // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
-                // `appBurgundyMuted` is measured there (D134, D148).
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         }
         .confirmationDialog(
             "Delete everything Foodge has saved here?",

@@ -48,9 +48,7 @@ struct HealthConnectionView: View {
                 }
             } footer: {
                 Text("Apple asks for the permission, not Foodge. You choose what to share in its own sheet.")
-                    // Footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
-                    // `appBurgundyMuted` is measured there (D134, D145).
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
             }
 
             if let missing = vm.healthState.missingKinds {
@@ -73,8 +71,7 @@ struct HealthConnectionView: View {
                     }
                 } header: {
                     Text("What Health could read")
-                        // Headers are drawn in `.secondary` too (D134, D145).
-                        .foregroundStyle(.appBurgundyMuted)
+                        .formCaption()
                 }
             }
 

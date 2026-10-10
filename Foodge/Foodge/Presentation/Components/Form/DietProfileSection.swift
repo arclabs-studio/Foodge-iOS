@@ -34,9 +34,7 @@ struct DietProfileSection: View {
             .onChange(of: dietProfile) { _, _ in onChange() }
         } footer: {
             Text("Foodge never infers this from Health, and never relaxes it to find a match.")
-                // A footer is drawn in `.secondary`, about 3.3:1 on the light grouped background;
-                // `appBurgundyMuted` is measured there by `PaletteContrastTests` (D134, D145).
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         }
     }
 }

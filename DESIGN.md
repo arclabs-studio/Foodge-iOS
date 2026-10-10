@@ -95,8 +95,9 @@ Contrast); no hex or RGB literal appears in code. **Text in a colour the app set
 (the figures are in `PrimaryActionModifier` and `SecondaryActionModifier`); re-measure them if the
 tint or either style changes. Text the system draws itself (a `DatePicker`'s value, menu items,
 dialogs) is the system's. The system's `.secondary` is about 3.4:1 on a light row and 3.3:1 on the
-grouped background, so the app never uses it for text: headers, footers and prompts set
-`appBurgundyMuted`, and `LabeledContent` values take `.readableValue` at the root (D134, D135).
+grouped background, so the app never uses it for text: `Form` headers, footers and text-field
+prompts take `.formCaption()` (`appBurgundyMuted`) — a new `Section` must too, since nothing checks it —
+and `LabeledContent` values take `.readableValue` at the root (D134, D135).
 System red is about 3.6:1 as text on a light row, so a destructive row keeps the red on its symbol.
 
 | Set | Light | Dark | Role |

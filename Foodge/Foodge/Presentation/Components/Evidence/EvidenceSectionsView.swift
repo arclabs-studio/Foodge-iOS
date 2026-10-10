@@ -42,8 +42,6 @@ struct EvidenceSectionsView: View {
     }
 
     var body: some View {
-        // Headers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
-        // `appBurgundyMuted` is measured there (D134, D148).
         Group {
             Section {
                 ProvenanceRow(
@@ -68,14 +66,14 @@ struct EvidenceSectionsView: View {
                 )
             } header: {
                 Text("Sources")
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
             }
 
             Section {
                 AllowanceBreakdownRow(basis: basis)
             } header: {
                 Text("Tonight’s allowance")
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
             } footer: {
                 AllowanceDisclaimerFooter(basis: basis)
             }
@@ -96,7 +94,7 @@ struct EvidenceSectionsView: View {
                 }
             } header: {
                 Text("Sleep")
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
             }
         }
     }

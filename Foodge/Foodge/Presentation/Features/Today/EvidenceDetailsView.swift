@@ -25,10 +25,7 @@ struct EvidenceDetailsView: View {
                 EmptyView()
             } footer: {
                 Text(revision.evidence.isSynthetic ? "Demonstration data" : "From Health")
-                    // `.secondary` measures ~3.3:1 against the grouped background in
-                    // standard-contrast light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted`
-                    // is ≥4.5:1 (D134).
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
             }
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)

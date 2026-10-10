@@ -41,16 +41,12 @@ struct NarrationSection: View {
                 .foregroundStyle(.appBurgundyMuted)
         } header: {
             Text("The judge’s flourish")
-                // Headers are drawn in `.secondary` too, about 3.3:1 on the light grouped
-                // background (D134, D148).
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         } footer: {
             // A caption about the section belongs in its footer, not in a row of it
-            // (`arc-audit-hig`, WU-EB). The color moves with it: `.secondary` measures
-            // ~3.4:1 in standard-contrast light appearance, below the 4.5:1 WCAG 1.4.3
-            // needs, and a footer is already footnote-sized.
+            // (`arc-audit-hig`, WU-EB).
             Text("Decoration only — the reasoning above is the verdict.")
-                .foregroundStyle(.appBurgundyMuted)
+                .formCaption()
         }
     }
 

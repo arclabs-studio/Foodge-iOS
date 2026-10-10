@@ -40,9 +40,7 @@ struct DemonstrationScenariosView: View {
                 }
             } footer: {
                 Text("Every scenario uses invented data. Nothing is read from Apple Health, and nothing is saved to this iPhone.")
-                    // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
-                    // `appBurgundyMuted` is measured there (D134, D148).
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
             }
 
             if let failure = controls.failure {

@@ -51,7 +51,7 @@ struct BodyBasicsView: View {
                 // drawn in `appBurgundyMuted`: the system's placeholder colour reads at about 1.7:1
                 // on a light row, under WCAG 1.4.3's 4.5:1 (D134).
                 LabeledContent("Age") {
-                    TextField("Age in years", text: $vm.ageText, prompt: Text("Years").foregroundStyle(.appBurgundyMuted))
+                    TextField("Age in years", text: $vm.ageText, prompt: Text("Years").formCaption())
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .accessibilityLabel("Age in years")
@@ -60,7 +60,7 @@ struct BodyBasicsView: View {
                     TextField(
                         "Height in centimetres",
                         text: $vm.heightText,
-                        prompt: Text("Centimetres").foregroundStyle(.appBurgundyMuted)
+                        prompt: Text("Centimetres").formCaption()
                     )
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
@@ -70,7 +70,7 @@ struct BodyBasicsView: View {
                     TextField(
                         "Weight in kilograms",
                         text: $vm.weightText,
-                        prompt: Text("Kilograms").foregroundStyle(.appBurgundyMuted)
+                        prompt: Text("Kilograms").formCaption()
                     )
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
@@ -84,7 +84,7 @@ struct BodyBasicsView: View {
                         anything. Until then it will ask you about your day instead.
                         """
                     )
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
                 }
             }
 
@@ -136,9 +136,7 @@ struct BodyBasicsView: View {
                         your day went instead.
                         """
                     )
-                    // Footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
-                    // `appBurgundyMuted` is measured there (D134, D145).
-                    .foregroundStyle(.appBurgundyMuted)
+                    .formCaption()
                 }
             }
         }
