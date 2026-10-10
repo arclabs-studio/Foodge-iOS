@@ -26,9 +26,15 @@ import SwiftUI
 /// seconds for motion nobody asked for), and none at all once the judge has been tapped.
 @MainActor
 struct JudgeHeroView: View {
+    /// How tall the judge stands on Today and in the loading state at standard text sizes.
+    static let stageHeight: CGFloat = 180
+    /// The share of its height the judge keeps at accessibility sizes, so the text around it keeps
+    /// more of the screen.
+    static let accessibilityScale: CGFloat = 0.6
+
     let artwork: ImageResource
-    /// How tall the judge stands at standard text sizes. Accessibility sizes take 60 % of it, so
-    /// the text around the hero keeps more of the screen.
+    /// How tall the judge stands at standard text sizes; accessibility sizes take
+    /// ``accessibilityScale`` of it.
     let height: CGFloat
     /// Owned by the screen, so the judge keeps its place in the deck across that screen's updates.
     let reaction: JudgeReaction
@@ -46,7 +52,7 @@ struct JudgeHeroView: View {
     }
 
     private var side: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? height * 0.6 : height
+        dynamicTypeSize.isAccessibilitySize ? height * Self.accessibilityScale : height
     }
 
     var body: some View {

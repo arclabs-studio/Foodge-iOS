@@ -7,14 +7,13 @@
 
 import SwiftUI
 
-/// The food judge rendered with the pose appropriate to its surrounding screen.
+/// The food judge as a small, decorative badge.
 ///
-/// Deliberately the only place the judge artwork is configured, so its sizing and accessibility
-/// treatment remain consistent everywhere (D15).
-/// Decorative: it is a mascot logo, not content — `WelcomeView` and `TodayBeforeVerdictView` pair
-/// it with an explanatory sentence, but `CategoryHeaderSection` (shared by `VerdictView` and
-/// `CaseDetailView`) pairs it only with the one-word category name, which already stands on its
-/// own as text. Either way the badge itself adds no information VoiceOver users would be missing.
+/// The judge's large, interactive form is `JudgeHeroView`, and its loading form is
+/// `DeliberatingJudgeView`; this badge stays for the small uses — `WelcomeView` until WU-29-E, and
+/// `CategoryHeaderSection` (the verdict until WU-29-D, and case detail). Decorative: it is a mascot logo, not content — where it
+/// appears it sits beside text that already says what the screen is, so VoiceOver users miss
+/// nothing.
 @MainActor
 struct JudgeBadgeView: View {
     let artwork: ImageResource

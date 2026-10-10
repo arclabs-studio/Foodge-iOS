@@ -2806,6 +2806,63 @@ WU-29-E (Welcome).
   announcement at runtime; VoiceOver not dropping the announcement as the bubble inserts; the
   Reduce Motion walk with the real setting.
 
+### WU-29-C ✅ Today and the loading state — a stage with cards
+
+No new decision: D145 (stage, cards) and D146 (the judge) applied to Today. No product rule moves —
+the same check-ins, the same stages, the same announcements plus one (below).
+
+- **Today** (`TodayBeforeVerdictView`): a `ScrollView` on a burgundy `StageBackground`; the
+  `JudgeHeroView` at `JudgeHeroView.stageHeight` (180 pt; idling stops once a verdict is asked for);
+  the intro sentence on the stage in `appBurgundyMuted`, now `.callout` rather than `.footnote`;
+  cards — `IntakeCheckInCard`, `SelfReportCheckInCard`, `EvidenceUnavailableCard`,
+  `NoDishAvailableCard` (renamed or split out of the old `Section`s, one type per file;
+  `MealPortionPicker` has a file of its own); and `TodayPrimaryAction` in a `safeAreaBar`, inline at
+  accessibility sizes (the Welcome pattern). On the self-report card the question is now the card's
+  title, and the "isn't enough readable data" sentence a footnote under it.
+- **Each meal is a `Menu` holding a native `Picker`**, the whole row its label. The first version,
+  a `.menu` picker inside `LabeledContent`, had a ~34 pt target (only its value), broke *Sin
+  responder* into five fragments at AX 5, and — found by `arc-audit-accessibility` on the real screen,
+  hidden by the standalone card preview — inside the `ScrollView` reported a one-line height at
+  XX Large while its value wrapped, so the second line ran across the divider. The row is now at least
+  44 pt (`@ScaledMetric`), uses `ViewThatFits` to stack the meal above its value when one line does
+  not fit, keeps the meal in the primary colour (`.buttonStyle(.plain)`) and the value in the tint,
+  and carries an explicit accessibility label and value. This also closes WU-29-A's owed picker-value
+  item for Today: the value is `appBurgundy`, measured on the card fill, not system `.secondary`.
+- **Shared actions** (rule 7), each applied to the button itself: `PrimaryActionModifier` —
+  `glassProminent`, flexible width, `.large` (`.extraLarge` rendered identically on iOS, as the API
+  table warned), semibold, tint burgundy, label `appOnBurgundy`; the label on the glass fill sampled by
+  `arc-audit-accessibility` at 7.78 / 10.93 / 8.95 / 12.10:1 across the four appearances.
+  `SecondaryActionModifier` — `bordered`, flexible, label `.primary`: the tint on the dark bordered
+  fill measured **3.75:1**, sampled at (84, 79, 79); white on it **8.05:1**.
+- **Loading** (`CourtLoadingView`, also the launch screen): the stage instead of `systemBackground`,
+  and `DeliberatingJudgeView` at the hero's size — a 1.25 s gavel-tap tilt stopped by a 4.8 s timer
+  during the fourth tap's rest, none under Reduce Motion. The `ProgressView` stays the accessible
+  status, and Today now **announces** the loading message when it enters `.evaluating`: the column
+  underneath is hidden from VoiceOver at that moment, so focus had nowhere to go.
+- **Owed from WU-29-A, closed here for Today:** the intake footer was unstyled system `.secondary`;
+  it is `appBurgundyMuted` inside the card.
+- **Tests:** none new — view-only, as the plan says. `TodayViewModelTests` unchanged and green.
+- **Build:** green (latest 4.8 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key (`StringCatalogRead` `new` → 0).
+- **Suite:** `RunAllTests` → **340 tests, 340 passed** on the final tree.
+- **Render (final tree):** Today *Gathering* `es` at XXX Large and AX 5; `IntakeCheckInCard` in a
+  `ScrollView` at AX 5 `es` (stacked, words whole) and XX Large `en` dark; `SelfReportCheckInCard` in a
+  `ScrollView` at AX 5 `es`; `TodayPrimaryAction` *Back to tonight's verdict* `es` dark; primary action
+  enabled/disabled; `CourtLoadingView` `es` dark. Earlier on this unit: Today `en` light, *Needs the
+  self-report* `es` dark, the evidence and no-dish cards at AX 5 `es` (by the auditor).
+- **Audits:** `arc-audit-hig` 0 BLOCKER / 3 MAJOR · `arc-audit-accessibility` 0 / 2 ·
+  `arc-constitution-review` 0 / 1 (it also checked the `.task(id:)` isolation; the pattern is the one
+  `arc-audit-concurrency` cleared in WU-29-B, so no separate concurrency audit ran). All MAJORs acted
+  on: `safeAreaBar` for the scroll edge effect; `TodayPrimaryAction` narrowed to
+  `hasVerdict`/`isEvaluating`/`requestVerdict`; the menu row above; the missing renders. Also:
+  4.8 s instead of 5 s; sizes shared through `JudgeHeroView` constants; a *Held still* preview;
+  `JudgeBadgeView`'s stale call-site list; the evidence message single-sourced on
+  `EvidenceUnavailableCard`; card previews hosted in a `ScrollView` with the sample-data trait (so they
+  show the rounded face); modifiers applied per button.
+- **Owed to the WU-29-G simulator walk:** the scroll edge effect under the bar (a still preview does
+  not draw it); VoiceOver on the meal menus and the new loading announcement; Reduce Transparency on
+  the glass button; the 44 pt row target with the Accessibility Inspector.
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |

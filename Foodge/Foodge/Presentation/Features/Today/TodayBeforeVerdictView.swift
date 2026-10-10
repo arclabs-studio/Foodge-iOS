@@ -8,8 +8,8 @@
 import Accessibility
 import SwiftUI
 
-/// Today, before a verdict has been asked for: the check-ins the category rule needs, and the one
-/// button that starts an evaluation.
+/// Today, before a verdict has been asked for: the judge, the check-ins the category rule needs, and
+/// the one button that starts an evaluation — a stage with cards since D145.
 ///
 /// Nothing on this screen asks the user what they feel like eating. The dinner-time, energy and
 /// craving pickers and the free note all left with D138 — every one of them existed to steer the
@@ -18,13 +18,29 @@ import SwiftUI
 @MainActor
 struct TodayBeforeVerdictView: View {
     @Bindable var vm: TodayViewModel
+    @State private var judge = JudgeReaction()
 
-    private var evidenceFailureMessage: LocalizedStringResource {
-        "Foodge couldn’t finish reading today’s evidence."
+    /// At accessibility sizes the primary action flows as the last item in the scrolling column
+    /// instead of being pinned, where it would grow tall enough to cover what is above it — the
+    /// pattern `WelcomeView` already uses (WCAG 1.4.10 Reflow).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var evaluatingMessage: LocalizedStringResource {
+        LocalizedStringResource(
+            "The judge is weighing tonight’s evidence…",
+            comment: "Verdict preparation loading message"
+        )
     }
 
     private var noDishAvailableMessage: LocalizedStringResource {
         "Nothing in Foodge’s menu fits tonight’s category on your diet. Nothing was recorded for tonight."
+    }
+
+    /// The same action in both places it can sit — pinned, or inline at accessibility sizes.
+    private var primaryAction: some View {
+        TodayPrimaryAction(hasVerdict: vm.currentRevision != nil, isEvaluating: isEvaluating) {
+            Task { await vm.requestVerdict() }
+        }
     }
 
     private var isEvaluating: Bool {
@@ -37,115 +53,93 @@ struct TodayBeforeVerdictView: View {
 
     var body: some View {
         ZStack {
-            Form {
-                Section {
-                    JudgeBadgeView(artwork: .judgeVerdict)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
-                    // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `appBurgundyMuted` is
-                    // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
+            ScrollView {
+                VStack(spacing: 20) {
+                    // The judge stops breathing once a verdict is asked for; the loading state
+                    // takes over the stage from there.
+                    JudgeHeroView(
+                        artwork: .judgeVerdict,
+                        height: JudgeHeroView.stageHeight,
+                        reaction: judge,
+                        idles: !isEvaluating
+                    )
+
                     Text(
                         """
                         Foodge reads today from Health and names dinner. Tell it what you have eaten if \
                         Health has not recorded it.
                         """
                     )
-                    .font(.footnote)
+                    .font(.callout)
+                    // On the stage itself: `appBurgundyMuted` is measured where the wash is
+                    // strongest (D145); `.secondary` would not be (D134).
                     .foregroundStyle(.appBurgundyMuted)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .listRowBackground(Color.clear)
+                    .multilineTextAlignment(.center)
 
-                IntakeCheckInSection(vm: vm)
+                    IntakeCheckInCard(vm: vm)
 
-                switch vm.stage {
-                case .needsSelfReport:
-                    SelfReportCheckInSection { report in
-                        Task { await vm.submitSelfReport(report) }
-                    }
-                case .evidenceUnavailable:
-                    Section {
-                        Text(evidenceFailureMessage)
-                        Button("Try again") {
+                    switch vm.stage {
+                    case .needsSelfReport:
+                        SelfReportCheckInCard { report in
+                            Task { await vm.submitSelfReport(report) }
+                        }
+                    case .evidenceUnavailable:
+                        EvidenceUnavailableCard {
                             Task { await vm.requestVerdict() }
                         }
+                        // Never the only way out: the self-report's own copy — "There isn't enough
+                        // readable data to work out today's allowance" — is true of a failed read as
+                        // well as of an empty day, which is why no new sentence is invented here.
+                        SelfReportCheckInCard { report in
+                            Task { await vm.submitSelfReport(report) }
+                        }
+                    case let .noDishAvailable(decision):
+                        NoDishAvailableCard(category: decision.category)
+                    case .gathering, .evaluating, .verdict, .saveFailed:
+                        EmptyView()
                     }
-                    // The retry comes first, because a read that failed once may well succeed.
-                    // The user's own account comes second, because the retry must never be the
-                    // only way out: on a phone whose Health has never been authorized every
-                    // attempt throws, and before this the screen had no route to a verdict at
-                    // all (D129). The section's own copy — "There isn't enough readable data to
-                    // work out today's allowance" — is true of a failed read as well as of an
-                    // empty day, which is why no new sentence is invented here.
-                    SelfReportCheckInSection { report in
-                        Task { await vm.submitSelfReport(report) }
-                    }
-                case let .noDishAvailable(decision):
-                    Section {
-                        // Unreachable for every shipped diet profile, and said plainly rather than
-                        // papered over with a dish nothing chose (D139).
-                        Text(
-                            """
-                            Tonight’s category is \(decision.category.displayName), and nothing in \
-                            Foodge’s menu fits it on your diet.
-                            """
-                        )
-                        Text("Nothing was recorded for tonight.")
-                            .font(.footnote)
-                            .foregroundStyle(.appBurgundyMuted)
-                    }
-                case .gathering, .evaluating, .verdict, .saveFailed:
-                    EmptyView()
-                }
 
-                switch vm.stage {
-                case .verdict:
-                    // Tonight already has a verdict, so this offers the way back to it rather
-                    // than a button that would record a second revision for the same night
-                    // (D130). Popping the navigation stack lands here, and so does leaving a
-                    // demonstration — both used to show "Give me a verdict" as if the evening
-                    // had never been judged.
-                    Section {
-                        NavigationLink(value: TodayRoute.verdict) {
-                            Text("Tonight’s verdict")
-                        }
+                    if dynamicTypeSize.isAccessibilitySize {
+                        primaryAction
                     }
-                case .gathering, .evaluating, .needsSelfReport, .evidenceUnavailable, .noDishAvailable, .saveFailed:
-                    Section {
-                        Button("Give me a verdict") {
-                            Task { await vm.requestVerdict() }
-                        }
-                        .disabled(isEvaluating)
-                    }
+                }
+                .padding()
+            }
+            // A bar rather than an inset, so the system draws its scroll edge effect where the
+            // cards pass under the button instead of letting text show through.
+            .safeAreaBar(edge: .bottom) {
+                if !dynamicTypeSize.isAccessibilitySize {
+                    primaryAction
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
                 }
             }
+            .background { StageBackground(accent: .appBurgundy) }
             .disabled(isEvaluating)
             .accessibilityHidden(isEvaluating)
 
             if isEvaluating {
-                CourtLoadingView(
-                    message: LocalizedStringResource(
-                        "The judge is weighing tonight’s evidence…",
-                        comment: "Verdict preparation loading message"
-                    ),
-                    artwork: .judgeVerdict
-                )
+                CourtLoadingView(message: evaluatingMessage, artwork: .judgeVerdict)
             }
         }
         .navigationTitle("Today")
         .task { await vm.onAppear() }
-        // The row replaces the check-in section in place, with no navigation, so VoiceOver has
-        // no reason to land on it (WCAG 4.1.3). `logLabel` is the change key because `Stage`
-        // carries a draft and an error and is deliberately not `Equatable`; "Try again" passes
-        // through `.evaluating`, so a second failure announces too. `.noDishAvailable` is the same
-        // shape of change — a section swapped in with no push — so it announces the same way.
+        // A card replaces the check-in in place, with no navigation, so VoiceOver has no reason
+        // to land on it (WCAG 4.1.3). `logLabel` is the change key because `Stage` carries a draft
+        // and an error and is deliberately not `Equatable`; "Try again" passes through
+        // `.evaluating`, so a second failure announces too. `.noDishAvailable` is the same shape of
+        // change — a card swapped in with no push — so it announces the same way.
         .onChange(of: vm.stage.logLabel) { _, _ in
             switch vm.stage {
+            case .evaluating:
+                // The column underneath is hidden from VoiceOver while the court deliberates, so
+                // focus has nowhere to go; say what is happening rather than leave silence.
+                AccessibilityNotification.Announcement(String(localized: evaluatingMessage)).post()
             case .evidenceUnavailable:
-                AccessibilityNotification.Announcement(String(localized: evidenceFailureMessage)).post()
+                AccessibilityNotification.Announcement(String(localized: EvidenceUnavailableCard.message)).post()
             case .noDishAvailable:
                 AccessibilityNotification.Announcement(String(localized: noDishAvailableMessage)).post()
-            case .gathering, .evaluating, .needsSelfReport, .verdict, .saveFailed:
+            case .gathering, .needsSelfReport, .verdict, .saveFailed:
                 break
             }
         }
