@@ -39,42 +39,21 @@ struct CaseDetailView: View {
                     EmptyView()
                 } footer: {
                     Text("Demonstration data")
-                        // `.secondary` measures ~3.4:1 against the grouped background in
+                        // `.secondary` measures ~3.3:1 against the grouped background in
                         // standard-contrast light — below WCAG 1.4.3's 4.5:1.
                         // `appBurgundyMuted` is ≥4.5:1 (D134).
                         .foregroundStyle(.appBurgundyMuted)
                 }
             }
 
-            CategoryHeaderSection(category: revision.decision.category, isProvisional: revision.decision.isProvisional)
+            CaseHeroSection(
+                category: revision.decision.category,
+                isProvisional: revision.decision.isProvisional,
+                variantID: revision.dishOutcome.variantID,
+                family: revision.dishOutcome.family
+            )
 
-            dishSection(for: revision.dishOutcome)
-
-            // The header carries the case's date because the reason codes are stored, not
-            // recomputed: they are phrased for the day they were written ("Today's activity came
-            // in…"), so on a past case the date is what makes "today" read as the day being
-            // quoted rather than as now. `VerdictView` shows the same codes undated, where today
-            // really is today.
-            Section {
-                ForEach(revision.decision.reasonCodes, id: \.self) { reason in
-                    Text(reason.displayText)
-                }
-            } header: {
-                HStack {
-                    Text("Why")
-                    Spacer()
-                    Text(revision.createdAt, format: .dateTime.year().month().day())
-                }
-                .accessibilityElement(children: .combine)
-            } footer: {
-                // Same placement as `VerdictView`'s copy of this sentence: it qualifies the
-                // reasons above it, so it is a footer rather than one more row among them
-                // (`arc-audit-hig`, WU-EB). A footer is already footnote-sized, so only the
-                // color is set — `.secondary` measures ~3.4:1 in standard-contrast light,
-                // below WCAG 1.4.3's 4.5:1, while `appBurgundyMuted` is ≥4.5:1 (D134).
-                Text("These are prototype product heuristics, not nutritional advice.")
-                    .foregroundStyle(.appBurgundyMuted)
-            }
+            CaseReasonsSection(reasonCodes: revision.decision.reasonCodes, createdAt: revision.createdAt)
 
             EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
 
@@ -86,49 +65,15 @@ struct CaseDetailView: View {
                 category: revision.decision.category
             )
 
-            Section("Recorded") {
-                LabeledContent("Rule version", value: revision.decision.ruleVersion)
-                LabeledContent("Catalogue version", value: revision.catalogueVersion)
-            }
-        }
-    }
-
-    private func dishSection(for dishOutcome: PersistedDishOutcome) -> some View {
-        Section {
-            DishSummaryRow(variantID: dishOutcome.variantID, family: dishOutcome.family)
+            CaseRecordSection(ruleVersion: revision.decision.ruleVersion, catalogueVersion: revision.catalogueVersion)
         }
     }
 }
 
-#Preview("Dish match", traits: .sampleData) {
+#Preview(traits: .sampleData) {
     NavigationStack {
-        CaseDetailView(
-            savedCase: SavedCase(
-                localDayKey: "2026-09-18",
-                revisions: [
-                    SavedRevision(
-                        id: UUID(),
-                        sequence: 0,
-                        createdAt: SyntheticScenarios.evaluationDate,
-                        decision: VerdictDecision(
-                            category: .balanced,
-                            basis: .energyBalance(SampleDecisions.moderateAllowance),
-                            reasonCodes: [.moderateAllowance],
-                            isProvisional: false,
-                            ruleVersion: CheatMealAllowanceRule.ruleVersion
-                        ),
-                        evidence: SyntheticScenarios.modestAllowance.snapshot,
-                        catalogueVersion: DishCatalogue.version,
-                        dishOutcome: PersistedDishOutcome(
-                            variantID: "dish.pasta.pesto",
-                            family: .pasta,
-                            alternativeVariantID: nil,
-                            alternativeFamily: nil
-                        ),
-                        narrationText: nil
-                    )
-                ]
-            )
-        )
+        CaseDetailView(savedCase: SampleDecisions.savedCase)
     }
+    // The root applies it in the app (D135); without it a value renders in `.secondary`.
+    .labeledContentStyle(.readableValue)
 }

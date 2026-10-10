@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The original artwork for one dish family.
+/// The original artwork for one dish family, at row size — History's `HistoryCaseRow`.
 ///
 /// The family → artwork mapping is `DishFamily.artwork`, the one place it lives (D60), shared with
 /// the verdict's large `DishHeroView`.
@@ -16,7 +16,7 @@ import SwiftUI
 struct DishArtworkView: View {
     let family: DishFamily
 
-    @ScaledMetric(relativeTo: .largeTitle) private var diameter: CGFloat = 64
+    @ScaledMetric(relativeTo: .largeTitle) private var diameter: CGFloat = 56
 
     var body: some View {
         Image(family.artwork)

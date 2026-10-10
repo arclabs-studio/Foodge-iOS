@@ -81,6 +81,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[filter-branch-deletes-the-working-file]] — purging a tracked file takes the file with it
 - [[string-catalog-edit-marks-translations-machine-made]] — the state is the tool's choice, not ours
 - [[sf-symbol-checkmark-hijacks-voiceover-selection]] — a symbol *name* the OS itself recognizes, no modifier stops it
+- [[a-form-row-truncates-what-a-stage-wraps]] — the same stamp hyphenated on a stage and truncated in a Form row
 - [[swiftdata-unique-does-not-throw-on-save]] — `@Attribute(.unique)` merges silently, it never throws
 - [[localization-tests-cannot-pass-on-a-physical-device]] — `#filePath` is the build machine's path
 - [[the-wedged-runner-was-a-stale-test-operation]] — probe with one test; the refusal arrives in seconds

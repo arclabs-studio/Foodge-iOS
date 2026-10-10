@@ -41,6 +41,9 @@ struct NarrationSection: View {
                 .foregroundStyle(.appBurgundyMuted)
         } header: {
             Text("The judge’s flourish")
+                // Headers are drawn in `.secondary` too, about 3.3:1 on the light grouped
+                // background (D134, D148).
+                .foregroundStyle(.appBurgundyMuted)
         } footer: {
             // A caption about the section belongs in its footer, not in a row of it
             // (`arc-audit-hig`, WU-EB). The color moves with it: `.secondary` measures

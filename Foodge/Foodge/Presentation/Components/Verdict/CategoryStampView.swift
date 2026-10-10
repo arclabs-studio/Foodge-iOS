@@ -25,7 +25,7 @@ struct CategoryStampView: View {
                 .accessibilityHidden(true)
             // The widest face that fits on one line, stepping down a size before letting a one-word
             // name wrap. At AX 5 even the smallest step can be too wide (*Equilibrado* in Spanish);
-            // the system then hyphenates rather than shrinking the word Dynamic Type enlarged.
+            // the word then wraps, hyphenated, rather than shrinking what Dynamic Type enlarged.
             ViewThatFits(in: .horizontal) {
                 name.font(.title.weight(.black)).fontWidth(.expanded)
                 name.font(.title.weight(.black))
@@ -51,6 +51,9 @@ struct CategoryStampView: View {
     private var name: some View {
         Text(category.displayName)
             .textCase(.uppercase)
+            // Takes the height its wrapped lines need. In a `Form` row (case detail) the row was
+            // otherwise measured at one line, and the name truncated to "EQUILIBRA…" from AX 3.
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

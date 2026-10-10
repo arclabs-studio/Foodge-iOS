@@ -20,7 +20,8 @@ struct VerdictStampSection: View {
             if isProvisional {
                 Text("Provisional — there wasn’t enough to go on yet.")
                     .font(.footnote)
-                    // On the stage: `appBurgundyMuted` is measured on every stage top (D145).
+                    // `appBurgundyMuted` is measured on every stage top (the verdict) and on the
+                    // grouped background (case detail) by `PaletteContrastTests` (D145).
                     .foregroundStyle(.appBurgundyMuted)
                     .multilineTextAlignment(.center)
             }

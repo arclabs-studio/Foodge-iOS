@@ -39,16 +39,7 @@ struct VerdictDishSection: View {
                         : .opacity.animation(.easeInOut(duration: 0.25))
                 )
 
-            VStack(spacing: 4) {
-                Text(DishCatalogue.displayName(forVariantID: variantID))
-                    .font(.largeTitle.bold())
-                Text(family.displayName)
-                    .font(.headline)
-                    // On the stage: `appBurgundyMuted` is measured on every stage top (D145).
-                    .foregroundStyle(.appBurgundyMuted)
-            }
-            .multilineTextAlignment(.center)
-            .accessibilityElement(children: .combine)
+            DishTitleView(variantID: variantID, family: family)
 
             // The name above changes in place with no navigation, so VoiceOver has no reason to
             // land on it (WCAG 4.1.3) — the announcement says which dish is now shown. The label

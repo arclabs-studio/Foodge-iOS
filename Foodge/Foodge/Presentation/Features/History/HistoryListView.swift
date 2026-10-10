@@ -24,11 +24,23 @@ struct HistoryListView: View {
                 ProgressView()
             case let .loaded(cases):
                 if cases.isEmpty {
-                    ContentUnavailableView(
-                        "No cases yet",
-                        systemImage: "clock.arrow.circlepath",
-                        description: Text("Once Foodge has ruled on a day, it is filed here with the evidence it used.")
-                    )
+                    ContentUnavailableView {
+                        Label {
+                            Text("No cases yet")
+                        } icon: {
+                            // The judge with nothing on the docket yet (D145). Decorative: the
+                            // title says what the screen is. Capped in size because this view does
+                            // not scroll and the text needs the room; in Spanish at AX 5 the title
+                            // and the description fill the screen and the system leaves it out.
+                            JudgeBadgeView(artwork: .judgeWelcome)
+                                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                        }
+                    } description: {
+                        Text("Once Foodge has ruled on a day, it is filed here with the evidence it used.")
+                            // The system draws a description in `.secondary`, about 3.4:1 on a
+                            // light background; `appBurgundyMuted` is measured there (D134).
+                            .foregroundStyle(.appBurgundyMuted)
+                    }
                 } else {
                     List(cases, id: \.localDayKey) { savedCase in
                         if let revision = savedCase.latestRevision {
@@ -43,6 +55,7 @@ struct HistoryListView: View {
                     Label(loadFailureMessage, systemImage: "exclamationmark.triangle")
                 } description: {
                     Text("Something went wrong reading your saved cases.")
+                        .foregroundStyle(.appBurgundyMuted)
                 } actions: {
                     Button("Try again") {
                         Task { await vm.load() }
@@ -61,24 +74,6 @@ struct HistoryListView: View {
             guard case .error = vm.stage else { return }
             AccessibilityNotification.Announcement(String(localized: loadFailureMessage)).post()
         }
-    }
-}
-
-/// One row: the day and the category Foodge ruled.
-@MainActor
-private struct HistoryCaseRow: View {
-    let revision: SavedRevision
-
-    var body: some View {
-        HStack {
-            Text(revision.createdAt, format: .dateTime.year().month().day())
-            Spacer()
-            Text(revision.decision.category.displayName)
-                // `.secondary` measures ~3.4:1 against the row background in standard-contrast
-                // light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted` is ≥4.5:1 (D134).
-                .foregroundStyle(.appBurgundyMuted)
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 

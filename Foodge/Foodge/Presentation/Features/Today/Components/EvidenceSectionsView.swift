@@ -42,8 +42,10 @@ struct EvidenceSectionsView: View {
     }
 
     var body: some View {
+        // Headers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+        // `appBurgundyMuted` is measured there (D134, D148).
         Group {
-            Section("Sources") {
+            Section {
                 ProvenanceRow(
                     title: HealthKind.activeEnergy.displayName,
                     valueText: today.activeEnergy.map(Self.energyText),
@@ -64,17 +66,21 @@ struct EvidenceSectionsView: View {
                     valueText: today.dietaryEnergy.map(Self.energyText),
                     readAt: today.dietaryEnergy?.provenance.readAt
                 )
+            } header: {
+                Text("Sources")
+                    .foregroundStyle(.appBurgundyMuted)
             }
 
             Section {
                 AllowanceBreakdownRow(basis: basis)
             } header: {
                 Text("Tonight’s allowance")
+                    .foregroundStyle(.appBurgundyMuted)
             } footer: {
                 AllowanceDisclaimerFooter(basis: basis)
             }
 
-            Section("Sleep") {
+            Section {
                 if let sleep = today.sleep {
                     LabeledContent(
                         "Asleep",
@@ -88,6 +94,9 @@ struct EvidenceSectionsView: View {
                     Text("No readable data")
                         .foregroundStyle(.appBurgundyMuted)
                 }
+            } header: {
+                Text("Sleep")
+                    .foregroundStyle(.appBurgundyMuted)
             }
         }
     }
