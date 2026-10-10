@@ -52,6 +52,7 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationTemplateLocalizationTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationValidatorTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "PaletteContrastTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "SettingsViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "SleepIntervalUnionTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"},
@@ -61,7 +62,7 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
 ]
 ```
 
-These are **all 31 suites in the target as of WU-28-C** (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`). `TodayAppealViewModelTests` and
+These are **all 32 suites in the target as of WU-29-A** (`PaletteContrastTests` added) (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`). `TodayAppealViewModelTests` and
 `IngredientOrderingTests` left with the appeal and the exclusions (D141); `DinnerCategoryRuleTests`
 and `ActivityBaselineCalculatorTests` left with the baseline engine (WU-EB Pass B). Naming any of
 them makes `RunSomeTests` fail on an identifier that no longer exists.

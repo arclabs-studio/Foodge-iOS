@@ -172,6 +172,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D142 | **Two test oracles were wrong, not the production code, and both are fixed at the oracle.** (1) `NarrationTemplateLocalizationTests` looked its Spanish values up by `String(localized:)`, which resolves in the **host's** locale — the XCTestDevices clone reports `es_ES`, so the key it searched with was the Spanish sentence. It now reads `category.flourishTemplate.key`, the String Catalog key itself. (2) `BasalMetabolicRateTests`' three day-length preconditions compared an optional-chained `duration` to an integer literal inside `#expect` and failed while printing equal operands; each now `#require`s the value out first. | These six failures were carried as a "measured baseline" through WU-28-A and WU-28-B, which is a polite way of saying two suites were red and nobody knew whether the product was. Neither was a product defect: `RunCodeSnippet` against the real Madrid calendar returned 86400 / 82800 / 90000 with **bit patterns identical** to the expected figures and `==` → `true`, and the three Spanish templates were present in the built `es.lproj` all along. Fixing the clone's language instead (the WU-25-A lever) works and has to be redone for every new device; reading the key is locale-independent for good. The literal-typing mechanism behind the `#expect` failure is **inferred, not proven** — recorded that way in `memory/expect-on-an-optional-can-fail-with-equal-operands.md`. |
 | D143 | **Two user-facing sentences still promised the appeal, and one screen showed two different kilocalorie formats.** `WelcomeView`'s footnote (*"…and you can always appeal."*) and the **Light** flourish template (*"The defence may still appeal."*) are rewritten and re-translated; `EvidenceSectionsView`'s three interpolated `"\(Int(kilocalories)) kcal"` values and its raw step count now go through `Measurement`/`.formatted`, the same call `AllowanceFigureRow` already uses. | Same class as D127: the appeal was deleted in WU-28-B and these two strings only *described* it, so they survived a search for appeal types and kept promising a button that no longer exists — one of them on the first screen a judge reads, the other inside the verdict itself. The formatting was WU-27-A's second walk finding, deferred then because it changes Spanish copy and the suite could not be run; both are now possible, so it is fixed rather than carried: `1200 kcal` beside `1,200 Cal` on one screen also put a unit outside the String Catalog, where no locale could reach it. The new English strings add two keys and leave the two old ones stale, which is the standing catalogue problem, not a new one. |
 | D144 | **`See alternative` stays, and is declared compatible with D138.** The verdict keeps its two-state toggle between the dish Foodge chose and the one it chose as runner-up in the same category and the same diet profile; it is not a picker and no third dish is reachable. `JudgeAppeal.imageset` is **deleted** — nothing has referenced it since D141 — and the 165 stale catalogue keys are listed in `docs/stale-string-catalog-keys.md` for a manual pass in Xcode's own editor. | Raised by the fresh-install walk, which correctly asked the uncomfortable question: this is the only control in the app that changes which dish is on screen, and D138 is the rule the product was rejected for breaking once. The distinction the user settled on is between **choosing** and **seeing the runner-up**: both dishes come out of `select`, in the category the rule decided, filtered by the stored diet profile, in the order D139 fixes — the person cannot reach a third, cannot cross a category, and cannot reach anything their diet excludes. Removing it was the alternative and was rejected as a larger change than the demo warranted; recording it here is the cost of keeping it, so the next reader does not have to re-derive whether it breached D138. The three remaining walk findings — keyboard dismissal and silent validation on *About you*, and the self-report's jump straight to the verdict — are deliberately **not** fixed before the demo, and stand recorded as found. |
+| D145 | **Visual identity v2 (WU-29, plan `docs/migrations/2026-10-09-playful-redesign.md`).** A hybrid palette: burgundy re-tinted more vivid (`#A3173F` light / `#FF8FAB` dark) and still the brand, tint and `AccentColor`; gold re-tinted brighter and **decoration only**; four new pizza colours — tomato = Treat, cheese = Balanced, basil = Light, dough = the stage background — each fill with its own measured *On* label colour. Rounded system type once at the window root. Ritual screens become a stage (`StageBackground`: opaque dough washed from the top with the screen's accent at 15 %) holding native `GroupBox` cards (`StageCardGroupBoxStyle`) filled with a new `AppCard` set — white in light, a warm grey in dark that is lighter than dough and every stage top — with a hairline `separator` edge; data entry and settings stay `Form`. **Supersedes two lines of `DESIGN.md`**: "artwork stays subordinate" on stage screens (the artwork leads; the dinner name and primary action stay the largest *text*), and "native system backgrounds … throughout" (dough and `AppCard` are custom surfaces, at the cost of the HIG's "prefer the system background colors" — paid because `secondarySystemGroupedBackground` is darker than the dark stage and the card read as a hole in it, `arc-audit-hig`). Cheese and gold fail 3:1 as *shapes* on light surfaces (1.49–1.88:1) and are accepted: neither is ever the sole carrier of meaning — a stamp's meaning is its text and symbol, on its measured On colour. | The app "looks like Settings": two `Form`s, the 3D judge at 76 pt and the dishes at 64 pt, a muted palette. Colour goes into backgrounds, the hero and the stamps, and text only ever sits on a pair `PaletteContrastTests` measures — never the system's `.secondary`, which is ~3.4:1 on a light row (D134) — so the app gets louder without a contrast regression — `PaletteContrastTests` resolves the shipped sets in four appearances and fails below 4.5:1. The alternative, colour behind text everywhere, would have needed a measured pair for every surface and is exactly how D134's 3.4:1 happened. |
 
 ---
 
@@ -2655,6 +2656,97 @@ screen's two kilocalorie formats, went with them.
 - **Owed, unchanged by this unit**: the interactive iOS 26 walk, WU-28-A's physical-device
   `ONBOARDING health-request-status=` line, pruning the 163 stale catalogue keys in Xcode's own
   editor, and `Artwork/Judge/JudgeAppeal.imageset`, which nothing references since the appeal left.
+
+## Day 29 — the playful redesign (WU-29)
+
+The user's brief (9 Oct 2026): a game-like, colourful Foodge — large animated tappable characters,
+brighter colours — on strict HIG and native SwiftUI only. Plan approved 10 Oct 2026 and committed as
+`docs/migrations/2026-10-09-playful-redesign.md`: seven units, WU-29-A → G, and D145–D147. **No
+product rule changes**; every new interaction is decoration and can never reach the rule, the dish or
+the diet (D138, D144).
+
+### WU-29-A ✅ Foundations — the palette, the stage and the card
+
+**D145.**
+
+- **Files:** 13 colour sets (`AppBurgundy`, `AccentColor`, `AppOnBurgundy`, `AppBurgundyMuted`,
+  `AppGold` re-valued; `AppTomato`, `AppOnTomato`, `AppCheese`, `AppOnCheese`, `AppBasil`,
+  `AppOnBasil`, `AppDough` from the plan, and `AppCard` added after `arc-audit-hig`) ·
+  `DinnerCategory+Appearance` (`tint`/`onTint` as `ColorResource`, which resolves in any trait
+  collection, high contrast included) · `StageBackground` · `StageCardGroupBoxStyle` ·
+  `.fontDesign(.rounded)` in `FoodgeApp`, wrapping the launch switch, rather than in `AppRootView`
+  as the plan wrote — the launch screen, the store-failure screen and the demonstration banner sit
+  outside `AppRootView` — and in both shared preview modifiers (`SampleData`), which a preview needs
+  because it never reaches the window root · `PaletteContrastTests` + `Support/WCAGContrast` +
+  `Support/PaletteAppearance` (written first by `arc-test-engineer`).
+- **Deferred to WU-29-D:** `DinnerCategory.symbolName`, which the plan lists here. Nothing uses it
+  before the stamp exists, and its test (a typo'd SF Symbol name returns `nil`, which no compiler
+  catches) belongs with its first caller.
+- **Tests:** `PaletteContrastTests` — 4 tests, 13 cases, **160 pairs** per run (40 per
+  appearance). `appBurgundy`, `appBurgundyMuted` and primary `label` on 12 surfaces: the three
+  system backgrounds at the base level and at the elevated level a sheet is drawn at, `AppCard`,
+  dough, and the top of every stage (accent composited over dough at
+  `StageBackground.accentOpacity` — the `arc-audit-accessibility` pixel probe of a rendered Treat
+  stage read (249,215,196) against a modelled (249,214.8,196.7)); the four On pairs, read through
+  the production category mapping; `AccentColor` == `AppBurgundy` per channel; `AppCard` lighter
+  than dough and every stage top; and a harness guard that the four trait collections select four
+  variants. Red before the implementation: four missing-symbol compile errors, nothing else.
+- **Could it fail — run, not argued:**
+  - `AppBurgundyMuted` light set back to its old `#A85C72` → **1 of 9 failed**, six pairs in
+    `light+normal`: grouped 4.23, dough 4.34, the four stage tops 3.35–4.06 (the tool's summary
+    truncates to five messages; the count is from the full log). **The old value measured 4.23:1 on
+    `systemGroupedBackground`**, the surface `Form` section footers sit on. D134/D135 measured 4.73:1
+    against a *row*; every burgundy-muted footer shipped through WU-28 was below the floor in
+    standard-contrast light, and no test could see it. The new value measures 6.52:1 there.
+  - `AppCard` dark set to `#1C1C1E` (the system's `secondarySystemGroupedBackground`) → **1 of 13
+    failed**: four pairs in `dark+normal`, card luminance 0.0117 against stage tops 0.0257–0.0358.
+  - Both restored; green again.
+- **Build:** green after every edit (latest 4.6 s); `GetBuildLog { severity: "warning" }` after each
+  → **`totalFound: 0`**.
+- **Suite:** `RunAllTests` → **310 tests, 310 passed** (297 + 13) on iPhone 18 Pro / iOS 27, on the
+  final tree.
+- **Render:** card on a Balanced stage in dark (raised, no gap in the label-less card) · Treat stage
+  dark · `AppRootView` *First launch* at AX 5 in `es`, dark (rounded, wraps, no clipping) · *Onboarding
+  already done* in Increased Contrast. `arc-audit-hig` and `arc-audit-accessibility` rendered Welcome,
+  the demonstration banner and Settings in light, dark and Increased Contrast: the Continue and Exit
+  labels hold on the new burgundy fill (7.63–12.10:1); toggles stay system green.
+- **Rounded, seen rather than assumed:** the same Welcome text at AX 5 rendered through
+  `AppRootView` (preview modifier applies `.fontDesign(.rounded)`) and through `WelcomeView`'s own
+  preview (no modifier) — round terminals on "court" and the "T" bar in the first, flat cuts in the
+  second. `arc-verify-ui` could not tell from Form rows at AX 3, and system-drawn text (picker
+  values, navigation titles, tab labels) is not confirmed either way; WU-29-G's simulator walk owns
+  that.
+- **`arc-verify-ui`:** build 0 errors, `totalFound: 0` warnings, **310/310**; ten renders, no clipping
+  or truncation, the dark card 1.23–1.27:1 lighter than the stage behind it, no gap in the
+  label-less card. Its device check could not screenshot: every `DeviceInteractionSynthesize` call
+  returned "Session not found" and left a stranded session holding the simulator
+  (`memory/troubleshooting/device-interaction-synthesize-session-not-found.md`).
+- **Audits:** `arc-constitution-review` 0 BLOCKER, 2 MAJOR · `arc-audit-hig` 0 BLOCKER, 1 MAJOR ·
+  `arc-audit-accessibility` 0 BLOCKER, 2 MAJOR. Acted on: the card's dark fill (`AppCard`, plus a
+  test that fails on the old fill); `label` and the elevated surfaces added to the pair table; rounded
+  type in the preview modifiers; seven comments, DocC and ledger lines that claimed more than the code
+  (card "guaranteed" contrast, a "traffic lights" line, an untested `Color` impossibility, stale
+  ratios in `WelcomeView` and `ReadableValueLabeledContentStyle`, five-vs-six failing pairs, the shape
+  range, the Dynamic Type sentence in `FoodgeApp`); `PaletteAppearance` moved to its own file;
+  redundant conformances dropped.
+- **Not acted on, with the reason:**
+  - **A category-mapping test** (accessibility MINOR-5a): swapping two categories' `tint` *and*
+    `onTint` together stays contrast-clean. A test pinning treat → tomato would repeat the mapping
+    literal, which `arc-test-engineer` rejected as a test that cannot fail independently.
+  - **Tomato and basil share a luminance in light** (0.167, 1.00:1; similar under deuteranopia). The
+    approved palette stays; the category's meaning must never be colour alone, so WU-29-D's stamp
+    ships text **and** symbol, and that is checked there.
+  - **The status bar over the demonstration banner** (2.15–2.75:1, accessibility MINOR-4) is
+    pre-existing system chrome on demonstration mode only, and moving the fill off the safe area is a
+    product call — owed to the user, not taken here.
+- **Owed — found here, pre-existing, not caused by this unit:** text the **system** draws in
+  `.secondary` — unstyled `Form` headers and footers (`DietProfileSection`, `EveningReminderSection`,
+  `IntakeCheckInSection`) and picker values — measures about 3.3–3.4:1 in standard-contrast light, so
+  WU-27-A's "WCAG 1.4.3 closed repo-wide" is not true of system-drawn text. Headers and footers are
+  styled with `appBurgundyMuted` in the unit that next touches each screen (Today in WU-29-C, onboarding
+  in WU-29-E, Settings in WU-29-G); picker values cannot be recoloured and are recorded then as a
+  system exception or restyled. Whether navigation titles, tab labels and sheets take the rounded face
+  is checked on the simulator in WU-29-G.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

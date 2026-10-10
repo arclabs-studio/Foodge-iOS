@@ -81,6 +81,11 @@ Measured minimums across the four appearances: Burgundy text **6.84**, BurgundyM
 OnBurgundy/Burgundy **7.63**, OnTomato/Tomato **4.83**, OnCheese/Cheese **8.87**, OnBasil/Basil
 **4.84**, primary label on Dough **17.44**.
 
+> **Corrected in WU-29-A.** The 6.84 / 6.52 minimums are on `systemGroupedBackground`; at the top of
+> a stage, where the accent wash is strongest, burgundy text bottoms out at **5.41** and
+> burgundy-muted at **5.16** (both light, burgundy stage). `PaletteContrastTests` holds the measured
+> table now, and a card fill (`AppCard`) was added after `arc-audit-hig` — see D145.
+
 **Known, accepted:** cheese and gold fail 3:1 as *shapes* against light surfaces (1.5–1.8:1). Neither
 is ever the sole carrier of meaning — the stamp's meaning is its text and symbol, which meet 4.5:1
 against the fill — so WCAG 1.4.11 does not apply. Recorded as part of D145.

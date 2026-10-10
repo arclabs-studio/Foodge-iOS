@@ -66,10 +66,10 @@ struct WelcomeView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// `AppBurgundy` (= AccentColor) is tuned as a *foreground* colour: dark burgundy in light
+    /// `AppBurgundy` (= AccentColor) is tuned as a *foreground* colour: deep burgundy in light
     /// appearance, light pink in dark. `.borderedProminent` uses it as the button's *background*
-    /// instead, with a white label by default — fine in light appearance (10.05:1), unreadable in
-    /// dark (2.47:1, where WCAG 1.4.3 needs 4.5:1).
+    /// instead, with a white label by default — fine in light appearance, unreadable in dark
+    /// (about 2.2:1 since D145, where WCAG 1.4.3 needs 4.5:1).
     ///
     /// `AppOnBurgundy` is the paired label colour, with its own four appearances, so the pairing
     /// lives in the asset catalogue where every other colour decision lives — rather than as a

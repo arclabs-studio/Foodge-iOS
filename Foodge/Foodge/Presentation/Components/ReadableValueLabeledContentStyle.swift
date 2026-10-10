@@ -19,8 +19,8 @@ import SwiftUI
 /// was the first attempt, and the simulator showed what it actually does: rebuilding from the
 /// configuration drops the value's secondary treatment altogether, so every figure rendered at
 /// full `primary` — passing the contrast floor while flattening the label/value hierarchy the
-/// HIG asks for. `appBurgundyMuted` measures 4.73:1 light / 5.68:1 dark, and better again under
-/// Increased Contrast (D135).
+/// HIG asks for. `appBurgundyMuted` is measured against the row in all four appearances by
+/// `PaletteContrastTests` (D135, re-valued by D145).
 @MainActor
 struct ReadableValueLabeledContentStyle: LabeledContentStyle {
     func makeBody(configuration: Configuration) -> some View {
