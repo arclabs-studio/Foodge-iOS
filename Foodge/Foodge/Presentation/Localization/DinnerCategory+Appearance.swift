@@ -24,6 +24,18 @@ extension DinnerCategory {
         }
     }
 
+    /// The SF Symbol on the category's stamp. Each category has its own, because the stamp must not
+    /// lean on colour: tomato and basil share a luminance in light appearance. Balanced is an equals
+    /// sign rather than a scale — a weight would read as a weigh-in, and the voice rules keep a
+    /// person's body out of the verdict.
+    var symbolName: String {
+        switch self {
+        case .treat: "party.popper.fill"
+        case .balanced: "equal.circle.fill"
+        case .light: "leaf.fill"
+        }
+    }
+
     /// The colour for text and symbols drawn on ``tint``, measured at ≥ 4.5:1 against it in all
     /// four appearances.
     var onTint: ColorResource {

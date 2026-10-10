@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// One dish, art plus name plus family — the row both `VerdictView` and `CaseDetailView` show for
-/// a `.selected` dish outcome. Callers resolve which variant/family to display (e.g. `VerdictView`
-/// toggling to an alternative) before handing this the id and family to render.
+/// One dish, art plus name plus family — the row `CaseDetailView` shows for a saved dish outcome
+/// (the verdict has its own stage layout since WU-29-D). Callers resolve which variant and family
+/// to display before handing this the id and family to render.
 @MainActor
 struct DishSummaryRow: View {
     let variantID: String

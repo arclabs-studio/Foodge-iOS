@@ -59,7 +59,7 @@ struct TodayBeforeVerdictView: View {
                     // takes over the stage from there.
                     JudgeHeroView(
                         artwork: .judgeVerdict,
-                        height: JudgeHeroView.stageHeight,
+                        height: StageArtworkSize.judge,
                         reaction: judge,
                         idles: !isEvaluating
                     )

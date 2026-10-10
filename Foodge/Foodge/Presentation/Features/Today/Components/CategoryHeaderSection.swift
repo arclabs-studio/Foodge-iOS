@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The category header both `VerdictView` and `CaseDetailView` show: the judge badge, the
+/// The category header `CaseDetailView` shows (the verdict has its own stamp since WU-29-D): the judge badge, the
 /// category name, and — when the decision was provisional — the caveat naming that.
 @MainActor
 struct CategoryHeaderSection: View {
@@ -21,8 +21,8 @@ struct CategoryHeaderSection: View {
             Text(category.displayName)
                 .font(.largeTitle.bold())
                 .frame(maxWidth: .infinity, alignment: .center)
-                // The category name is this screen's de facto page heading — `VerdictView` and
-                // `CaseDetailView` are both single-Form screens with no other title-level text.
+                // The category name is this screen's de facto page heading — `CaseDetailView` is a
+                // single-Form screen with no other title-level text.
                 // Expose it to the VoiceOver rotor's Headings list (4.1.2).
                 .accessibilityAddTraits(.isHeader)
             if isProvisional {

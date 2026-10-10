@@ -73,6 +73,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[contrast-is-measured-per-surface-not-per-colour]] — a footer is not a row; 4.73:1 there was 4.23:1 here
 - [[a-tappable-character-must-not-move-under-the-finger]] — a bubble above the judge moved the judge
 - [[a-standalone-preview-hides-scrollview-layout]] — host card previews in a ScrollView
+- [[the-reveal-is-keyed-on-the-revision-id]] — not a flag, not the value; once per launch
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

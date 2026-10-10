@@ -174,6 +174,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D144 | **`See alternative` stays, and is declared compatible with D138.** The verdict keeps its two-state toggle between the dish Foodge chose and the one it chose as runner-up in the same category and the same diet profile; it is not a picker and no third dish is reachable. `JudgeAppeal.imageset` is **deleted** — nothing has referenced it since D141 — and the 165 stale catalogue keys are listed in `docs/stale-string-catalog-keys.md` for a manual pass in Xcode's own editor. | Raised by the fresh-install walk, which correctly asked the uncomfortable question: this is the only control in the app that changes which dish is on screen, and D138 is the rule the product was rejected for breaking once. The distinction the user settled on is between **choosing** and **seeing the runner-up**: both dishes come out of `select`, in the category the rule decided, filtered by the stored diet profile, in the order D139 fixes — the person cannot reach a third, cannot cross a category, and cannot reach anything their diet excludes. Removing it was the alternative and was rejected as a larger change than the demo warranted; recording it here is the cost of keeping it, so the next reader does not have to re-derive whether it breached D138. The three remaining walk findings — keyboard dismissal and silent validation on *About you*, and the self-report's jump straight to the verdict — are deliberately **not** fixed before the demo, and stand recorded as found. |
 | D145 | **Visual identity v2 (WU-29, plan `docs/migrations/2026-10-09-playful-redesign.md`).** A hybrid palette: burgundy re-tinted more vivid (`#A3173F` light / `#FF8FAB` dark) and still the brand, tint and `AccentColor`; gold re-tinted brighter and **decoration only**; four new pizza colours — tomato = Treat, cheese = Balanced, basil = Light, dough = the stage background — each fill with its own measured *On* label colour. Rounded system type once at the window root. Ritual screens become a stage (`StageBackground`: opaque dough washed from the top with the screen's accent at 15 %) holding native `GroupBox` cards (`StageCardGroupBoxStyle`) filled with a new `AppCard` set — white in light, a warm grey in dark that is lighter than dough and every stage top — with a hairline `separator` edge; data entry and settings stay `Form`. **Supersedes two lines of `DESIGN.md`**: "artwork stays subordinate" on stage screens (the artwork leads; the dinner name and primary action stay the largest *text*), and "native system backgrounds … throughout" (dough and `AppCard` are custom surfaces, at the cost of the HIG's "prefer the system background colors" — paid because `secondarySystemGroupedBackground` is darker than the dark stage and the card read as a hole in it, `arc-audit-hig`). Cheese and gold fail 3:1 as *shapes* on light surfaces (1.49–1.88:1) and are accepted: neither is ever the sole carrier of meaning — a stamp's meaning is its text and symbol, on its measured On colour. | The app "looks like Settings": two `Form`s, the 3D judge at 76 pt and the dishes at 64 pt, a muted palette. Colour goes into backgrounds, the hero and the stamps, and text only ever sits on a pair `PaletteContrastTests` measures — never the system's `.secondary`, which is ~3.4:1 on a light row (D134) — so the app gets louder without a contrast regression — `PaletteContrastTests` resolves the shipped sets in four appearances and fails below 4.5:1. The alternative, colour behind text everywhere, would have needed a measured pair for every surface and is exactly how D134's 3.4:1 happened. |
 | D146 | **The judge is tappable.** `JudgeHeroView` — placed on Today in WU-29-C and Welcome in WU-29-E — is a `Button` whose visible label is the artwork and whose accessible name is *The judge*. It squashes on press (`JudgeButtonStyle`), breathes twice after it appears (4.8 s, under WCAG 2.2.2's five seconds) and not at all once tapped, and on every tap hops, plays a light impact haptic, shows the next of eight quips in a `SpeechBubble` **below** it — so the judge never moves out from under the finger — and announces the quip to VoiceOver. Reduce Motion is read inside the hero, so no screen can forget it. Quips play in declared order and wrap (`JudgeReaction`), so no line repeats twice in a row and every judge a screen creates starts from the first line. Quips are decoration in the flourish's voice; the machine-checkable part of that voice is enforced by running every English and Spanish line through `NarrationValidator`. `JudgeReaction` reaches no rule, dish, diet or store. | The brief asked for characters that feel like a game, and a mascot that reacts is the cheapest honest version of that. Deterministic rather than random because a random deck needs its own no-repeat guard and makes the order untestable, and nothing about a joke rotation benefits from chance. The line D138/D144 draw is what can reach a dish; a tap that changes only the bubble is on the safe side of it — `JudgeReaction` is initialised with nothing, so it holds no dependency through which it could reach anything else. The bubble went below the judge after `arc-audit-hig` and `arc-audit-accessibility` both found the first layout — bubble above — moved the tap target by up to ~320 pt at AX 5 and slid the judge under Reduce Motion. |
+| D147 | **Motion policy, and the verdict's reveal plays once per revision per launch.** Every motion is decoration and has a still form. Motion nobody asked for stops within five seconds (WCAG 2.2.2): the judge's breath (two 2.4 s breaths, none after a tap), the deliberating tilt (4.8 s), the confetti (2.5 s, then its timeline pauses). Under Reduce Motion the hop, the press squash, the stamp slam, the dish pop, the dish swap and the cards' entrance become fades that each view carries itself, with no animation on the layout around them, and the confetti draws nothing. Where Reduce Motion is read: by each screen, which passes `motion` down, and also by the judge components, the dish section and the confetti themselves, whose `motion` input can only turn motion off. The verdict's reveal — stamp slams in with a heavy impact haptic, dish pops with confetti, cards arrive — plays when `TodayViewModel.claimReveal()` answers `true`, exactly once per `SavedRevision.id` in a launch: returning from Evidence details or from Today shows it settled, a narration line arriving on the same revision does not replay it, a failed save does not spend it, and a cold start that reopens tonight's verdict reveals it once more. Until the claim, a pending revision draws nothing (`isRevealPending`), so a new verdict never flashes and collapses. | A reveal that replays every time the screen appears stops being a reveal and starts being a delay. Keyed on the revision id rather than a flag because a second revision is a new verdict, and rather than on the `SavedRevision` value because narration swaps in a new value with the same id. Not persisted: a reveal per launch costs a second, and storing it would mean a schema change for decoration. The five-second ceiling and the still forms are where a playful screen meets WCAG; both are code paths, not settings someone has to find. |
 
 ---
 
@@ -2862,6 +2863,66 @@ the same check-ins, the same stages, the same announcements plus one (below).
 - **Owed to the WU-29-G simulator walk:** the scroll edge effect under the bar (a still preview does
   not draw it); VoiceOver on the meal menus and the new loading announcement; Reduce Transparency on
   the glass button; the 44 pt row target with the Accessibility Inspector.
+
+### WU-29-D ✅ The verdict — a stamp, a dish, and a reveal that plays once
+
+**D147.**
+
+- **Verdict** (`VerdictView`): a `ScrollView` on a `StageBackground` tinted by the category;
+  `VerdictStampSection` (`CategoryStampView` — category fill, SF Symbol, name in the measured On
+  colour, a rubber-stamp tilt, the screen's heading — and the provisional caveat); `SaveFailedCard`
+  straight under it when the save failed, above the fold; `VerdictDishSection` — `DishHeroView` at
+  200 pt, the dish name in `.largeTitle.bold()` (the largest text on screen, D145), the family, and
+  *See alternative* (D144's two-state toggle); then `VerdictReasonsCard`, `VerdictFlourishView` (the
+  judge badge above a `SpeechBubble` with the narrated line or the reviewed template, and the
+  "Decoration only" caption) and *Evidence details*. `CategoryHeaderSection`, `NarrationSection` and
+  `DishSummaryRow` remain only for case detail; WU-29-F reuses the verdict's components there, which
+  also ends the three atoms `arc-audit-hig` found duplicated (the provisional caveat, the prototype
+  disclaimer, the flourish caption).
+- **The reveal** (`VerdictReveal`, `RevealPhase`, `StampSlamTransition`, `ConfettiView`):
+  `.task(id: revision id)` asks `vm.claimReveal()`. On `true`, with motion: stamp after a 350 ms
+  lead-in (a slam transition; the heavy haptic 200 ms later, as it touches down), dish +250 ms (pop and
+  confetti), cards +450 ms, settled. Without motion: everything at once, each view fading itself in,
+  the layout unanimated, one light haptic, no confetti — nothing to wait for. Cancelled, it settles.
+  Until the claim, a pending revision draws nothing (`isRevealPending`), and `VerdictReveal` starts
+  settled, so neither a new verdict nor a revisited one flashes.
+- **Stamp sizing:** `ViewThatFits` steps from `.title` black expanded to `.title` to `.title3`, all
+  uppercase. At AX 5 in `es` even `.title3` cannot hold *EQUILIBRADO* on one line and the system
+  hyphenates it (*EQUILI-BRADO*); kept rather than shrinking the word further. Balanced's symbol is
+  `equal.circle.fill`: the first choice, `scalemass.fill`, is a weight and read as a weigh-in, which
+  the voice rules keep out (raised by `arc-constitution-review`).
+- **Single-source helpers:** `DishFamily.artwork` (D60's mapping, out of `DishArtworkView`),
+  `StageArtworkSize` (180 / 220 / 200 pt and the 0.6 accessibility share), `PersistedDishOutcome.
+  shownVariantID` / `shownFamily`, `SaveFailedCard.message`, `SampleDecisions.dishOutcome`,
+  `DinnerCategory.symbolName`.
+- **Tests first** (`arc-test-engineer`, red on missing `claimReveal`, then on missing `symbolName`
+  and `isRevealPending`): `TodayRevealViewModelTests` — 9 tests, 10 cases (no revision and a failed
+  save never reveal and do not spend it; first ask `true` then `false` for a requested and a reopened
+  verdict; a second revision reveals again, ids asserted distinct; narration on the same revision does
+  not replay; `isRevealPending` is a pure read; `claimReveal()` takes no navigation input).
+  `VerdictRevealTests` — 4 (starts settled; without motion: landed, no confetti; with motion: landed,
+  confetti; cancelled before it starts: settled, nothing landed). `DinnerCategoryAppearanceTests` — 2
+  tests, 4 cases (every symbol resolves on the runtime that runs the tests; none shared).
+- **Could it fail — run:** `claimReveal()` as a one-shot flag → **1 of 9 failed** (*Revision
+  3AAF2C94… is new, so its first ask must play the reveal.*); `VerdictReveal.play` without the
+  `settle()` on cancellation → **1 of 4 failed** (*sut.phase → .waiting*). Both restored.
+- **Build:** green (latest 7.3 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key.
+- **Suite:** `RunAllTests` → **358 tests, 358 passed** (340 + 18).
+- **Render:** the three stamps in `es`; the verdict settled in `en` light and `es` dark at AX 5;
+  `VerdictDishSection` runner-up in `es` dark. The auditors added AX 3/AX 5, landscape and Increased
+  Contrast renders of every component.
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 3 MAJOR · `arc-audit-concurrency` 0 / 3 ·
+  `arc-audit-hig` 1 / 4 (the missing `VerdictDishSection` preview, added) · `arc-audit-accessibility`
+  0 / 1. Acted on: the slam that would have snapped in — `revealedRevisionID` was
+  `@ObservationIgnored` and the view did not read the reveal while it was pending, found by reading
+  the code, not by a test; D147's claims about where Reduce Motion is read and what animates; the
+  untested `VerdictReveal`; the haptic leading the touchdown; the first save failure never announced
+  (`onChange(…, initial: true)`); `.move(edge:)` replaced by a 24 pt offset; a flash on retry
+  success; the save-failure card's position; the weigh-in symbol; stale component docs; dead timing.
+- **Owed to the WU-29-G simulator walk:** the reveal's timing and slam against the push, the haptic,
+  the confetti, the Reduce Motion pass, VoiceOver landing on push; and a retry-save that replaces the
+  screen with a bare `ProgressView` (pre-existing: `currentDisplay` is `nil` while `.evaluating`).
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// The judge's flourish, shared by `VerdictView` and `CaseDetailView`.
+/// The judge's flourish on case detail. The verdict shows the same line in a speech bubble
+/// (`VerdictFlourishView`) since WU-29-D.
 ///
 /// `text` is a validated on-device model line, or `nil` — and `nil` is the ordinary case, not an
 /// error: it covers Apple Intelligence being off, unsupported, still downloading, the model

@@ -26,15 +26,9 @@ import SwiftUI
 /// seconds for motion nobody asked for), and none at all once the judge has been tapped.
 @MainActor
 struct JudgeHeroView: View {
-    /// How tall the judge stands on Today and in the loading state at standard text sizes.
-    static let stageHeight: CGFloat = 180
-    /// The share of its height the judge keeps at accessibility sizes, so the text around it keeps
-    /// more of the screen.
-    static let accessibilityScale: CGFloat = 0.6
-
     let artwork: ImageResource
-    /// How tall the judge stands at standard text sizes; accessibility sizes take
-    /// ``accessibilityScale`` of it.
+    /// How tall the judge stands at standard text sizes — one of `StageArtworkSize`'s heights.
+    /// Accessibility sizes take `StageArtworkSize.accessibilityScale` of it.
     let height: CGFloat
     /// Owned by the screen, so the judge keeps its place in the deck across that screen's updates.
     let reaction: JudgeReaction
@@ -52,7 +46,7 @@ struct JudgeHeroView: View {
     }
 
     private var side: CGFloat {
-        dynamicTypeSize.isAccessibilitySize ? height * Self.accessibilityScale : height
+        StageArtworkSize.height(height, at: dynamicTypeSize)
     }
 
     var body: some View {
@@ -104,7 +98,7 @@ struct JudgeHeroView: View {
 #Preview("Welcome") {
     @Previewable @State var reaction = JudgeReaction()
 
-    JudgeHeroView(artwork: .judgeWelcome, height: 220, reaction: reaction)
+    JudgeHeroView(artwork: .judgeWelcome, height: StageArtworkSize.welcomeJudge, reaction: reaction)
 }
 
 #Preview("Speaking, held still") {
@@ -114,7 +108,7 @@ struct JudgeHeroView: View {
         return reaction
     }()
 
-    JudgeHeroView(artwork: .judgeVerdict, height: 180, reaction: reaction, motion: false)
+    JudgeHeroView(artwork: .judgeVerdict, height: StageArtworkSize.judge, reaction: reaction, motion: false)
         .padding()
         .background { StageBackground(accent: .appBurgundy) }
 }
@@ -128,7 +122,7 @@ struct JudgeHeroView: View {
         return reaction
     }()
 
-    JudgeHeroView(artwork: .judgeVerdict, height: 180, reaction: reaction, motion: false)
+    JudgeHeroView(artwork: .judgeVerdict, height: StageArtworkSize.judge, reaction: reaction, motion: false)
         .padding()
         .background { StageBackground(accent: .appBurgundy) }
 }

@@ -79,6 +79,14 @@ enum SampleDecisions {
         reasonCodes: [.slimAllowance, .allowanceSpent, .restingEnergyEstimated, .intakeEstimated]
     )
 
+    /// A balanced dish with its runner-up, for the verdict's dish section and its toggle.
+    static let dishOutcome = PersistedDishOutcome(
+        variantID: "dish.pasta.pesto",
+        family: .pasta,
+        alternativeVariantID: "dish.tortilla.potato",
+        alternativeFamily: .tortilla
+    )
+
     static func decision(
         category: DinnerCategory,
         allowance: EnergyAllowance,

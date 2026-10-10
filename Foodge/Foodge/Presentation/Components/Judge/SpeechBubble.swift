@@ -21,6 +21,7 @@ struct SpeechBubble: View {
             .font(.callout.weight(.semibold))
             .foregroundStyle(.primary)
             .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .padding(.top, Outline.tailHeight)

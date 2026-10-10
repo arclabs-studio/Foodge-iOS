@@ -33,10 +33,7 @@ struct DeliberatingJudgeView: View {
             .resizable()
             .scaledToFit()
             // The hero's size on Today, so the judge does not jump when the loading state takes over.
-            .frame(
-                height: JudgeHeroView.stageHeight
-                    * (dynamicTypeSize.isAccessibilitySize ? JudgeHeroView.accessibilityScale : 1)
-            )
+            .frame(height: StageArtworkSize.height(StageArtworkSize.judge, at: dynamicTypeSize))
             .keyframeAnimator(initialValue: Angle.zero, repeating: moves && !tapsExpired) { content, tilt in
                 content.rotationEffect(tilt, anchor: .bottom)
             } keyframes: { _ in
