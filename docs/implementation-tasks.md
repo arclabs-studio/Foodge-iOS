@@ -173,6 +173,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D143 | **Two user-facing sentences still promised the appeal, and one screen showed two different kilocalorie formats.** `WelcomeView`'s footnote (*"…and you can always appeal."*) and the **Light** flourish template (*"The defence may still appeal."*) are rewritten and re-translated; `EvidenceSectionsView`'s three interpolated `"\(Int(kilocalories)) kcal"` values and its raw step count now go through `Measurement`/`.formatted`, the same call `AllowanceFigureRow` already uses. | Same class as D127: the appeal was deleted in WU-28-B and these two strings only *described* it, so they survived a search for appeal types and kept promising a button that no longer exists — one of them on the first screen a judge reads, the other inside the verdict itself. The formatting was WU-27-A's second walk finding, deferred then because it changes Spanish copy and the suite could not be run; both are now possible, so it is fixed rather than carried: `1200 kcal` beside `1,200 Cal` on one screen also put a unit outside the String Catalog, where no locale could reach it. The new English strings add two keys and leave the two old ones stale, which is the standing catalogue problem, not a new one. |
 | D144 | **`See alternative` stays, and is declared compatible with D138.** The verdict keeps its two-state toggle between the dish Foodge chose and the one it chose as runner-up in the same category and the same diet profile; it is not a picker and no third dish is reachable. `JudgeAppeal.imageset` is **deleted** — nothing has referenced it since D141 — and the 165 stale catalogue keys are listed in `docs/stale-string-catalog-keys.md` for a manual pass in Xcode's own editor. | Raised by the fresh-install walk, which correctly asked the uncomfortable question: this is the only control in the app that changes which dish is on screen, and D138 is the rule the product was rejected for breaking once. The distinction the user settled on is between **choosing** and **seeing the runner-up**: both dishes come out of `select`, in the category the rule decided, filtered by the stored diet profile, in the order D139 fixes — the person cannot reach a third, cannot cross a category, and cannot reach anything their diet excludes. Removing it was the alternative and was rejected as a larger change than the demo warranted; recording it here is the cost of keeping it, so the next reader does not have to re-derive whether it breached D138. The three remaining walk findings — keyboard dismissal and silent validation on *About you*, and the self-report's jump straight to the verdict — are deliberately **not** fixed before the demo, and stand recorded as found. |
 | D145 | **Visual identity v2 (WU-29, plan `docs/migrations/2026-10-09-playful-redesign.md`).** A hybrid palette: burgundy re-tinted more vivid (`#A3173F` light / `#FF8FAB` dark) and still the brand, tint and `AccentColor`; gold re-tinted brighter and **decoration only**; four new pizza colours — tomato = Treat, cheese = Balanced, basil = Light, dough = the stage background — each fill with its own measured *On* label colour. Rounded system type once at the window root. Ritual screens become a stage (`StageBackground`: opaque dough washed from the top with the screen's accent at 15 %) holding native `GroupBox` cards (`StageCardGroupBoxStyle`) filled with a new `AppCard` set — white in light, a warm grey in dark that is lighter than dough and every stage top — with a hairline `separator` edge; data entry and settings stay `Form`. **Supersedes two lines of `DESIGN.md`**: "artwork stays subordinate" on stage screens (the artwork leads; the dinner name and primary action stay the largest *text*), and "native system backgrounds … throughout" (dough and `AppCard` are custom surfaces, at the cost of the HIG's "prefer the system background colors" — paid because `secondarySystemGroupedBackground` is darker than the dark stage and the card read as a hole in it, `arc-audit-hig`). Cheese and gold fail 3:1 as *shapes* on light surfaces (1.49–1.88:1) and are accepted: neither is ever the sole carrier of meaning — a stamp's meaning is its text and symbol, on its measured On colour. | The app "looks like Settings": two `Form`s, the 3D judge at 76 pt and the dishes at 64 pt, a muted palette. Colour goes into backgrounds, the hero and the stamps, and text only ever sits on a pair `PaletteContrastTests` measures — never the system's `.secondary`, which is ~3.4:1 on a light row (D134) — so the app gets louder without a contrast regression — `PaletteContrastTests` resolves the shipped sets in four appearances and fails below 4.5:1. The alternative, colour behind text everywhere, would have needed a measured pair for every surface and is exactly how D134's 3.4:1 happened. |
+| D146 | **The judge is tappable.** `JudgeHeroView` — placed on Today in WU-29-C and Welcome in WU-29-E — is a `Button` whose visible label is the artwork and whose accessible name is *The judge*. It squashes on press (`JudgeButtonStyle`), breathes twice after it appears (4.8 s, under WCAG 2.2.2's five seconds) and not at all once tapped, and on every tap hops, plays a light impact haptic, shows the next of eight quips in a `SpeechBubble` **below** it — so the judge never moves out from under the finger — and announces the quip to VoiceOver. Reduce Motion is read inside the hero, so no screen can forget it. Quips play in declared order and wrap (`JudgeReaction`), so no line repeats twice in a row and every judge a screen creates starts from the first line. Quips are decoration in the flourish's voice; the machine-checkable part of that voice is enforced by running every English and Spanish line through `NarrationValidator`. `JudgeReaction` reaches no rule, dish, diet or store. | The brief asked for characters that feel like a game, and a mascot that reacts is the cheapest honest version of that. Deterministic rather than random because a random deck needs its own no-repeat guard and makes the order untestable, and nothing about a joke rotation benefits from chance. The line D138/D144 draw is what can reach a dish; a tap that changes only the bubble is on the safe side of it — `JudgeReaction` is initialised with nothing, so it holds no dependency through which it could reach anything else. The bubble went below the judge after `arc-audit-hig` and `arc-audit-accessibility` both found the first layout — bubble above — moved the tap target by up to ~320 pt at AX 5 and slid the judge under Reduce Motion. |
 
 ---
 
@@ -2747,6 +2748,63 @@ the diet (D138, D144).
   in WU-29-E, Settings in WU-29-G); picker values cannot be recoloured and are recorded then as a
   system exception or restyled. Whether navigation titles, tab labels and sheets take the rounded face
   is checked on the simulator in WU-29-G.
+
+### WU-29-B ✅ The judge — tappable, breathing, and talking
+
+**D146.** Built and tested as components; no screen places the hero until WU-29-C (Today) and
+WU-29-E (Welcome).
+
+- **Files:** `Presentation/Components/Judge/` — `JudgeHeroView` (the `Button`, the bubble, the
+  haptic, the announcement, the breath's 4.8 s expiry), `JudgeFigureView` (the artwork and its two
+  `keyframeAnimator`s, its own file after `arc-constitution-review` found a 60-line nested view
+  outside D27), `JudgeButtonStyle`, `JudgeReaction` (`@Observable @MainActor`, initialised with
+  nothing; `tap()` returns the quip it shows), `SpeechBubble` (tail on top, drawn as a `Path.union`)
+  · `Presentation/Components/Stage/StageSurface` — the `AppCard` fill and hairline shared by cards
+  and bubbles, whose `fill` `PaletteContrastTests` now resolves instead of assuming `.appCard` ·
+  `Presentation/Localization/JudgeQuip` (eight lines) · 11 catalogue keys with Spanish written
+  through `StringCatalogEdit` by translation sub-agents following Xcode's bundled skill, the plan's
+  three approved lines mandatory. The wig line is *Que nadie pregunte por la peluca.*, not the
+  *No pregunten…* this session suggested, which addressed the user as plural *usted* against the
+  app's *tú*. The hint is *Plays a line from the judge.* / *Reproduce una frase del juez.*, a
+  third-person result like the app's other hints; the first wording, *Hear a word from the bench.*,
+  is now a stale catalogue key, owed to Xcode's own editor with the others.
+- **Motion** (the plan's motion policy; D147 records it with the reveal in WU-29-D): Reduce Motion is
+  read inside the hero and ANDed with an optional `motion` override, so a screen cannot forget it and
+  a preview can still hold the judge still. Breath: `keyframeAnimator(repeating:)`, two 2.4 s breaths
+  then rest, never after the first tap. Hop: every keyframe multiplied by an amplitude that is 0 with
+  motion off, so the timeline plays rest to rest. Press: squash, or a dim with an ease-out instead of a
+  spring. Bubble: scales in, or — motion off — only fades while the layout settles without animation
+  (`.animation(nil)` on the stack, `.opacity.animation(…)` on the transition). The haptic is
+  `.impact(weight: .light)`; the plan's API table said `.heavy` was not found, but Apple's docs list
+  `impact(weight:intensity:)` with `.light/.medium/.heavy`.
+- **Tests first** (`arc-test-engineer`, red on 15 missing-symbol errors): `JudgeReactionTests` — 4
+  tests; `JudgeQuipLocalizationTests` — 5 tests, 26 cases: every English and Spanish line `.accepted`
+  by the production `NarrationValidator`, both sets distinct, every quip shipped in the built
+  `es.lproj` and different from its English.
+- **Could it fail — run, not argued:**
+  - Production files in, translations absent → **17 of 30 failed**: every Spanish case, each naming its
+    quip as absent from `es.lproj`; the 13 behaviour and English cases passed.
+  - `tap()` mutated to show `deck[(taps + 1) % n]` and to reset `taps` at the wrap → **2 of 4 failed**:
+    the walk (*tap 1 showed .noBribes, but the declared order calls for .orderInTheKitchen*) and the
+    trigger (*after tap 9 (the tap that wraps the deck) taps was 1*). The untouched and no-repeat tests
+    passed, as they should — that mutation repeats nothing. Restored.
+- **Audits:** `arc-audit-concurrency` 0 BLOCKER / 0 MAJOR (6 MINOR, all wording or evidence) ·
+  `arc-audit-hig` 0 / 2 · `arc-audit-accessibility` 0 / 2 · `arc-constitution-review` 0 / 1. The two
+  shared MAJORs — the bubble moving the tap target and sliding the judge under Reduce Motion; the
+  breath at 12 s against WCAG 2.2.2 — and the nested `Figure` are fixed as above. Also acted on: the
+  press spring under Reduce Motion, the `.task(id:)` guard so no sleep runs where nothing breathes,
+  the duplicated card surface, the bubble's fill tied to the test, and DocC/ledger lines claiming a
+  D147 that does not exist yet, press tracking the style does not own, a re-evaluation saving it does
+  not make, validator rules it does not have, and an order "held by the test".
+- **Build:** green after every edit (latest 3.0 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**
+  after each. One build right after the files landed returned in 1.0 s with the old missing-symbol
+  errors — Xcode had not yet seen the new files; the retry compiled them.
+- **Suite:** `RunAllTests` → **340 tests, 340 passed** (310 + 30) on the final tree.
+- **Render:** *Speaking, held still* in `es` dark and in `en` at AX 5; *Longest line* (the wig, 63
+  characters) in `es` at AX 5, dark — five lines, no word broken, the judge where it was.
+- **Owed to WU-29-C / G (cannot be shown by a still frame or this harness):** the hop, haptic and
+  announcement at runtime; VoiceOver not dropping the announcement as the bubble inserts; the
+  Reduce Motion walk with the real setting.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

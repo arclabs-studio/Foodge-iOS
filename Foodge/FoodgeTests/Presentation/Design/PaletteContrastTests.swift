@@ -183,7 +183,8 @@ struct PaletteContrastTests {
             ("secondarySystemGroupedBackground(elevated)", .secondarySystemGroupedBackground),
         ].map { try resolve($0.0, $0.1, elevated: true) }
         let systemSurfaces = [background, grouped, secondaryGrouped] + elevatedSurfaces
-        let card = try resolve("appCard", UIColor(resource: .appCard))
+        // The fill cards and speech bubbles are actually drawn with, not a set assumed to be it.
+        let card = try resolve("appCard", UIColor(resource: StageSurface.fill))
 
         /// The strongest tint behind any text: the accent at the production opacity, over dough.
         func stageTop(over accent: Swatch) -> Swatch {
