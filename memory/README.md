@@ -71,6 +71,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[an-auditors-fix-stops-at-its-own-diff]] — a diff-scoped audit cannot close an app-wide floor
 - [[a-preview-named-after-a-state-it-never-showed]] — a self-resetting view cannot be driven from outside
 - [[contrast-is-measured-per-surface-not-per-colour]] — a footer is not a row; 4.73:1 there was 4.23:1 here
+- [[a-tappable-character-must-not-move-under-the-finger]] — a bubble above the judge moved the judge
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
