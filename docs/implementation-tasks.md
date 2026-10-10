@@ -3086,8 +3086,8 @@ walk** (below).
     pure renames and `project.pbxproj` untouched (synchronised groups). `SelectableRow`, without a
     caller since D138, deleted.
   - *`FormCaptionModifier`* (`.formCaption()`, with a `Text` overload for `TextField` prompts) replaces
-    the hand-set colour and its copied rationale at every `Form` header, footer and prompt — 22 sites
-    in 16 files; a brace-matched scan of every `header:`/`footer:` closure finds no raw colour left.
+    the hand-set colour and its copied rationale at every `Form` header, footer and prompt — 27 call
+    sites (24 headers and footers, 3 prompts) in 16 files; a brace-matched scan of every `header:`/`footer:` closure finds no raw colour left.
     `ContentUnavailableView` descriptions and in-row secondary text keep `appBurgundyMuted` directly:
     they are not form captions.
   - **Build:** green after each (13.3 s, 11.4 s); `GetBuildLog { severity: "warning" }` →
