@@ -3072,11 +3072,29 @@ walk** (below).
   `arc-audit-accessibility` 0 / 2. Acted on: the two failures above; every DESIGN.md overclaim (where
   Reduce Motion is read, what becomes a fade, "text only ever sits on a measured pair", where the
   judge is tappable, the badge's symbol, *beside*/*above*), the missing suite line and owed list here.
-  **Not taken, proposed:** one shared modifier for the `appBurgundyMuted` header/footer recipe, now
-  repeated at about twenty sites (`arc-audit-hig` M1) — a refactor across that many files waits for the
-  user's go-ahead; moving `DishArtworkView`, `JudgeBadgeView` and `VerdictStampSection` to
+  **Proposed, then approved by the user and done (below):** one shared modifier for the
+  `appBurgundyMuted` header/footer recipe (`arc-audit-hig` M1) and filing the shared components under
   `Components/`. **Not taken:** the toggle label hyphenating at AX 5 in Spanish (the system's own
   layout, nothing clipped); the unlabelled delete spinner (needs a new catalogue string).
+- **Code organisation, approved by the user on 10 Oct 2026.** Two commits, no visual or behavioural
+  change:
+  - *Shared components filed under `Components/`* — `JudgeBadgeView` → `Components/Judge`,
+    `VerdictStampSection` → `Components/Verdict`, `EvidenceSectionsView` with `AllowanceBreakdownRow`
+    and `ProvenanceRow` → `Components/Evidence`, and `MenuPickerRow`, `DietProfileSection` and the
+    readable-value style → a new `Components/Form`; `DishArtworkView` and `NarrationSection`, now
+    History's alone, → `Features/History/Components`. Moved through the Xcode MCP; git records ten
+    pure renames and `project.pbxproj` untouched (synchronised groups). `SelectableRow`, without a
+    caller since D138, deleted.
+  - *`FormCaptionModifier`* (`.formCaption()`, with a `Text` overload for `TextField` prompts) replaces
+    the hand-set colour and its copied rationale at every `Form` header, footer and prompt — 22 sites
+    in 16 files; a brace-matched scan of every `header:`/`footer:` closure finds no raw colour left.
+    `ContentUnavailableView` descriptions and in-row secondary text keep `appBurgundyMuted` directly:
+    they are not form captions.
+  - **Build:** green after each (13.3 s, 11.4 s); `GetBuildLog { severity: "warning" }` →
+    **`totalFound: 0`** both times. **Render:** About you `en` and Evidence details `es` dark, unchanged.
+    **Suite: owed** — `RunAllTests` timed out twice after the moves, the runner wedge this project has
+    met before (`foodge-verify`: ⌘U by hand is the fast path). No test reaches these views, so the
+    suite cannot fail on either diff; the last run, before them, was 358/358.
 - **Simulator walk — open.** Through the Xcode MCP it failed: `DeviceInteractionInstallAndRun` timed
   out, `DeviceInteractionSynthesize` answered *Session not found*, and a new session was refused
   because the device was *already in use by a different session* — the phantom lock in
