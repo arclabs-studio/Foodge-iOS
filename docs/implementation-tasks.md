@@ -3030,6 +3030,66 @@ the same check-ins, the same stages, the same announcements plus one (below).
   on case detail (stamp heading first); History's error state at AX 5; case detail below the fold at
   AX 3–AX 5 (evidence, flourish, *Recorded*), which a still render cannot scroll to.
 
+### WU-29-G 🟦 Close — the palette reaches every form, and DESIGN.md says what shipped
+
+No new decision: D148's rule, which the user approved for these screens too. **Open: the simulator
+walk** (below).
+
+- **Settings:** the *Reminder*, *Health* and *On-device AI* headers and every footer (reminder,
+  on-device AI, demonstration, delete) in `appBurgundyMuted`. The Settings root's *Diet* row is a
+  `NavigationLink`; the `MenuPickerRow` is one push deeper, through `DietProfileSection` (WU-29-E).
+  **Demonstration mode:** its footer the same. **Evidence details:** its section headers changed in
+  WU-29-F through the shared `EvidenceSectionsView`; here only its preview, which now reads
+  `SampleDecisions.savedRevision` with the root's readable-value style instead of an inline literal.
+  Every preview of these sections now carries `.sampleData`, so it renders the rounded face. A grep
+  over `Presentation/` for unstyled `header:`/`footer:` closures, `Section("…")`,
+  `.foregroundStyle(.secondary)` and bare `TextField` placeholders finds none left — a grep, not a
+  test: no test can see which colour a view applies, and system-drawn text (a `DatePicker`'s value,
+  menu items, dialogs, `ProgressView("Waiting for Health")`'s label) is outside it.
+- **Two pre-existing failures the accessibility audit found here, fixed:** *Delete local data* was
+  system red, about 3.6:1 as text on a light row — the words now take the label colour (`Color.primary`;
+  inside a destructive button the hierarchical `.primary` *is* the red) and a red trash symbol carries
+  the cue, a graphic needing 3:1; and *Demonstration mode*'s large title truncated from AX 3
+  (*Demonstratio…*) — now inline, wrapping whole.
+- **`PaletteContrastTests`:** its doc now says what the grep established and what the suite cannot see,
+  instead of listing Form headers, footers and picker values as owed.
+- **`DESIGN.md`:** *Visual identity* rewritten — the two kinds of screen (stage, form), the stage's
+  action rules, the palette with its shipped values and roles and what is and is not measured, type,
+  symbols and glass, the judge, the dishes, motion — and *Asset naming* corrected to the catalogue as it
+  is (twelve colour sets plus `AccentColor`, two judge poses, nine dishes; the old file named a third
+  pose and a placeholder that no longer exist). `MenuPickerRow` is named as the one deliberate
+  stand-in for a control. The accessibility gate's shape floor now names D145's exception.
+- **Tests:** none new; the suite cannot fail on colour changes in views. `PaletteContrastTests`
+  measures every pair the new styling uses.
+- **Build:** green (8.0 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key.
+- **Suite:** `RunAllTests` → **358 tests, 358 passed**.
+- **Render:** previews — Settings `es` light; Demonstration mode `en` dark and `en` AX 5 (inline
+  title); the delete row `es` light and `en` dark. The accessibility audit rendered Settings,
+  Preferences, every Settings section, Demonstration mode and Evidence details at Small to AX 5 in
+  both languages, dark and Increased Contrast.
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 2 MAJOR · `arc-audit-hig` 0 / 3 ·
+  `arc-audit-accessibility` 0 / 2. Acted on: the two failures above; every DESIGN.md overclaim (where
+  Reduce Motion is read, what becomes a fade, "text only ever sits on a measured pair", where the
+  judge is tappable, the badge's symbol, *beside*/*above*), the missing suite line and owed list here.
+  **Not taken, proposed:** one shared modifier for the `appBurgundyMuted` header/footer recipe, now
+  repeated at about twenty sites (`arc-audit-hig` M1) — a refactor across that many files waits for the
+  user's go-ahead; moving `DishArtworkView`, `JudgeBadgeView` and `VerdictStampSection` to
+  `Components/`. **Not taken:** the toggle label hyphenating at AX 5 in Spanish (the system's own
+  layout, nothing clipped); the unlabelled delete spinner (needs a new catalogue string).
+- **Simulator walk — open.** Through the Xcode MCP it failed: `DeviceInteractionInstallAndRun` timed
+  out, `DeviceInteractionSynthesize` answered *Session not found*, and a new session was refused
+  because the device was *already in use by a different session* — the phantom lock in
+  `memory/troubleshooting/device-interaction-synthesize-session-not-found.md`; two attempts, the
+  documented budget. The user approved Claude Code's iOS Simulator tool for this walk instead; it
+  waits on the user granting that tool access to the simulator. **Owed to it**, carried from every
+  unit: the rounded face on system chrome (D145); the judge's hop, haptic and announcement, and the
+  breath, at runtime (WU-29-B); the scroll edge effect under the pinned bar (WU-29-C); the reveal's
+  timing, slam, haptic and confetti, Reduce Motion, VoiceOver landing on the verdict (WU-29-D); the
+  judge hero in a `Form` row, `MenuPickerRow` with VoiceOver and its menu checkmark (WU-29-E); VoiceOver
+  on a History row and case detail, case detail below the fold (WU-29-F); the scenario rows' hit area
+  and the delete row here.
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |

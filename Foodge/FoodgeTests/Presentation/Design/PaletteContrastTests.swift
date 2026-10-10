@@ -42,8 +42,11 @@ import UIKit
 /// decoration only and never the sole carrier of meaning, so WCAG 1.4.11 does not apply. That
 /// is accepted and recorded as part of D145 — it is not an omission. The system's `.secondary`
 /// is not measured either: it reads at about 3.4:1 on a light row, which is why D134 replaced it
-/// with `appBurgundyMuted` in app-styled text. Text the *system* draws in it — an unstyled `Form`
-/// header or footer, a picker's value — still uses it, and is owed (WU-29-A in the ledger).
+/// with `appBurgundyMuted` in app-styled text. The `Form` headers, footers and text-field prompts
+/// the system would draw in it set `appBurgundyMuted` instead, and every `Picker` is a
+/// `MenuPickerRow` whose value is the tint (D148) — established by a grep in WU-29-G, not by this
+/// suite, which cannot see which colour a view applies. Text the system still draws itself — a
+/// `DatePicker`'s value, a menu's items, a confirmation dialog — is not measured here.
 @Suite("Palette contrast", .tags(.unit, .critical))
 @MainActor
 struct PaletteContrastTests {

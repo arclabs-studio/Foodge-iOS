@@ -28,8 +28,21 @@ struct DeleteLocalDataSection: View {
 
     var body: some View {
         Section {
-            Button("Delete local data", role: .destructive) {
+            Button(role: .destructive) {
                 isConfirming = true
+            } label: {
+                // System red reads at about 3.6:1 as text on a light row, under WCAG 1.4.3's 4.5:1.
+                // The words take the label colour and the red stays on the symbol, a graphic that
+                // needs 3:1; the role still marks the action as destructive. `Color.primary`, not
+                // `.primary`: inside a destructive button the hierarchical `.primary` *is* the red.
+                Label {
+                    Text("Delete local data")
+                        .foregroundStyle(Color.primary)
+                } icon: {
+                    // Set explicitly: in a `Form` the symbol otherwise takes the burgundy tint.
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
             }
             .disabled(isDeleting)
 
@@ -48,6 +61,9 @@ struct DeleteLocalDataSection: View {
             }
         } footer: {
             Text("Removes your preferences, every saved case and any pending reminder. Your Apple Health records are never touched.")
+                // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                // `appBurgundyMuted` is measured there (D134, D148).
+                .foregroundStyle(.appBurgundyMuted)
         }
         .confirmationDialog(
             "Delete everything Foodge has saved here?",
@@ -72,7 +88,7 @@ struct DeleteLocalDataSection: View {
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         DeleteLocalDataSection(vm: PreviewDependencies.all.makeSettingsViewModel())
     }

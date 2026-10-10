@@ -26,16 +26,21 @@ struct DemonstrationSection: View {
         } footer: {
             // The footer tracks the state the same way the row label does. Left unbranched, an
             // invitation to start one would sit directly under the control that ends it.
-            if controls.isRunning {
-                Text("A demonstration is running. Nothing is being read from Apple Health, and nothing is saved to this iPhone.")
-            } else {
-                Text("Run Foodge on clearly labelled example data. Nothing is read from Apple Health, and nothing is saved to this iPhone.")
+            Group {
+                if controls.isRunning {
+                    Text("A demonstration is running. Nothing is being read from Apple Health, and nothing is saved to this iPhone.")
+                } else {
+                    Text("Run Foodge on clearly labelled example data. Nothing is read from Apple Health, and nothing is saved to this iPhone.")
+                }
             }
+            // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+            // `appBurgundyMuted` is measured there (D134, D148).
+            .foregroundStyle(.appBurgundyMuted)
         }
     }
 }
 
-#Preview("Live", traits: .sizeThatFitsLayout) {
+#Preview("Live", traits: .sizeThatFitsLayout, .sampleData) {
     NavigationStack {
         Form {
             DemonstrationSection(controls: .previewInert)
@@ -43,7 +48,7 @@ struct DemonstrationSection: View {
     }
 }
 
-#Preview("Running", traits: .sizeThatFitsLayout) {
+#Preview("Running", traits: .sizeThatFitsLayout, .sampleData) {
     NavigationStack {
         Form {
             DemonstrationSection(controls: .previewRunning)

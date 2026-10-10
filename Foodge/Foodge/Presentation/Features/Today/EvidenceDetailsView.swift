@@ -25,7 +25,7 @@ struct EvidenceDetailsView: View {
                 EmptyView()
             } footer: {
                 Text(revision.evidence.isSynthetic ? "Demonstration data" : "From Health")
-                    // `.secondary` measures ~3.4:1 against the grouped background in
+                    // `.secondary` measures ~3.3:1 against the grouped background in
                     // standard-contrast light — below WCAG 1.4.3's 4.5:1. `appBurgundyMuted`
                     // is ≥4.5:1 (D134).
                     .foregroundStyle(.appBurgundyMuted)
@@ -40,28 +40,8 @@ struct EvidenceDetailsView: View {
 
 #Preview(traits: .sampleData) {
     NavigationStack {
-        EvidenceDetailsView(
-            revision: SavedRevision(
-                id: UUID(),
-                sequence: 0,
-                createdAt: SyntheticScenarios.evaluationDate,
-                decision: VerdictDecision(
-                    category: .balanced,
-                    basis: .energyBalance(SampleDecisions.moderateAllowance),
-                    reasonCodes: [.moderateAllowance],
-                    isProvisional: false,
-                    ruleVersion: CheatMealAllowanceRule.ruleVersion
-                ),
-                evidence: SyntheticScenarios.modestAllowance.snapshot,
-                catalogueVersion: DishCatalogue.version,
-                dishOutcome: PersistedDishOutcome(
-                    variantID: "dish.pasta.pesto",
-                    family: .pasta,
-                    alternativeVariantID: nil,
-                    alternativeFamily: nil
-                ),
-                narrationText: nil
-            )
-        )
+        EvidenceDetailsView(revision: SampleDecisions.savedRevision)
     }
+    // The root applies it in the app (D135); without it a value renders in `.secondary`.
+    .labeledContentStyle(.readableValue)
 }

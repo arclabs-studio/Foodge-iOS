@@ -44,8 +44,12 @@ struct EveningReminderSection: View {
             }
         } header: {
             Text("Reminder")
+                // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                // `appBurgundyMuted` is measured there (D134, D148).
+                .foregroundStyle(.appBurgundyMuted)
         } footer: {
             Text("A nudge at the time you choose. It says nothing about your day — Foodge reads nothing while you are away.")
+                .foregroundStyle(.appBurgundyMuted)
         }
         .onChange(of: vm.reminderFailure) { _, failure in
             // The toggle already reverted itself with no navigation and no focus change, so
@@ -57,7 +61,7 @@ struct EveningReminderSection: View {
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         EveningReminderSection(vm: PreviewDependencies.all.makeSettingsViewModel())
     }

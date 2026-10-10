@@ -23,13 +23,17 @@ struct JudgeFlourishSection: View {
                 }
         } header: {
             Text("On-device AI")
+                // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                // `appBurgundyMuted` is measured there (D134, D148).
+                .foregroundStyle(.appBurgundyMuted)
         } footer: {
             Text("When this iPhone can write on device, the judge adds a line of its own. Everything else works exactly the same without it.")
+                .foregroundStyle(.appBurgundyMuted)
         }
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         JudgeFlourishSection(vm: PreviewDependencies.all.makeSettingsViewModel())
     }

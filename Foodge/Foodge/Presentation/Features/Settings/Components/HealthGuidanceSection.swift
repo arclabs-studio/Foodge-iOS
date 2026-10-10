@@ -20,11 +20,14 @@ struct HealthGuidanceSection: View {
             Text("Change what Foodge can read in the Health app, under Sharing. With nothing readable, Foodge asks you how the day went instead.")
         } header: {
             Text("Health")
+                // Headers and footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                // `appBurgundyMuted` is measured there (D134, D148).
+                .foregroundStyle(.appBurgundyMuted)
         }
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         HealthGuidanceSection()
     }
