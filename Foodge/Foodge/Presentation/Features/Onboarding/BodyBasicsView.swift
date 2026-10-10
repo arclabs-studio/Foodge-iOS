@@ -41,27 +41,37 @@ struct BodyBasicsView: View {
             }
 
             Section {
-                Picker("Sex", selection: $vm.bodySex) {
-                    Text("Not given").tag(BiologicalSex?.none)
-                    ForEach(BiologicalSex.allCases, id: \.self) { sex in
-                        Text(sex.displayName).tag(BiologicalSex?.some(sex))
+                MenuPickerRow(title: "Sex", value: vm.bodySex.displayName, selection: $vm.bodySex) {
+                    ForEach(BiologicalSex?.answers, id: \.self) { answer in
+                        Text(answer.displayName).tag(answer)
                     }
                 }
 
+                // The prompts are the only place the unit shows until the person types, so they are
+                // drawn in `appBurgundyMuted`: the system's placeholder colour reads at about 1.7:1
+                // on a light row, under WCAG 1.4.3's 4.5:1 (D134).
                 LabeledContent("Age") {
-                    TextField("Years", text: $vm.ageText)
+                    TextField("Age in years", text: $vm.ageText, prompt: Text("Years").foregroundStyle(.appBurgundyMuted))
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .accessibilityLabel("Age in years")
                 }
                 LabeledContent("Height") {
-                    TextField("Centimetres", text: $vm.heightText)
+                    TextField(
+                        "Height in centimetres",
+                        text: $vm.heightText,
+                        prompt: Text("Centimetres").foregroundStyle(.appBurgundyMuted)
+                    )
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.trailing)
                         .accessibilityLabel("Height in centimetres")
                 }
                 LabeledContent("Weight") {
-                    TextField("Kilograms", text: $vm.weightText)
+                    TextField(
+                        "Weight in kilograms",
+                        text: $vm.weightText,
+                        prompt: Text("Kilograms").foregroundStyle(.appBurgundyMuted)
+                    )
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .accessibilityLabel("Weight in kilograms")
@@ -74,6 +84,7 @@ struct BodyBasicsView: View {
                         anything. Until then it will ask you about your day instead.
                         """
                     )
+                    .foregroundStyle(.appBurgundyMuted)
                 }
             }
 
@@ -125,6 +136,9 @@ struct BodyBasicsView: View {
                         your day went instead.
                         """
                     )
+                    // Footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                    // `appBurgundyMuted` is measured there (D134, D145).
+                    .foregroundStyle(.appBurgundyMuted)
                 }
             }
         }
@@ -140,13 +154,13 @@ struct BodyBasicsView: View {
     }
 }
 
-#Preview("Empty") {
+#Preview("Empty", traits: .sampleData) {
     NavigationStack {
         BodyBasicsView(vm: PreviewDependencies.all.makeOnboardingViewModel())
     }
 }
 
-#Preview("Half answered") {
+#Preview("Half answered", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
 
     NavigationStack {
@@ -158,7 +172,7 @@ struct BodyBasicsView: View {
     }
 }
 
-#Preview("Complete") {
+#Preview("Complete", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
 
     NavigationStack {

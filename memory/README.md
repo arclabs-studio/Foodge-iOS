@@ -74,6 +74,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[a-tappable-character-must-not-move-under-the-finger]] — a bubble above the judge moved the judge
 - [[a-standalone-preview-hides-scrollview-layout]] — host card previews in a ScrollView
 - [[the-reveal-is-keyed-on-the-revision-id]] — not a flag, not the value; once per launch
+- [[forms-keep-the-system-background]] — D148, the user's call; a preference recorded as a necessity first
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing

@@ -15,8 +15,8 @@ import SwiftUI
 /// dish and no store, so the judge can be tapped any number of times without touching tonight's
 /// verdict. `JudgeBadgeView` stays for the small, decorative uses.
 ///
-/// Motion follows the plan's motion policy (`docs/migrations/2026-10-09-playful-redesign.md`, to be
-/// recorded as D147 with the verdict reveal). Reduce Motion is read here, so no screen can forget
+/// Motion follows the plan's motion policy (`docs/migrations/2026-10-09-playful-redesign.md`, D147).
+/// Reduce Motion is read here, so no screen can forget
 /// it; `motion` can only turn motion **off** further, which is how a preview shows the still
 /// version of a setting it cannot inject. Still, the judge neither breathes nor hops, its press dims
 /// instead of squashing, the bubble fades in while the layout around it settles at once, and the

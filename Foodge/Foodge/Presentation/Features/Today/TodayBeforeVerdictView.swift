@@ -22,7 +22,7 @@ struct TodayBeforeVerdictView: View {
 
     /// At accessibility sizes the primary action flows as the last item in the scrolling column
     /// instead of being pinned, where it would grow tall enough to cover what is above it — the
-    /// pattern `WelcomeView` already uses (WCAG 1.4.10 Reflow).
+    /// contract `pinnedPrimaryAction` sets, shared with `WelcomeView` (WCAG 1.4.10 Reflow).
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var evaluatingMessage: LocalizedStringResource {
@@ -99,20 +99,14 @@ struct TodayBeforeVerdictView: View {
                         EmptyView()
                     }
 
-                    if dynamicTypeSize.isAccessibilitySize {
+                    if !dynamicTypeSize.pinsPrimaryAction {
                         primaryAction
                     }
                 }
                 .padding()
             }
-            // A bar rather than an inset, so the system draws its scroll edge effect where the
-            // cards pass under the button instead of letting text show through.
-            .safeAreaBar(edge: .bottom) {
-                if !dynamicTypeSize.isAccessibilitySize {
-                    primaryAction
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                }
+            .pinnedPrimaryAction {
+                primaryAction
             }
             .background { StageBackground(accent: .appBurgundy) }
             .disabled(isEvaluating)

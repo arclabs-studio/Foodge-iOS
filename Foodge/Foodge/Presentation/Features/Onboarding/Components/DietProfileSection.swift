@@ -26,7 +26,7 @@ struct DietProfileSection: View {
 
     var body: some View {
         Section {
-            Picker("Diet", selection: $dietProfile) {
+            MenuPickerRow(title: "Diet", value: dietProfile.displayName, selection: $dietProfile) {
                 ForEach(DietProfile.allCases, id: \.self) { profile in
                     Text(profile.displayName).tag(profile)
                 }
@@ -34,11 +34,14 @@ struct DietProfileSection: View {
             .onChange(of: dietProfile) { _, _ in onChange() }
         } footer: {
             Text("Foodge never infers this from Health, and never relaxes it to find a match.")
+                // A footer is drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                // `appBurgundyMuted` is measured there by `PaletteContrastTests` (D134, D145).
+                .foregroundStyle(.appBurgundyMuted)
         }
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     @Previewable @State var dietProfile = DietProfile.omnivore
 
     Form {

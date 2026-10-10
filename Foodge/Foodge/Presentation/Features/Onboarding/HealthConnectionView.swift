@@ -14,9 +14,18 @@ import SwiftUI
 @MainActor
 struct HealthConnectionView: View {
     @Bindable var vm: OnboardingViewModel
+    @State private var judge = JudgeReaction()
 
     var body: some View {
         Form {
+            // The judge at the head of the form, on the form's own background: a data-entry screen
+            // keeps the system grouped background rather than a stage (D148).
+            Section {
+                JudgeHeroView(artwork: .judgeWelcome, height: StageArtworkSize.formJudge, reaction: judge)
+                    .frame(maxWidth: .infinity)
+            }
+            .listRowBackground(Color.clear)
+
             Section {
                 Text("Foodge reads what Health already recorded today and works out what you have left to spend on dinner.")
                 // `.secondary` measures ~3.4:1 against a Form row's white/elevated background in
@@ -39,10 +48,13 @@ struct HealthConnectionView: View {
                 }
             } footer: {
                 Text("Apple asks for the permission, not Foodge. You choose what to share in its own sheet.")
+                    // Footers are drawn in `.secondary`, about 3.3:1 on the light grouped background;
+                    // `appBurgundyMuted` is measured there (D134, D145).
+                    .foregroundStyle(.appBurgundyMuted)
             }
 
             if let missing = vm.healthState.missingKinds {
-                Section("What Health could read") {
+                Section {
                     if missing.isEmpty {
                         Text("Everything Foodge asks for is there today.")
                     } else {
@@ -59,6 +71,10 @@ struct HealthConnectionView: View {
                             .font(.footnote)
                             .foregroundStyle(.appBurgundyMuted)
                     }
+                } header: {
+                    Text("What Health could read")
+                        // Headers are drawn in `.secondary` too (D134, D145).
+                        .foregroundStyle(.appBurgundyMuted)
                 }
             }
 
@@ -94,13 +110,13 @@ extension OnboardingViewModel.HealthState {
     }
 }
 
-#Preview("Not connected yet") {
+#Preview("Not connected yet", traits: .sampleData) {
     NavigationStack {
         HealthConnectionView(vm: PreviewDependencies.all.makeOnboardingViewModel())
     }
 }
 
-#Preview("Connected") {
+#Preview("Connected", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.modestAllowance).makeOnboardingViewModel()
 
     NavigationStack {
@@ -109,7 +125,7 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("Some kinds missing") {
+#Preview("Some kinds missing", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.estimatedResting)
         .makeOnboardingViewModel()
 
@@ -119,7 +135,7 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("No readable data") {
+#Preview("No readable data", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
         .makeOnboardingViewModel()
 
@@ -129,7 +145,7 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("Health unavailable") {
+#Preview("Health unavailable", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.healthUnavailable().makeOnboardingViewModel()
 
     NavigationStack {
