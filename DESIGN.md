@@ -11,6 +11,10 @@
 >
 > **Amended 2026-10-10 by WU-29 (D145–D149):** the visual identity, the judge, motion and asset
 > naming below are rewritten for the playful redesign.
+>
+> **Amended 2026-10-13 by WU-29-H (D150, D151):** the form screens get their own character — Settings
+> tiles, symbols on evidence and reasons, the allowance headline and gauge, History by month, and the
+> onboarding forms end on the stage's primary action. Plan: `docs/migrations/2026-10-13-form-screens-character.md`.
 
 Derived from `docs/foodge-plan.md` §2. This file is the authority for navigation, screen content,
 visual identity, voice and asset naming. Product rules live in the plan; engineering rules in `CLAUDE.md`.
@@ -34,9 +38,9 @@ Today is the centre of the product. It is not a dashboard of unrelated metrics, 
 | Today, before verdict | Date, judge, the evidence available today, optional context inputs, the *Eaten so far* check-in | **Give me a verdict** | evidence readable · partially missing · none |
 | Missing evidence | What is unavailable, in absence wording, never denial wording | Only the relevant short check-in | per missing kind |
 | Verdict | Category, dish artwork and name, deterministic explanation, optional AI flourish | See alternative · Appeal · Evidence details | deterministic only · narrated · narration failed |
-| Evidence details | Sources, timestamps, tonight's allowance broken into its components — each line labelled recorded or estimated — sleep | Back | complete · partial |
+| Evidence details | Sources, timestamps, tonight's allowance — *Left for dinner* first, with a gauge of the share of today left and the rule's bands — then its components, each labelled recorded or estimated; sleep | Back | complete · partial |
 | Appeal | Craving choice, the compatible option found, the original kept visible | Accept this instead · Keep the original | compatible · no match |
-| History | One case per local day, summarized | Open a case | populated · empty |
+| History | One case per local day, summarized, under a header per month — no counts, no streaks | Open a case | populated · empty |
 | Case detail | The evidence, rule version, dish and narration used at the time | — | read-only |
 | Settings | Preferences, evening reminder, Health guidance, AI narration toggle, demo mode, delete local data | Each row | — |
 
@@ -72,7 +76,7 @@ the pattern for another control; write its `*Style`.
 | Kind | Screens | Surface |
 |---|---|---|
 | **Stage** — the ritual | Welcome, Today before the verdict, the deliberating state, the verdict | `StageBackground`: opaque dough washed from the top with the screen's accent at 15 % (burgundy; the verdict uses its category's tint). Content sits in native `GroupBox` cards (`StageCardGroupBoxStyle`, filled with `AppCard`, a hairline `separator` edge). |
-| **Form** — data entry, settings and records | Apple Health, About you, Evidence details, History, Case detail, Settings, Demonstration | The system grouped background (D148, approved by the user). The palette, the rounded face and the judge where it heads a screen; section headers, footers and prompts in `appBurgundyMuted`. |
+| **Form** — data entry, settings and records | Apple Health, About you, Evidence details, History, Case detail, Settings, Demonstration | The system grouped background (D148, approved by the user). The palette, the rounded face and the judge where it heads a screen; section headers, footers and prompts in `appBurgundyMuted`; symbols by D151 (below). The two onboarding forms end on the stage's primary action (D150). |
 
 On a stage the **artwork leads**: the judge stands at 180–220 pt and the verdict's dish at 200 pt
 (60 % of that at accessibility sizes); the judge heading the Apple Health form is 120 pt
@@ -83,6 +87,11 @@ A stage screen has **one primary action**, `primaryAction()` — `glassProminent
 an `appOnBurgundy` label — pinned to the bottom edge with `pinnedPrimaryAction` at standard sizes and
 placed inline at the end of the content at accessibility sizes (`DynamicTypeSize.pinsPrimaryAction`
 decides both). Other actions in a card are `secondaryAction()`, `.bordered` with a primary label.
+
+The two onboarding forms, Apple Health and About you, end on the same action, pinned the same way;
+at accessibility sizes it is the form's last section (`InlinePrimaryActionSection`). Inside a form the
+action is a `Button` — a `NavigationLink` there is drawn as a list row whatever its style (D150). Their
+secondary ways out (*Continue without Health*, *Finish without the figures*) stay form rows.
 
 ### Palette
 
@@ -99,6 +108,8 @@ grouped background, so the app never uses it for text: `Form` headers, footers a
 prompts take `.formCaption()` (`appBurgundyMuted`) — a new `Section` must too, since nothing checks it —
 and `LabeledContent` values take `.readableValue` at the root (D134, D135).
 System red is about 3.6:1 as text on a light row, so a destructive row keeps the red on its symbol.
+Each Settings tile's glyph on its fill — the red tile's white included — and the bare red delete
+symbol on its row are measured at the 3:1 a graphic needs (`PaletteContrastTests`).
 
 | Set | Light | Dark | Role |
 |---|---|---|---|
@@ -116,14 +127,22 @@ A category is never told by colour alone: its stamp carries the name and a symbo
 (`party.popper.fill`, `equal.circle.fill`, `leaf.fill`), and its badge always the name, with the
 symbol where it fits. Tomato and basil share a luminance in light
 appearance, and cheese and gold fall under 3:1 as *shapes* on light surfaces — accepted because
-neither is ever the sole carrier of meaning.
+neither is ever the sole carrier of meaning. The allowance gauge on Evidence details is filled with
+the verdict's category tint, the one data graphic in a category colour; its share is also a
+percentage and every band is also text (D151).
 
 ### Type, symbols, glass
 
 - **Type**: SF Rounded, set once at the window root with `.fontDesign(.rounded)`; semantic text styles
   only — `.system(size:)` is never written. Previews get the same face from `.sampleData`. Text the
   system draws in its own chrome (navigation titles, tab labels) keeps the system face.
-- **Symbols**: SF Symbols for interface actions and the category marks.
+- **Symbols**: SF Symbols for interface actions and the category marks. On form screens (D151) a
+  symbol's colour says whether its row acts: a Settings row that acts wears its symbol in a filled
+  tile of the tint (`SettingsIconLabelStyle`; *Delete local data* in a red tile), and a symbol that
+  only informs — an evidence source, a verdict reason — is monochrome `appBurgundyMuted`
+  (`InformativeSymbol`). Category colours never decorate a symbol that is not about the category. At
+  accessibility sizes tiles and reason symbols are dropped and the text takes the room; the delete
+  row keeps its bare red symbol, its one cue.
 - **Liquid Glass**: only where the system supplies it — bars, toolbars, the prominent primary action
   (`glassProminent`). Cards and bubbles are never glass.
 
@@ -132,14 +151,16 @@ neither is ever the sole carrier of meaning.
 A small, sculpted pizza-headed judge with a restrained ivory wig and a dark-walnut gavel, in two poses
 (`JudgeWelcome`, `JudgeVerdict`). Clearly distinct from FavRes.
 
-- **Tappable on Welcome, on Today before the verdict, and at the head of Apple Health (D146).**
+- **Tappable on Welcome, on Today before the verdict, and at the head of Apple Health and About you
+  (D146, D150).**
   `JudgeHeroView` is a `Button` named *The judge*: a tap hops, plays a light haptic and shows the next
   of eight quips in a speech bubble **below** it, so it never moves out from under the finger, and
   VoiceOver hears the quip. Quips speak
   in the flourish's voice and pass `NarrationValidator`; they reach no rule, dish or store.
 - **Deliberating** while a verdict is worked out (`DeliberatingJudgeView`), above a native
   `ProgressView` that carries the status. Not tappable.
-- **Decorative** everywhere else (`JudgeBadgeView`): the flourish on the verdict, History's empty state.
+- **Decorative** everywhere else (`JudgeBadgeView`): the flourish on the verdict and on case detail —
+  the same judge and speech bubble in both (`FlourishBubble`) — and History's empty state.
 
 ### Dishes
 

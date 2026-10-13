@@ -75,6 +75,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[a-standalone-preview-hides-scrollview-layout]] — host card previews in a ScrollView
 - [[the-reveal-is-keyed-on-the-revision-id]] — not a flag, not the value; once per launch
 - [[forms-keep-the-system-background]] — D148, the user's call; a preference recorded as a necessity first
+- [[an-icon-colour-says-whether-it-acts]] — D150/D151, HIG-checked before building; the iOS gauge has no marker
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
@@ -85,6 +86,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[swiftdata-unique-does-not-throw-on-save]] — `@Attribute(.unique)` merges silently, it never throws
 - [[localization-tests-cannot-pass-on-a-physical-device]] — `#filePath` is the build machine's path
 - [[the-wedged-runner-was-a-stale-test-operation]] — probe with one test; the refusal arrives in seconds
+- [[a-navigation-link-in-a-form-is-a-row]] — the inline Continue was white on a clear row, with a chevron
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer

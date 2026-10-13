@@ -177,6 +177,8 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D147 | **Motion policy, and the verdict's reveal plays once per revision per launch.** Every motion is decoration and has a still form. Motion nobody asked for stops within five seconds (WCAG 2.2.2): the judge's breath (two 2.4 s breaths, none after a tap), the deliberating tilt (4.8 s), the confetti (2.5 s, then its timeline pauses). Under Reduce Motion the hop, the press squash, the stamp slam, the dish pop, the dish swap and the cards' entrance become fades that each view carries itself, with no animation on the layout around them, and the confetti draws nothing. Where Reduce Motion is read: by each screen, which passes `motion` down, and also by the judge components, the dish section and the confetti themselves, whose `motion` input can only turn motion off. The verdict's reveal — stamp slams in with a heavy impact haptic, dish pops with confetti, cards arrive — plays when `TodayViewModel.claimReveal()` answers `true`, exactly once per `SavedRevision.id` in a launch: returning from Evidence details or from Today shows it settled, a narration line arriving on the same revision does not replay it, a failed save does not spend it, and a cold start that reopens tonight's verdict reveals it once more. Until the claim, a pending revision draws nothing (`isRevealPending`), so a new verdict never flashes and collapses. | A reveal that replays every time the screen appears stops being a reveal and starts being a delay. Keyed on the revision id rather than a flag because a second revision is a new verdict, and rather than on the `SavedRevision` value because narration swaps in a new value with the same id. Not persisted: a reveal per launch costs a second, and storing it would mean a schema change for decoration. The five-second ceiling and the still forms are where a playful screen meets WCAG; both are code paths, not settings someone has to find. |
 | D148 | **Data-entry forms keep the system grouped background, and every `Picker` is a whole-row menu.** **Approved by the user on 10 Oct 2026**, over two alternatives put to them: a stage with every row filled in `AppCard`, and the plan as written (a stage behind system rows). The plan put a `StageBackground` behind the Apple Health and About you forms; it is not used there. Health connection gets the judge as a hero section at the head of its form instead (`StageArtworkSize.formJudge`, 120 pt), and both forms keep the palette and the rounded face. Every `Picker` becomes a `MenuPickerRow`: a `Menu` whose label is the row (a list's vertical row insets are zeroed), a native `Picker` inside it, the value in the tint, at least 44 pt, stacked when one line does not fit. In the WU-29-E forms, section headers, footers and text-field prompts are drawn in `appBurgundyMuted`. | A choice, not a necessity — first recorded as one, corrected after `arc-constitution-review` and `arc-audit-hig` showed the alternative would have met the floor. **For it:** the HIG's preference for `systemGroupedBackground` in settings-style forms; in dark the system row (`#1C1C1E`) is darker than the stage's tinted top (about 1.3:1 against the wash, though 1.02:1 *lighter* than bare dough), so rows near the top read as holes — the defect `arc-audit-hig` raised against the first card fill (D145); and cost — a stage without holes needs `AppCard` fills on every section, not two modifiers per form. **Against it:** a stage with `AppCard` rows plus `MenuPickerRow` would have met 4.5:1 — `PaletteContrastTests` measures the tint, the muted colour and `label` on `AppCard` — since the 4.44:1 measured for `.secondary` on `AppCard` in dark applied only to system-drawn picker values, which `MenuPickerRow` removes. **A struct, not a `*Style`:** `PickerStyle` has no public requirements and `MenuStyleConfiguration` carries only a label and content, so no style can lay out a title and a value; `Menu { Picker }` is Apple's documented pattern. System `.secondary` text measures about 3.4:1 on a light row and 3.3:1 on the grouped background. The option the user chose said the WU-29-G forms (Settings, Evidence details, Demonstration) follow the same rule; Evidence details' section headers already did in WU-29-F, through the `EvidenceSectionsView` it shares with case detail. |
 | D149 | **A History row names its dish.** The plan's row was the dish's artwork, the date and a mini category stamp; the row also shows the dish name, as `.headline`, with the date beneath it in `appBurgundyMuted` `.subheadline`. | The artwork is decorative (`accessibilityHidden`) and drawn per *family*, so two pasta nights look the same: without the name a VoiceOver user hears a date and a category, and a sighted one cannot tell pesto from bolognese. The cost is that the date stops being the row's primary text. Both auditors judged it justified (WU-29-F). |
+| D150 | **The onboarding forms end on the stage's primary action, and the judge heads About you (WU-29-H, plan `docs/migrations/2026-10-13-form-screens-character.md`; the action and the judge approved by the user on 13 Oct 2026, the withdrawal of *Connect* below decided while building and flagged to the user the same day).** Apple Health's *Connect Apple Health* — then *Continue* once Health has answered — and About you's *Save and finish* are `primaryAction()`, pinned with `pinnedPrimaryAction` and placed as the form's last section at accessibility sizes (`InlinePrimaryActionSection`), as Welcome's *Continue* is. Health's *Continue* is a `Button` pushing through `OnboardingViewModel.continueToBodyBasics()`, not Welcome's `NavigationLink`: inside a `Form` a link is drawn as a list row whatever its style, and at AX 2 it rendered as a white label on a clear row with a chevron (`memory/troubleshooting/a-navigation-link-in-a-form-is-a-row.md`). The secondary ways out (*Continue without Health*, *Finish without the figures*) stay form rows. *Connect Apple Health* is no longer offered once Health has answered (`HealthState.awaitsConnection`): iOS does not show its sheet twice (D137), and a failed request keeps its own retry in `HealthUnavailableSection`. **Cost:** `connectHealth()` also re-reads today's evidence, so the old button let someone who changed Health's sharing mid-onboarding refresh the *What Health could read* report; now that report updates only on the next verdict, which re-reads Health anyway. About you carries the same tappable judge as Apple Health (`FormJudgeHeroSection`). D148 stands: both forms keep the system grouped background. | Onboarding dropped from Welcome's prominent button to a text row on the two screens that finish it, and the HIG asks onboarding to be "fast, fun". The alternative — plain rows — kept the screens consistent with Settings but not with the flow they belong to. The pinned bar and its accessibility-size fallback are the stage's, reused rather than copied, so the WCAG 1.4.10 reasoning in `PinnedPrimaryActionModifier` carries over unchanged. |
+| D151 | **Symbols on form screens: interactive in the tint, informative in the muted colour.** Settings rows that act wear a filled tile (`SettingsIconLabelStyle`: `appOnBurgundy` on `appBurgundy`; red for *Delete local data*). Evidence sources and verdict reasons wear a monochrome symbol in `appBurgundyMuted` (`InformativeSymbol`, `ReasonLabel`). Category colours never decorate a symbol that is not about the category. The allowance gauge's fill is the verdict's category tint — the one place a category colour fills a data graphic, which **extends D145's shape exception**: cheese reads under 3:1 there too, accepted because the share and every band are also text. One suggestion was **dropped** in the same check: a verdict badge per demonstration scenario, because the outcome is computed by running the rule (`DemonstrationScenarioOutcomeTests`) and *No readable Health data* depends on the check-in answer. | The HIG's *Color* page (read through the `cupertino` HIG index on 13 Oct 2026): "avoid using the same color to mean different things … if you use your brand color to indicate that a borderless button is interactive, using the same or similar color to stylize noninteractive text is confusing". Burgundy is Foodge's tint, the colour of what acts; `appBurgundyMuted` is already the app's colour for what does not — every form header, footer and prompt (D134, D148) — so an informative symbol takes the muted colour with the rest of the non-interactive text, not the tint. Tomato, cheese and basil *are* Treat, Balanced and Light. A fixed badge per scenario would either copy the rule into a view or misstate a scenario. |
 
 ---
 
@@ -3107,6 +3109,87 @@ walk** (below).
   judge hero in a `Form` row, `MenuPickerRow` with VoiceOver and its menu checkmark (WU-29-E); VoiceOver
   on a History row and case detail, case detail below the fold (WU-29-F); the scenario rows' hit area
   and the delete row here.
+
+### WU-29-H 🟦 The form screens get their own character
+
+Plan `docs/migrations/2026-10-13-form-screens-character.md`, approved by the user on 13 Oct 2026 ("Go
+ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs"). Decisions **D150**
+(the onboarding forms end on the stage's primary action; the judge heads About you) and **D151**
+(symbols: interactive in the tint, informative in the muted colour). No product rule changes.
+
+- **Validated before building**, each against the HIG pages read through the `cupertino` HIG index
+  (*Color*, *Gauges*, *Lists and tables*, *Onboarding*), Apple's `Gauge`/`LinearCapacityGaugeStyle`/
+  `LinearGaugeStyle` documentation through `apple-docs`, and the `axiom-hig` / `axiom-sf-symbols` /
+  `swiftui-doctrine` skills. Two amendments and one drop came out of it: the marker gauge is not on
+  iOS (`.linearCapacity` instead); informative symbols take `appBurgundyMuted`, not the tint; the
+  per-scenario verdict badge in Demonstration was dropped (the outcome is computed, and one scenario
+  depends on the check-in).
+- **Settings:** acting rows wear a symbol in a tile (`SettingsIconLabelStyle`): *Diet*, *Evening
+  reminder*, *Judge's flourish*, *Demonstration mode* / *Exit demonstration*, and *Delete local data*
+  in a red tile. Tiles are dropped at accessibility sizes; the delete row keeps its bare red symbol.
+- **Evidence details and case detail:** `AllowanceHeadlineRow` leads the allowance — *Left for
+  dinner*, a `.linearCapacity` gauge of *Share of today left* in the verdict's category tint, 0 % /
+  100 %, and a legend of the rule's bands read from `CheatMealAllowanceRule` (`DinnerCategory.shareBand`).
+  The *Left for dinner* and *Share of today* rows moved into it. Each Health source wears a muted
+  symbol (`HealthKind.symbolName`, `InformativeSymbol`). `EstimatedKilocalories` is now the one view
+  for a figure and its *Estimated* marker.
+- **Reasons:** `ReasonLabel` (symbol per `ReasonCode.symbolName`, dropped at accessibility sizes)
+  on the verdict's card and on case detail.
+- **Case detail's flourish:** `FlourishBubble` — the judge and speech bubble the verdict shows —
+  replaces the italic row; `VerdictFlourishView` uses the same view.
+- **Onboarding:** Apple Health and About you pin `primaryAction()`, inline at accessibility sizes
+  (`InlinePrimaryActionSection`); both carry the tappable judge (`FormJudgeHeroSection`).
+  `HealthState.awaitsConnection` decides between *Connect Apple Health* and *Continue*; *Continue* is a
+  `Button` over `OnboardingViewModel.continueToBodyBasics()`. VoiceOver focus moves to *Continue* when
+  Health answers.
+- **History:** `HistoryMonth.grouping` (by each case's `localDayKey`, Gregorian month, unreadable
+  keys in a trailing undated group), built by `HistoryViewModel` on load; one `Section` per month,
+  header in the Gregorian calendar. The preview data gained an August case so a preview shows two
+  months.
+- **New strings** (through `StringCatalogEdit` sub-agents, stored `machine_translated` like every
+  `es` entry): *Treat from %@* → *Capricho desde el %@*, *Balanced from %@* → *Equilibrado desde el %@*,
+  *Light below %@* → *Ligero por debajo del %@*, *Share of today left* → *Proporción del día que queda*.
+  *Share of today* is now stale in the catalogue.
+- **Tests, written first by `arc-test-engineer`:** `HistoryMonthTests` (13 functions, two
+  parameterized), `HistoryViewModelTests` +3 (months), `SymbolNameTests` (3), `EnergyAllowanceGaugeTests`
+  (4); after the audits `ShareBandTests` (3), `OnboardingViewModelTests` +2 (`awaitsConnection` over
+  eight states; *Continue* keeps the answer), `PaletteContrastTests` +1 (each tile's glyph on its fill
+  and the bare red symbol on its row, at 3:1, in four appearances). **The red stage was not observed**:
+  Xcode had no workspace open when the tests were written, so the only red possible — a compile failure
+  on the missing API — was never seen. One duplicate (a category-symbol test already in
+  `DinnerCategoryAppearanceTests`) and two assertions that could not fail were removed before use.
+- **Build:** green after every change (last 5.7 s); `GetBuildLog { severity: "warning" }` →
+  **`totalFound: 0`** each time, the log listing both `Foodge` and `FoodgeTests`.
+- **Suite:** the user's ⌘U on the first version of this unit **passed** (no count recorded). After the
+  audit fixes it is **owed**: `RunSomeTests` timed out, and both runners now answer *Tests are already
+  running* — the stale operation in `memory/troubleshooting/the-wedged-runner-was-a-stale-test-operation.md`.
+- **Render:** the user checked Spanish, light and dark. Here, English light: Settings, Evidence details,
+  case detail, the flourish, Apple Health, About you, History; About you at AX 5; the gauge spent and
+  dark; the inline action at AX 2; after the fixes, the gauge at AX 5 in Spanish and at default in
+  English, Settings at AX 5 in Spanish, the reasons card, *Delete* at AX 3, Apple Health connected in
+  Spanish dark, Evidence details in Spanish. The three auditors rendered about 60 more variants between
+  them (en/es, light/dark, Increased Contrast, Small to AX 5).
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 2 MAJOR / 10 MINOR · `arc-audit-accessibility`
+  1 / 3 / 8 · `arc-audit-hig` 0 / 4 / 6. **Acted on:** the gauge's own label slots truncating at AX 5
+  (BLOCKER: now plain text around a bare gauge, with the true share as its VoiceOver value); the tile's
+  size cap that capped only the glyph (the tile is now dropped at accessibility sizes) and the doc that
+  claimed otherwise; `awaitsConnection` untested and in the view file; the delete row losing its red at
+  accessibility sizes; two atoms drawn twice (`EstimatedKilocalories`, `FlourishBubble`); reason text
+  not starting on one line on the card (`InformativeSymbol` now draws in a fixed scaled column);
+  *Share of today* readable as the share eaten; the white-on-red pair unmeasured; the month header
+  formatted in a non-Gregorian calendar; D150's unstated cost and over-broad attribution; D151's
+  rationale; doc overclaims in `HistoryMonth`, `HealthKind+Symbol`, the plan and the memory note;
+  redundant conformances; long lines; one preview showing only one month. **Found while acting on
+  them:** the inline *Continue* was invisible inside the form at AX 2 —
+  `memory/troubleshooting/a-navigation-link-in-a-form-is-a-row.md`. **Not taken:** `InformativeSymbol`
+  as a `LabelStyle` (a style cannot restyle the icon slot alone without rebuilding the list's label
+  layout; it stays a view in the icon slot); `private var` fragments used twice in one body
+  (`WelcomeView.continueLink` is the precedent); a legend line for the balanced band's upper edge (the
+  legend runs in the bar's order); the Settings literals in `SymbolNameTests` (rendered instead).
+- **Owed, to the simulator walk** (added to WU-29-G's list): VoiceOver on the gauge (label, true
+  negative value) and on *Continue* receiving focus when Health answers; About you's pinned bar over the
+  number pad on a small phone; symbol availability on iOS 26 (every name used is in SF Symbols by
+  iOS 17, by reading, not by test — `SymbolNameTests` resolves on the iOS 27 runner).
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
