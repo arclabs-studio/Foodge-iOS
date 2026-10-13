@@ -13,13 +13,18 @@ import SwiftUI
 /// the exact figures the decision used, so this can never drift from them. **Every figure carries
 /// its own provenance**: an estimated resting figure and a recorded one are both shown, and shown
 /// differently, because the difference is the user's to judge.
+///
+/// The allowance itself leads (`AllowanceHeadlineRow`, WU-29-H); the four figures it is worked out
+/// from follow. `category` only tints the gauge.
 @MainActor
 struct AllowanceBreakdownRow: View {
     let basis: CategoryBasis
+    let category: DinnerCategory
 
     var body: some View {
         switch basis {
         case let .energyBalance(allowance):
+            AllowanceHeadlineRow(allowance: allowance, category: category)
             AllowanceFigureRow(
                 title: LocalizedStringResource(
                     "Resting energy",
@@ -52,24 +57,6 @@ struct AllowanceBreakdownRow: View {
                 kilocalories: allowance.intakeKilocalories,
                 isEstimated: allowance.intakeIsEstimated
             )
-            AllowanceFigureRow(
-                title: LocalizedStringResource(
-                    "Left for dinner",
-                    comment: "Allowance breakdown row: today's total minus what was eaten. Can be negative"
-                ),
-                kilocalories: allowance.allowanceKilocalories,
-                isEstimated: allowance.restingIsEstimated || allowance.intakeIsEstimated
-            )
-            LabeledContent {
-                Text(allowance.share, format: .percent.precision(.fractionLength(0)))
-            } label: {
-                Text(
-                    LocalizedStringResource(
-                        "Share of today",
-                        comment: "Allowance breakdown row: what is LEFT to spend, as a share of the day's total — never the share consumed"
-                    )
-                )
-            }
         case let .selfReported(report):
             LabeledContent("Your account") {
                 Text(report.displayName)
@@ -118,23 +105,7 @@ struct AllowanceFigureRow: View {
 
     var body: some View {
         LabeledContent {
-            VStack(alignment: .trailing, spacing: 2) {
-                // `Text(_:format:)` rather than a pre-formatted `String`: the latter hands
-                // VoiceOver plain text with no numeric metadata, so a negative figure like
-                // "−500 kcal" risks being read literally as "hyphen 500" instead of "negative
-                // 500" (WCAG 1.3.1 / 4.1.2). Keeping the `Measurement` typed all the way into
-                // `Text` preserves the sign semantics the same way `allowance.share` already does
-                // two lines below via `Text(_:format:)`.
-                Text(
-                    Measurement(value: kilocalories, unit: UnitEnergy.kilocalories),
-                    format: .measurement(width: .abbreviated, usage: .food)
-                )
-                if isEstimated {
-                    Text("Estimated")
-                        .font(.caption)
-                        .foregroundStyle(.appBurgundyMuted)
-                }
-            }
+            EstimatedKilocalories(kilocalories: kilocalories, isEstimated: isEstimated)
         } label: {
             Text(title)
         }
@@ -142,20 +113,23 @@ struct AllowanceFigureRow: View {
     }
 }
 
-#Preview("Recorded") {
+#Preview("Recorded", traits: .sampleData) {
     Form {
-        AllowanceBreakdownRow(basis: .energyBalance(SampleDecisions.moderateAllowance))
+        AllowanceBreakdownRow(basis: .energyBalance(SampleDecisions.moderateAllowance), category: .balanced)
     }
+    .labeledContentStyle(.readableValue)
 }
 
-#Preview("Estimated and spent") {
+#Preview("Estimated and spent", traits: .sampleData) {
     Form {
-        AllowanceBreakdownRow(basis: .energyBalance(SampleDecisions.spentAllowance))
+        AllowanceBreakdownRow(basis: .energyBalance(SampleDecisions.spentAllowance), category: .light)
     }
+    .labeledContentStyle(.readableValue)
 }
 
-#Preview("Self-reported") {
+#Preview("Self-reported", traits: .sampleData) {
     Form {
-        AllowanceBreakdownRow(basis: .selfReported(.less))
+        AllowanceBreakdownRow(basis: .selfReported(.less), category: .light)
     }
+    .labeledContentStyle(.readableValue)
 }

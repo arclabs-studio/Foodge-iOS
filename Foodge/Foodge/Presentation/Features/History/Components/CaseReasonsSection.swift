@@ -22,7 +22,7 @@ struct CaseReasonsSection: View {
     var body: some View {
         Section {
             ForEach(reasonCodes, id: \.self) { reason in
-                Text(reason.displayText)
+                ReasonLabel(reason: reason)
             }
         } header: {
             // Side by side while the date fits; stacked once it would wrap (Spanish from AX 1).

@@ -10,10 +10,10 @@ import SwiftUI
 /// The food judge as a small, decorative badge.
 ///
 /// The judge's large, interactive form is `JudgeHeroView`, and its loading form is
-/// `DeliberatingJudgeView`; this badge stays for the small uses — the verdict's
-/// `VerdictFlourishView` and History's empty state. Decorative: it is a mascot logo, not content —
-/// where it appears it sits beside text that already says what the screen is, so VoiceOver users
-/// miss nothing.
+/// `DeliberatingJudgeView`; this badge stays for the small uses — the flourish on the verdict and on
+/// case detail (`FlourishBubble`), and History's empty state. Decorative: it is a mascot logo, not
+/// content — where it appears it sits beside text that already says what the screen is, so VoiceOver
+/// users miss nothing.
 @MainActor
 struct JudgeBadgeView: View {
     let artwork: ImageResource

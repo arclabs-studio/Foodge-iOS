@@ -24,22 +24,13 @@ struct VerdictFlourishView: View {
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
 
-            JudgeBadgeView(artwork: .judgeVerdict)
-            SpeechBubble(text: line.italic())
+            FlourishBubble(text: text, category: category)
 
             Text("Decoration only — the reasoning above is the verdict.")
                 .font(.footnote)
                 // On the stage: `appBurgundyMuted` is measured on every stage top (D145).
                 .foregroundStyle(.appBurgundyMuted)
                 .multilineTextAlignment(.center)
-        }
-    }
-
-    private var line: Text {
-        if let text {
-            Text(verbatim: text)
-        } else {
-            Text(category.flourishTemplate)
         }
     }
 }

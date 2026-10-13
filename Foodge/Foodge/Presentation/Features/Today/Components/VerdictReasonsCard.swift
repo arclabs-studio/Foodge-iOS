@@ -17,8 +17,7 @@ struct VerdictReasonsCard: View {
         GroupBox("Why") {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(reasonCodes, id: \.self) { reason in
-                    Text(reason.displayText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    ReasonLabel(reason: reason)
                 }
                 Text("These are prototype product heuristics, not nutritional advice.")
                     .font(.footnote)

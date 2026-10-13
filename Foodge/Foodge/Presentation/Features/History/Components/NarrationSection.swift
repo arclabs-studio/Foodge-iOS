@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// The judge's flourish on case detail. The verdict shows the same line in a speech bubble
-/// (`VerdictFlourishView`) since WU-29-D.
+/// The judge's flourish on case detail: `FlourishBubble`, the same judge and speech bubble the verdict
+/// shows (`VerdictFlourishView`), so a filed case still sounds like its verdict.
 ///
 /// `text` is a validated on-device model line, or `nil` — and `nil` is the ordinary case, not an
 /// error: it covers Apple Intelligence being off, unsupported, still downloading, the model
@@ -20,10 +20,11 @@ import SwiftUI
 /// nothing at all (D106). There is no such night any more — the rule always names a dish (D139) —
 /// so the gate went with it rather than lingering as a condition that is always true.
 ///
-/// The model half is rendered with `Text(verbatim:)` so model output is never treated as a format
-/// string; the template half is a `LocalizedStringResource` resolved against the ambient locale.
-/// The section is visually separate from the authoritative explanation above it, and the footnote
-/// says plainly that this is decoration.
+/// `FlourishBubble` renders the model half with `Text(verbatim:)`, so model output is never treated as
+/// a format string; the template half is a `LocalizedStringResource` resolved against the ambient
+/// locale. The section is visually separate from the authoritative explanation above it, and the footnote
+/// says plainly that this is decoration. The row has no background: the bubble is the surface, and
+/// its text is primary `label` on `AppCard`, the pair `PaletteContrastTests` measures.
 @MainActor
 struct NarrationSection: View {
     let text: String?
@@ -31,14 +32,9 @@ struct NarrationSection: View {
 
     var body: some View {
         Section {
-            flourish
-                .font(.callout)
-                .italic()
-                // `AppBurgundyMuted` is the brand's dedicated secondary-text color, carrying
-                // all four appearances. `arc-audit-accessibility` measured it from the
-                // rendered pixels rather than the asset hex: 5.82:1 light, 6.70:1 dark,
-                // against the 4.5:1 WCAG 1.4.3 needs.
-                .foregroundStyle(.appBurgundyMuted)
+            FlourishBubble(text: text, category: category)
+                .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
         } header: {
             Text("The judge’s flourish")
                 .formCaption()
@@ -49,24 +45,15 @@ struct NarrationSection: View {
                 .formCaption()
         }
     }
-
-    @ViewBuilder
-    private var flourish: some View {
-        if let text {
-            Text(verbatim: text)
-        } else {
-            Text(category.flourishTemplate)
-        }
-    }
 }
 
-#Preview("Template") {
+#Preview("Template", traits: .sampleData) {
     Form {
         NarrationSection(text: nil, category: .balanced)
     }
 }
 
-#Preview("Narrated") {
+#Preview("Narrated", traits: .sampleData) {
     Form {
         NarrationSection(
             text: "The defence pleaded tiredness; the court finds pasta a proportionate remedy.",

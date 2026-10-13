@@ -28,7 +28,11 @@ struct EvidenceDetailsView: View {
                     .formCaption()
             }
 
-            EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
+            EvidenceSectionsView(
+                evidence: revision.evidence,
+                basis: revision.decision.basis,
+                category: revision.decision.category
+            )
         }
         .navigationTitle("Evidence details")
         .navigationBarTitleDisplayMode(.inline)

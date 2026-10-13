@@ -12,10 +12,15 @@ import SwiftUI
 /// Shared between `EvidenceDetailsView` (today's flow) and `CaseDetailView` (History) so the two
 /// screens stay provably identical in how they present Health evidence — one place formats it,
 /// rather than two copies that could quietly drift apart.
+///
+/// Each source names itself with a symbol in `appBurgundyMuted`: it informs and does not act, so it
+/// does not take the tint (D151).
 @MainActor
 struct EvidenceSectionsView: View {
     let evidence: EvidenceSnapshot
     let basis: CategoryBasis
+    /// The verdict's category, which tints the allowance gauge.
+    let category: DinnerCategory
 
     private var today: HealthAggregates {
         evidence.today
@@ -46,21 +51,25 @@ struct EvidenceSectionsView: View {
             Section {
                 ProvenanceRow(
                     title: HealthKind.activeEnergy.displayName,
+                    symbolName: HealthKind.activeEnergy.symbolName,
                     valueText: today.activeEnergy.map(Self.energyText),
                     readAt: today.activeEnergy?.provenance.readAt
                 )
                 ProvenanceRow(
                     title: HealthKind.restingEnergy.displayName,
+                    symbolName: HealthKind.restingEnergy.symbolName,
                     valueText: today.restingEnergy.map(Self.energyText),
                     readAt: today.restingEnergy?.provenance.readAt
                 )
                 ProvenanceRow(
                     title: HealthKind.steps.displayName,
+                    symbolName: HealthKind.steps.symbolName,
                     valueText: today.steps.map(Self.stepText),
                     readAt: today.steps?.provenance.readAt
                 )
                 ProvenanceRow(
                     title: HealthKind.dietaryEnergy.displayName,
+                    symbolName: HealthKind.dietaryEnergy.symbolName,
                     valueText: today.dietaryEnergy.map(Self.energyText),
                     readAt: today.dietaryEnergy?.provenance.readAt
                 )
@@ -70,7 +79,7 @@ struct EvidenceSectionsView: View {
             }
 
             Section {
-                AllowanceBreakdownRow(basis: basis)
+                AllowanceBreakdownRow(basis: basis, category: category)
             } header: {
                 Text("Tonight’s allowance")
                     .formCaption()
@@ -104,7 +113,9 @@ struct EvidenceSectionsView: View {
     Form {
         EvidenceSectionsView(
             evidence: SyntheticScenarios.modestAllowance.snapshot,
-            basis: .energyBalance(SampleDecisions.moderateAllowance)
+            basis: .energyBalance(SampleDecisions.moderateAllowance),
+            category: .balanced
         )
     }
+    .labeledContentStyle(.readableValue)
 }

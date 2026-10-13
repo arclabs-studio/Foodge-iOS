@@ -13,6 +13,8 @@ import SwiftUI
 @MainActor
 struct ProvenanceRow: View {
     let title: LocalizedStringResource
+    /// The reading's SF Symbol (`HealthKind.symbolName`).
+    let symbolName: String
     let valueText: String?
     let readAt: Date?
 
@@ -34,15 +36,29 @@ struct ProvenanceRow: View {
                     .foregroundStyle(.appBurgundyMuted)
             }
         } label: {
-            Text(title)
+            Label {
+                Text(title)
+            } icon: {
+                InformativeSymbol(name: symbolName)
+            }
         }
     }
 }
 
 #Preview {
     Form {
-        ProvenanceRow(title: HealthKind.activeEnergy.displayName, valueText: "410 kcal", readAt: .now)
-        ProvenanceRow(title: HealthKind.dietaryEnergy.displayName, valueText: nil, readAt: nil)
+        ProvenanceRow(
+            title: HealthKind.activeEnergy.displayName,
+            symbolName: HealthKind.activeEnergy.symbolName,
+            valueText: "410 kcal",
+            readAt: .now
+        )
+        ProvenanceRow(
+            title: HealthKind.dietaryEnergy.displayName,
+            symbolName: HealthKind.dietaryEnergy.symbolName,
+            valueText: nil,
+            readAt: nil
+        )
     }
     // The app applies this once at `AppRootView` (D135), which no component preview sits under —
     // without it this preview renders the value slot at the platform's 3.44:1 and misrepresents

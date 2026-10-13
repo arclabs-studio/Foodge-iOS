@@ -52,7 +52,11 @@ struct CaseDetailView: View {
 
             CaseReasonsSection(reasonCodes: revision.decision.reasonCodes, createdAt: revision.createdAt)
 
-            EvidenceSectionsView(evidence: revision.evidence, basis: revision.decision.basis)
+            EvidenceSectionsView(
+                evidence: revision.evidence,
+                basis: revision.decision.basis,
+                category: revision.decision.category
+            )
 
             // `narrationText` is nil for every case recorded before narration existed, and stays
             // nil whenever the model did not produce a validated line. The reviewed template

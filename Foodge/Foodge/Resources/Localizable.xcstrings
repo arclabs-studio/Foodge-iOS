@@ -420,6 +420,17 @@
         }
       }
     },
+    "Balanced from %@" : {
+      "comment" : "Allowance gauge legend: a balanced dinner from this share of today left up to the treat band. Use the same word as the Balanced category.",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Equilibrado desde el %@"
+          }
+        }
+      }
+    },
     "Based on %lld recorded days." : {
       "comment" : "A footnote below the comparison information, indicating the number of days of recorded data used to make the comparison.",
       "extractionState" : "stale",
@@ -2039,6 +2050,17 @@
         }
       }
     },
+    "Light below %@" : {
+      "comment" : "Allowance gauge legend: a light dinner below this share of today left, negative included. Use the same word as the Light category.",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ligero por debajo del %@"
+          }
+        }
+      }
+    },
     "Lime" : {
       "comment" : "Ingredient",
       "extractionState" : "stale",
@@ -3168,11 +3190,23 @@
     },
     "Share of today" : {
       "comment" : "Allowance breakdown row: what is LEFT to spend, as a share of the day's total — never the share consumed",
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Proporción del día"
+          }
+        }
+      }
+    },
+    "Share of today left" : {
+      "comment" : "Allowance gauge label: what is LEFT to spend, as a share of the day's total — never the share consumed",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Proporción del día que queda"
           }
         }
       }
@@ -4026,6 +4060,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Capricho"
+          }
+        }
+      }
+    },
+    "Treat from %@" : {
+      "comment" : "Allowance gauge legend: a treat dinner from this share of today left upward. Use the same word as the Treat category.",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Capricho desde el %@"
           }
         }
       }
