@@ -3097,7 +3097,9 @@ walk** (below).
     **Suite: owed** — `RunAllTests` timed out twice after the moves, the runner wedge this project has
     met before (`foodge-verify`: ⌘U by hand is the fast path). No test reaches these views, so the
     suite cannot fail on either diff; the last run, before them, was 358/358.
-- **Simulator walk — open.** Through the Xcode MCP it failed: `DeviceInteractionInstallAndRun` timed
+- **Simulator walk — taken on 13 Oct 2026 with WU-29-H's** (see that section): everything below that a
+  screen can show was seen; VoiceOver, haptics, Reduce Motion and the number pad remain owed, because the
+  tool cannot observe them. **First attempt —** through the Xcode MCP it failed: `DeviceInteractionInstallAndRun` timed
   out, `DeviceInteractionSynthesize` answered *Session not found*, and a new session was refused
   because the device was *already in use by a different session* — the phantom lock in
   `memory/troubleshooting/device-interaction-synthesize-session-not-found.md`; two attempts, the
@@ -3194,10 +3196,38 @@ ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs
   layout; it stays a view in the icon slot); `private var` fragments used twice in one body
   (`WelcomeView.continueLink` is the precedent); a legend line for the balanced band's upper edge (the
   legend runs in the bar's order); the Settings literals in `SymbolNameTests` (rendered instead).
-- **Owed, to the simulator walk** (added to WU-29-G's list): VoiceOver on the gauge (label, true
-  negative value) and on *Continue* receiving focus when Health answers; About you's pinned bar over the
-  number pad on a small phone; symbol availability on iOS 26 (every name used is in SF Symbols by
-  iOS 17, by reading, not by test — `SymbolNameTests` resolves on the iOS 27 runner).
+- **Simulator walk, 13 Oct 2026** — Claude Code's iOS Simulator tool (approved by the user for this walk
+  in WU-29-G), `iPhone 17 Pro`, iOS 27, English, light, the Debug build from `BuildProject`. Two passes:
+  - *On the installed app* (Health never answered for Foodge on this simulator): Today → *Give me a
+    verdict* → the self-report → *About usual* → the verdict, its reveal and an on-device narration line
+    in `FlourishBubble` → Evidence details with every source *No readable data* → back to a settled verdict
+    (no replay, D147) → Today offering *Tonight's verdict* (D130) → Settings: the four tiles and the red
+    delete tile → Demonstration mode → *An ordinary allowance*: banner, the stamp mid-slam, the dish,
+    confetti, the reasons card with its symbol → Evidence details: muted source symbols, *Left for dinner
+    540 Cal*, the gauge at 27 %, 0 % / 100 %, the band legend → History: one *September 2026* section →
+    case detail: reasons, sources, the gauge, sleep, the flourish bubble, the record.
+  - *Fresh install* (the user chose *Remove & reinstall* when asked; Foodge was deleted from the
+    simulator and the same build reinstalled): Welcome → Apple Health with the judge and the pinned
+    *Connect Apple Health* → *Waiting for Health*, the pinned action disabled → Apple's sheet, answered
+    **Don't Allow** (the privacy-preserving answer; Foodge cannot tell it from no data) → *Nothing readable
+    came back for today*, *Connect* withdrawn and the pinned action now *Continue* (D150) → About you with
+    the judge and the pinned *Save and finish*, disabled once Height alone was typed, with the "needs all
+    four" footer → *Finish without the figures* → Today. The judge's tap: it hops and shows *Order in the
+    kitchen!* below it (WU-29-B, seen; the haptic is not observable here).
+  - **Closed by sight:** the scroll edge effect under the pinned bar and under the navigation bar
+    (WU-29-C); the reveal settling and not replaying (WU-29-D); D150 end to end; the judge hero in a form
+    row (WU-29-E); case detail below the fold (WU-29-F); the History month header; every WU-29-H screen at
+    runtime. **The rounded face:** the large navigation title (*Today*) and the tab labels draw in the
+    system face, the content in the rounded one — DESIGN.md's line, unverified until now, holds.
+  - **Not observable with this tool, still owed:** VoiceOver (the gauge's value, *Continue* taking focus,
+    a History row), haptics, Reduce Motion at runtime, and About you's pinned bar over the number pad —
+    the simulator took typed text from the Mac keyboard and drew no software keyboard. Symbol availability
+    on iOS 26 (every name used is in SF Symbols by iOS 17, by reading — the simulator and `SymbolNameTests`
+    are iOS 27).
+  - **Found:** on a day with no readable active energy, *Give me a verdict* answers by adding the
+    self-report card **below the pinned bar** — on this phone only its first line shows, half under the
+    tab bar, and the screen does not scroll to it, so the tap looks like it did nothing. Pre-existing
+    (WU-29-C's layout and the self-report flow), not this unit's; **put to the user** rather than fixed.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
