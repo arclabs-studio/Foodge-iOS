@@ -42,10 +42,21 @@ struct HistoryListView: View {
                             .foregroundStyle(.appBurgundyMuted)
                     }
                 } else {
-                    List(cases, id: \.localDayKey) { savedCase in
-                        if let revision = savedCase.latestRevision {
-                            NavigationLink(value: HistoryRoute.caseDetail(savedCase)) {
-                                HistoryCaseRow(revision: revision)
+                    // One section per month (WU-29-H), most recent first. No totals and no streaks:
+                    // a count of days eaten is a score, and the voice rules keep scores off food (D118).
+                    List(vm.months) { month in
+                        Section {
+                            ForEach(month.cases, id: \.localDayKey) { savedCase in
+                                if let revision = savedCase.latestRevision {
+                                    NavigationLink(value: HistoryRoute.caseDetail(savedCase)) {
+                                        HistoryCaseRow(revision: revision)
+                                    }
+                                }
+                            }
+                        } header: {
+                            if let firstDay = month.firstDay {
+                                Text(firstDay, format: HistoryMonth.headerFormat)
+                                    .formCaption()
                             }
                         }
                     }
