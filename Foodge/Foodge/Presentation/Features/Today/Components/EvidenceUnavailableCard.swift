@@ -19,6 +19,8 @@ struct EvidenceUnavailableCard: View {
         "Foodge couldn’t finish reading today’s evidence."
     }
 
+    /// Moves VoiceOver to the message when Today brings the card in (WCAG 2.4.3).
+    let messageFocus: AccessibilityFocusState<Bool>.Binding
     let retry: () -> Void
 
     var body: some View {
@@ -26,6 +28,7 @@ struct EvidenceUnavailableCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(Self.message)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityFocused(messageFocus)
                 Button("Try again", action: retry)
                     .secondaryAction()
             }
@@ -35,8 +38,10 @@ struct EvidenceUnavailableCard: View {
 }
 
 #Preview(traits: .sampleData) {
+    @Previewable @AccessibilityFocusState var isFocused: Bool
+
     ScrollView {
-        EvidenceUnavailableCard(retry: {})
+        EvidenceUnavailableCard(messageFocus: $isFocused, retry: {})
             .padding()
     }
     .background { StageBackground(accent: .appBurgundy) }

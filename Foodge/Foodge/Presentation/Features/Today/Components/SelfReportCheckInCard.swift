@@ -13,7 +13,15 @@ import SwiftUI
 /// than forcing a choice the user cannot make.
 @MainActor
 struct SelfReportCheckInCard: View {
+    /// Moves VoiceOver to the question when Today brings the card in (WCAG 2.4.3).
+    let questionFocus: AccessibilityFocusState<Bool>.Binding
     let submit: (SelfReportedActivity?) -> Void
+
+    /// The card's question — also what Today announces when the card appears, so VoiceOver hears it
+    /// in the card's own words.
+    static var question: LocalizedStringResource {
+        "How active was today, compared to usual?"
+    }
 
     var body: some View {
         GroupBox {
@@ -33,15 +41,18 @@ struct SelfReportCheckInCard: View {
                     .secondaryAction()
             }
         } label: {
-            Text("How active was today, compared to usual?")
+            Text(Self.question)
+                .accessibilityFocused(questionFocus)
         }
         .groupBoxStyle(.stageCard)
     }
 }
 
 #Preview(traits: .sampleData) {
+    @Previewable @AccessibilityFocusState var isFocused: Bool
+
     ScrollView {
-        SelfReportCheckInCard(submit: { _ in })
+        SelfReportCheckInCard(questionFocus: $isFocused, submit: { _ in })
             .padding()
     }
     .background { StageBackground(accent: .appBurgundy) }

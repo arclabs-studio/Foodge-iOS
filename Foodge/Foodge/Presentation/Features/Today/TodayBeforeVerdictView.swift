@@ -19,6 +19,17 @@ import SwiftUI
 struct TodayBeforeVerdictView: View {
     @Bindable var vm: TodayViewModel
     @State private var judge = JudgeReaction()
+    /// Where the column is scrolled — moved only to bring a card the stage just added into view.
+    @State private var scrollPosition = ScrollPosition()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Where VoiceOver goes when the stage adds a card that asks for an answer: the self-report's
+    /// question, or the failed read's message.
+    @AccessibilityFocusState private var isSelfReportFocused: Bool
+    @AccessibilityFocusState private var isEvidenceMessageFocused: Bool
+
+    /// The identity of the first card the stage adds below the intake check-in, so the column can
+    /// scroll to it. With a failed read that is the retry card; the self-report follows it.
+    private static let stageCardID = "stageCard"
 
     /// At accessibility sizes the primary action flows as the last item in the scrolling column
     /// instead of being pinned, where it would grow tall enough to cover what is above it — the
@@ -80,21 +91,24 @@ struct TodayBeforeVerdictView: View {
 
                     switch vm.stage {
                     case .needsSelfReport:
-                        SelfReportCheckInCard { report in
+                        SelfReportCheckInCard(questionFocus: $isSelfReportFocused) { report in
                             Task { await vm.submitSelfReport(report) }
                         }
+                        .id(Self.stageCardID)
                     case .evidenceUnavailable:
-                        EvidenceUnavailableCard {
+                        EvidenceUnavailableCard(messageFocus: $isEvidenceMessageFocused) {
                             Task { await vm.requestVerdict() }
                         }
+                        .id(Self.stageCardID)
                         // Never the only way out: the self-report's own copy — "There isn't enough
                         // readable data to work out today's allowance" — is true of a failed read as
                         // well as of an empty day, which is why no new sentence is invented here.
-                        SelfReportCheckInCard { report in
+                        SelfReportCheckInCard(questionFocus: $isSelfReportFocused) { report in
                             Task { await vm.submitSelfReport(report) }
                         }
                     case let .noDishAvailable(decision):
                         NoDishAvailableCard(category: decision.category)
+                            .id(Self.stageCardID)
                     case .gathering, .evaluating, .verdict, .saveFailed:
                         EmptyView()
                     }
@@ -103,8 +117,10 @@ struct TodayBeforeVerdictView: View {
                         primaryAction
                     }
                 }
+                .scrollTargetLayout()
                 .padding()
             }
+            .scrollPosition($scrollPosition)
             .pinnedPrimaryAction {
                 primaryAction
             }
@@ -118,24 +134,50 @@ struct TodayBeforeVerdictView: View {
         }
         .navigationTitle("Today")
         .task { await vm.onAppear() }
-        // A card replaces the check-in in place, with no navigation, so VoiceOver has no reason
-        // to land on it (WCAG 4.1.3). `logLabel` is the change key because `Stage` carries a draft
-        // and an error and is deliberately not `Equatable`; "Try again" passes through
-        // `.evaluating`, so a second failure announces too. `.noDishAvailable` is the same shape of
-        // change — a card swapped in with no push — so it announces the same way.
+        // The stage adds a card below the intake check-in with no navigation — below the fold, and
+        // under the pinned action at standard sizes — so *Give me a verdict* looked as if it had done
+        // nothing (found on the WU-29 simulator walk). Each such card is therefore:
+        // - **brought into view.** The HIG's *Scroll views* guidance allows scrolling automatically
+        //   "when relevant content is no longer in view", "only as much as necessary". The anchor is
+        //   the card's top: the card is the last thing in the column, so at standard sizes the scroll
+        //   stops at the column's end — the same place a minimal scroll would — and at accessibility
+        //   sizes, where the card is taller than the screen, it opens on the question rather than
+        //   the buttons. Under Reduce Motion it jumps.
+        // - **reached by VoiceOver.** A card that asks for an answer takes focus (WCAG 2.4.3), as
+        //   *Continue* does on Apple Health; the announcement stays as well (WCAG 4.1.3), and is all
+        //   the informational no-dish card gets.
+        // `logLabel` is the change key because `Stage` carries a draft and an error and is
+        // deliberately not `Equatable`; "Try again" passes through `.evaluating`, so a second failure
+        // announces too.
         .onChange(of: vm.stage.logLabel) { _, _ in
             switch vm.stage {
             case .evaluating:
                 // The column underneath is hidden from VoiceOver while the court deliberates, so
                 // focus has nowhere to go; say what is happening rather than leave silence.
                 AccessibilityNotification.Announcement(String(localized: evaluatingMessage)).post()
+            case .needsSelfReport:
+                revealStageCard()
+                AccessibilityNotification.Announcement(String(localized: SelfReportCheckInCard.question)).post()
+                isSelfReportFocused = true
             case .evidenceUnavailable:
+                revealStageCard()
                 AccessibilityNotification.Announcement(String(localized: EvidenceUnavailableCard.message)).post()
+                isEvidenceMessageFocused = true
             case .noDishAvailable:
+                revealStageCard()
                 AccessibilityNotification.Announcement(String(localized: noDishAvailableMessage)).post()
-            case .gathering, .needsSelfReport, .verdict, .saveFailed:
+            case .gathering, .verdict, .saveFailed:
                 break
             }
+        }
+    }
+}
+
+extension TodayBeforeVerdictView {
+    /// Scrolls the card the stage just added into view, its top first.
+    private func revealStageCard() {
+        withAnimation(reduceMotion ? nil : .default) {
+            scrollPosition.scrollTo(id: Self.stageCardID, anchor: .top)
         }
     }
 }

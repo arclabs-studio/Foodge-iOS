@@ -3227,7 +3227,35 @@ ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs
   - **Found:** on a day with no readable active energy, *Give me a verdict* answers by adding the
     self-report card **below the pinned bar** — on this phone only its first line shows, half under the
     tab bar, and the screen does not scroll to it, so the tap looks like it did nothing. Pre-existing
-    (WU-29-C's layout and the self-report flow), not this unit's; **put to the user** rather than fixed.
+    (WU-29-C's layout and the self-report flow). Put to the user, who said to fix it "if these
+    decisions are supported by HIG" — **fixed, below.**
+
+#### The stage card comes into view (WU-29-H, fix approved by the user on 13 Oct 2026)
+
+- **HIG check first.** *Scroll views*: "In some cases, scroll automatically to help people find their
+  place … when relevant content is no longer in view" and "only as much as necessary to help people
+  retain context". *Feedback*: "understand the results of actions", "Make sure all feedback is
+  accessible". Both read through the `cupertino` HIG index. The *Scroll views* examples are selections
+  and insertion points; a card added in answer to the user's tap is an extension of "such as", not a
+  listed case (`arc-audit-hig`).
+- **Change** (`TodayBeforeVerdictView`): the column has a `ScrollPosition` and `scrollTargetLayout()`;
+  the first card the stage adds (self-report, failed read, no dish) carries one id, and on the stage
+  change the column scrolls to its top — the minimal scroll at standard sizes, where the card is the
+  column's last item, and the question rather than the buttons at accessibility sizes, where the card
+  is taller than the screen. Under Reduce Motion it jumps. VoiceOver focus moves to the self-report's
+  question or the failed read's message (`@AccessibilityFocusState`, as *Continue* on Apple Health); the
+  self-report now also announces its question; the no-dish card keeps its announcement only.
+- **Audit:** `arc-audit-hig` 0 BLOCKER / 2 MAJOR / 2 MINOR on the first version — an anchorless scroll
+  could land a taller-than-screen card on its buttons, and an announcement alone does not move focus off
+  a button the evaluating overlay hid. Both taken, with the comments it found overclaiming ("replaces the
+  check-in in place", "at most one such card", "by the least it takes"). **Not taken:** resetting the
+  scroll position before a second *Try again* (unverified that a repeated `scrollTo` with the same id is
+  ignored; a failed read needs a device whose Health throws).
+- **Build:** green; `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. **Suite:**
+  `RunAllTests` → **425 tests, 425 passed**. **Simulator:** iPhone 17 Pro, a day with no Health data —
+  *Give me a verdict* now scrolls the self-report card fully into view above the pinned bar, and answering
+  it reaches the verdict. **Owed:** the focus move and announcement under VoiceOver, and the scroll at
+  accessibility sizes, on a device.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
