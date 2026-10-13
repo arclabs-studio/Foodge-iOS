@@ -19,9 +19,15 @@ struct DemonstrationSection: View {
     var body: some View {
         Section {
             if controls.isRunning {
-                Button("Exit demonstration", action: controls.exit)
+                Button(action: controls.exit) {
+                    Label("Exit demonstration", systemImage: "rectangle.portrait.and.arrow.right")
+                        .labelStyle(.settingsIcon)
+                }
             } else {
-                NavigationLink("Demonstration mode", value: SettingsRoute.demonstration)
+                NavigationLink(value: SettingsRoute.demonstration) {
+                    Label("Demonstration mode", systemImage: "theatermasks.fill")
+                        .labelStyle(.settingsIcon)
+                }
             }
         } footer: {
             // The footer tracks the state the same way the row label does. Left unbranched, an

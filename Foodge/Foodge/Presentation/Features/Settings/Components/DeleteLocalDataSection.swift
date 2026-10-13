@@ -32,17 +32,16 @@ struct DeleteLocalDataSection: View {
                 isConfirming = true
             } label: {
                 // System red reads at about 3.6:1 as text on a light row, under WCAG 1.4.3's 4.5:1.
-                // The words take the label colour and the red stays on the symbol, a graphic that
-                // needs 3:1; the role still marks the action as destructive. `Color.primary`, not
-                // `.primary`: inside a destructive button the hierarchical `.primary` *is* the red.
+                // The words take the label colour and the red goes to the symbol's tile, a graphic
+                // that needs 3:1; the role still marks the action as destructive. `Color.primary`,
+                // not `.primary`: inside a destructive button the hierarchical `.primary` *is* the red.
                 Label {
                     Text("Delete local data")
                         .foregroundStyle(Color.primary)
                 } icon: {
-                    // Set explicitly: in a `Form` the symbol otherwise takes the burgundy tint.
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red)
+                    Image(systemName: "trash.fill")
                 }
+                .labelStyle(.destructiveSettingsIcon)
             }
             .disabled(isDeleting)
 

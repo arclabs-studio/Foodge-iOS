@@ -35,6 +35,10 @@ import UIKit
 ///    `onTint` on its `tint`, read through the production mapping so a mismatched pair fails.
 /// 4. `AccentColor` is the same colour as `appBurgundy` in every appearance, so the system tint
 ///    inherits the measurements in (1).
+/// 5. Each Settings tile's glyph on its fill, read from `SettingsIconLabelStyle`, at the 3:1 a
+///    graphic needs — including the destructive tile's white on system red — and the destructive
+///    symbol's red on the Settings row, where it stands without its tile at accessibility sizes
+///    (WU-29-H).
 ///
 /// ## What is deliberately not measured
 ///
@@ -66,6 +70,46 @@ struct PaletteContrastTests {
         // background, appearance and measured ratio
         for pair in sut.pairs {
             #expect(pair.ratio >= WCAGContrast.minimumTextRatio, "\(pair.summary) (floor 4.5:1)")
+        }
+    }
+
+    @Test("A Settings tile's glyph reads on its fill, the destructive one included", arguments: PaletteAppearance.allCases)
+    func settingsTileGlyphsMeetTheGraphicFloor(in appearance: PaletteAppearance) throws {
+        // Given the two tiles Settings ships, read from the style itself — the destructive one is
+        // white on the system's red, which no asset set or other pair here covers (WU-29-H)
+        let tiles: [(name: String, style: SettingsIconLabelStyle)] = [
+            ("settingsIcon", .settingsIcon),
+            ("destructiveSettingsIcon", .destructiveSettingsIcon),
+        ]
+
+        for tile in tiles {
+            // When the glyph is measured against its tile in this appearance
+            let pair = try ContrastPair(
+                foreground: Self.read(tile.style.glyph, named: "\(tile.name).glyph", in: appearance),
+                background: Self.read(tile.style.fill, named: "\(tile.name).fill", in: appearance),
+                appearance: appearance
+            )
+
+            // Then it clears the 3:1 a symbol needs — the title beside it carries the meaning, so
+            // a glyph is held to the graphic floor, not the text one
+            #expect(pair.ratio >= WCAGContrast.minimumGraphicRatio, "\(pair.summary) (floor 3:1)")
+
+            // And a symbol kept without its tile at accessibility sizes reads on the Settings row
+            // itself, drawn in the tile's colour on the sheet's grouped row, base and elevated
+            guard tile.style.keepsSymbolWithoutTile else { continue }
+            for elevated in [false, true] {
+                let bare = try ContrastPair(
+                    foreground: Self.read(tile.style.fill, named: "\(tile.name).fill", in: appearance),
+                    background: Self.read(
+                        .secondarySystemGroupedBackground,
+                        named: "secondarySystemGroupedBackground\(elevated ? "(elevated)" : "")",
+                        in: appearance,
+                        elevated: elevated
+                    ),
+                    appearance: appearance
+                )
+                #expect(bare.ratio >= WCAGContrast.minimumGraphicRatio, "\(bare.summary) (floor 3:1)")
+            }
         }
     }
 

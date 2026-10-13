@@ -19,10 +19,13 @@ struct EveningReminderSection: View {
 
     var body: some View {
         Section {
-            Toggle("Evening reminder", isOn: $vm.reminderEnabled)
-                .onChange(of: vm.reminderEnabled) { _, isEnabled in
-                    Task { await vm.reminderEnabledChanged(to: isEnabled) }
-                }
+            Toggle(isOn: $vm.reminderEnabled) {
+                Label("Evening reminder", systemImage: "bell.fill")
+                    .labelStyle(.settingsIcon)
+            }
+            .onChange(of: vm.reminderEnabled) { _, isEnabled in
+                Task { await vm.reminderEnabledChanged(to: isEnabled) }
+            }
 
             if vm.reminderEnabled {
                 DatePicker(

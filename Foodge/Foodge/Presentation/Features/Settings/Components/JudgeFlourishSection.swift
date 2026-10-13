@@ -17,10 +17,13 @@ struct JudgeFlourishSection: View {
 
     var body: some View {
         Section {
-            Toggle("Judge’s flourish", isOn: $vm.draft.narrationEnabled)
-                .onChange(of: vm.draft.narrationEnabled) { _, _ in
-                    Task { await vm.preferencesChanged() }
-                }
+            Toggle(isOn: $vm.draft.narrationEnabled) {
+                Label("Judge’s flourish", systemImage: "sparkles")
+                    .labelStyle(.settingsIcon)
+            }
+            .onChange(of: vm.draft.narrationEnabled) { _, _ in
+                Task { await vm.preferencesChanged() }
+            }
         } header: {
             Text("On-device AI")
                 .formCaption()

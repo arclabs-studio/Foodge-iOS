@@ -18,6 +18,9 @@ enum WCAGContrast {
     /// Success criterion 1.4.3 (AA) for text below the large-text threshold.
     static let minimumTextRatio = 4.5
 
+    /// Success criterion 1.4.11 (AA) for a graphical object against what is adjacent to it.
+    static let minimumGraphicRatio = 3.0
+
     /// An opaque colour as three gamma-encoded sRGB channels, each in `0...1`.
     struct SRGBColor {
         let red: Double
