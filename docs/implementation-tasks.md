@@ -3161,8 +3161,16 @@ ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs
 - **Build:** green after every change (last 5.7 s); `GetBuildLog { severity: "warning" }` →
   **`totalFound: 0`** each time, the log listing both `Foodge` and `FoodgeTests`.
 - **Suite:** the user's ⌘U on the first version of this unit **passed** (no count recorded). After the
-  audit fixes it is **owed**: `RunSomeTests` timed out, and both runners now answer *Tests are already
-  running* — the stale operation in `memory/troubleshooting/the-wedged-runner-was-a-stale-test-operation.md`.
+  audit fixes the runners answered *Tests are already running* (the stale operation in
+  `memory/troubleshooting/the-wedged-runner-was-a-stale-test-operation.md`); the user's Stop and ⌘U
+  cleared it and **failed one test** — `PaletteContrastTests.settingsTileGlyphsMeetTheGraphicFloor`,
+  *destructiveSettingsIcon.glyph on destructiveSettingsIcon.fill in dark+high = 2.93:1*. A real defect
+  the new test was written to catch: system red lightens in dark appearance with Increased Contrast and
+  white on it falls under 3:1. **Fixed in the style, not the test:** the delete tile's glyph is now cut
+  out in `systemBackground` (near-black in dark, as the burgundy tile's glyph already is), and the test
+  was widened to measure each tile at the base *and* elevated levels, since a background-colour glyph
+  resolves differently in the Settings sheet. Then `RunSomeTests { PaletteContrastTests }` → **17 tests,
+  17 passed**, and `RunAllTests` → **425 tests, 425 passed** (13 Oct 2026, 21:12).
 - **Render:** the user checked Spanish, light and dark. Here, English light: Settings, Evidence details,
   case detail, the flourish, Apple Health, About you, History; About you at AX 5; the gauge spent and
   dark; the inline action at AX 2; after the fixes, the gauge at AX 5 in Spanish and at default in

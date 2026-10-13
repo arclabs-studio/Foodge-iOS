@@ -108,7 +108,8 @@ grouped background, so the app never uses it for text: `Form` headers, footers a
 prompts take `.formCaption()` (`appBurgundyMuted`) — a new `Section` must too, since nothing checks it —
 and `LabeledContent` values take `.readableValue` at the root (D134, D135).
 System red is about 3.6:1 as text on a light row, so a destructive row keeps the red on its symbol.
-Each Settings tile's glyph on its fill — the red tile's white included — and the bare red delete
+Each Settings tile's glyph on its fill — the red tile's included, whose glyph is cut out in
+`systemBackground` because white measured 2.93:1 in dark with Increased Contrast — and the bare red delete
 symbol on its row are measured at the 3:1 a graphic needs (`PaletteContrastTests`).
 
 | Set | Light | Dark | Role |

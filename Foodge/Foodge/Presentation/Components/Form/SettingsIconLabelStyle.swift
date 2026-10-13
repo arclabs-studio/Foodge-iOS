@@ -21,7 +21,7 @@ import SwiftUI
 /// red on a row whose title is in the label colour (`arc-audit-hig`).
 ///
 /// The colours are held as `UIColor` so `PaletteContrastTests` can resolve the shipped pair in every
-/// appearance — the destructive tile's white on system red is not one of the asset catalogue's sets.
+/// appearance — the destructive tile's glyph on system red is not one of the asset catalogue's sets.
 @MainActor
 struct SettingsIconLabelStyle: LabelStyle {
     let fill: UIColor
@@ -106,8 +106,13 @@ extension LabelStyle where Self == SettingsIconLabelStyle {
     }
 
     /// A Settings row that deletes: its symbol in a system-red tile.
+    ///
+    /// The glyph is cut out in `systemBackground` — white in light appearance, near-black in dark —
+    /// rather than white throughout: system red lightens in dark appearance with Increased Contrast,
+    /// and white on it measured 2.93:1, under the 3:1 a graphic needs (`PaletteContrastTests`). The
+    /// burgundy tile already draws a dark glyph in dark appearance, so the two tiles match.
     static var destructiveSettingsIcon: SettingsIconLabelStyle {
-        .init(fill: .systemRed, glyph: .white, keepsSymbolWithoutTile: true)
+        .init(fill: .systemRed, glyph: .systemBackground, keepsSymbolWithoutTile: true)
     }
 }
 
