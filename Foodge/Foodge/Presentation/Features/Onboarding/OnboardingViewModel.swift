@@ -174,6 +174,15 @@ final class OnboardingViewModel {
         path.append(.bodyBasics)
     }
 
+    /// Goes on to About you once Health has answered, keeping the answer (D150).
+    ///
+    /// A method behind a `Button` rather than a `NavigationLink`: the primary action sits in the form
+    /// itself at accessibility sizes, and inside a `Form` a link is drawn as a list row — a chevron
+    /// and the prominent style's white label on a clear row, so the only way on was invisible.
+    func continueToBodyBasics() {
+        path.append(.bodyBasics)
+    }
+
     // MARK: - Body basics
 
     /// The basics as typed, or `nil` while they are incomplete or implausible.
@@ -298,5 +307,19 @@ final class OnboardingViewModel {
         didFinish = true
         saveState = .editing
         OnboardingLog.logger.info("ONBOARDING save=completed")
+    }
+}
+
+extension OnboardingViewModel.HealthState {
+    /// Whether Health has yet to answer, so the Apple Health screen still offers to connect and to go
+    /// on without it (D150). Every other state has an answer, and the way on is *Continue*; a failed
+    /// request keeps its own retry in `HealthUnavailableSection`.
+    var awaitsConnection: Bool {
+        switch self {
+        case .idle, .requesting:
+            true
+        case .connected, .noReadableData, .previouslyAnswered, .unavailable, .requestFailed:
+            false
+        }
     }
 }

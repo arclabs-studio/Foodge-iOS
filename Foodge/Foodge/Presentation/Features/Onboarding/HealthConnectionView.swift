@@ -11,20 +11,21 @@ import SwiftUI
 ///
 /// Every outcome leads somewhere. Nothing here is a dead end, and nothing here says a word
 /// about permission being denied — HealthKit cannot tell an app that.
+///
+/// The screen's one primary action is the stage's (D150): *Connect Apple Health* until Health has
+/// answered, then *Continue* — pinned to the bottom edge, or the form's last section at
+/// accessibility sizes. *Continue without Health* stays a row: it is the way out, not the way on.
 @MainActor
 struct HealthConnectionView: View {
     @Bindable var vm: OnboardingViewModel
     @State private var judge = JudgeReaction()
+    /// Where VoiceOver goes once Health answers: the button the user just activated is replaced by
+    /// *Continue*, a different view, and focus on a view that left the screen is lost (WCAG 2.4.3).
+    @AccessibilityFocusState private var isContinueFocused: Bool
 
     var body: some View {
         Form {
-            // The judge at the head of the form, on the form's own background: a data-entry screen
-            // keeps the system grouped background rather than a stage (D148).
-            Section {
-                JudgeHeroView(artwork: .judgeWelcome, height: StageArtworkSize.formJudge, reaction: judge)
-                    .frame(maxWidth: .infinity)
-            }
-            .listRowBackground(Color.clear)
+            FormJudgeHeroSection(reaction: judge)
 
             Section {
                 Text("Foodge reads what Health already recorded today and works out what you have left to spend on dinner.")
@@ -35,20 +36,17 @@ struct HealthConnectionView: View {
                 Text("It reads on this iPhone and writes nothing back. Your figures never leave the device.")
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
-            }
-
-            Section {
-                Button("Connect Apple Health") {
-                    Task { await vm.connectHealth() }
-                }
-                .disabled(vm.healthState == .requesting)
-
-                if vm.healthState == .requesting {
-                    ProgressView("Waiting for Health")
-                }
             } footer: {
+                // Says what the pinned *Connect Apple Health* will do, so it closes the section that
+                // explains why Foodge asks.
                 Text("Apple asks for the permission, not Foodge. You choose what to share in its own sheet.")
                     .formCaption()
+            }
+
+            if vm.healthState == .requesting {
+                Section {
+                    ProgressView("Waiting for Health")
+                }
             }
 
             if let missing = vm.healthState.missingKinds {
@@ -79,19 +77,46 @@ struct HealthConnectionView: View {
                 Task { await vm.connectHealth() }
             }
 
-            Section {
-                switch vm.healthState {
-                case .idle, .requesting:
+            if vm.healthState.awaitsConnection {
+                Section {
                     Button("Continue without Health") {
                         vm.skipHealth()
                     }
-                case .connected, .noReadableData, .previouslyAnswered, .unavailable, .requestFailed:
-                    NavigationLink("Continue", value: OnboardingRoute.bodyBasics)
                 }
             }
+
+            InlinePrimaryActionSection {
+                primaryAction
+            }
+        }
+        .pinnedPrimaryAction {
+            primaryAction
+        }
+        .onChange(of: vm.healthState.awaitsConnection) { _, awaits in
+            guard !awaits else { return }
+            isContinueFocused = true
         }
         .navigationTitle("Apple Health")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The same action in both places it can sit — pinned, or inline at accessibility sizes.
+    @ViewBuilder
+    private var primaryAction: some View {
+        if vm.healthState.awaitsConnection {
+            Button("Connect Apple Health") {
+                Task { await vm.connectHealth() }
+            }
+            .disabled(vm.healthState == .requesting)
+            .primaryAction()
+        } else {
+            // A button, not a `NavigationLink`: see `OnboardingViewModel.continueToBodyBasics()`.
+            Button("Continue") {
+                vm.continueToBodyBasics()
+            }
+            .primaryAction()
+            .accessibilityFocused($isContinueFocused)
+        }
     }
 }
 

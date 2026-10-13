@@ -18,9 +18,14 @@ import SwiftUI
 /// The diet moved here when the preferences step was deleted (D138). It is the one thing that step
 /// gathered which the app still needs: the judge would otherwise propose a burger to a vegetarian
 /// with no way of knowing.
+///
+/// Onboarding ends on the stage's primary action (D150): *Save and finish*, pinned to the bottom
+/// edge or the form's last section at accessibility sizes, under the same judge that headed Apple
+/// Health. *Finish without the figures* stays a row: it is the second way out, not the way on.
 @MainActor
 struct BodyBasicsView: View {
     @Bindable var vm: OnboardingViewModel
+    @State private var judge = JudgeReaction()
 
     private var saveFailureMessage: LocalizedStringResource {
         "Foodge couldn’t save your choices. Nothing has been lost — try again."
@@ -28,6 +33,8 @@ struct BodyBasicsView: View {
 
     var body: some View {
         Form {
+            FormJudgeHeroSection(reaction: judge)
+
             Section {
                 Text(
                     """
@@ -62,9 +69,9 @@ struct BodyBasicsView: View {
                         text: $vm.heightText,
                         prompt: Text("Centimetres").formCaption()
                     )
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .accessibilityLabel("Height in centimetres")
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .accessibilityLabel("Height in centimetres")
                 }
                 LabeledContent("Weight") {
                     TextField(
@@ -72,9 +79,9 @@ struct BodyBasicsView: View {
                         text: $vm.weightText,
                         prompt: Text("Kilograms").formCaption()
                     )
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.trailing)
-                        .accessibilityLabel("Weight in kilograms")
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .accessibilityLabel("Weight in kilograms")
                 }
             } footer: {
                 if vm.hasStartedBodyBasics, vm.bodyBasicsFromInputs == nil {
@@ -91,26 +98,21 @@ struct BodyBasicsView: View {
             DietProfileSection(dietProfile: $vm.draft.dietProfile)
 
             Section {
-                // Both buttons write. The difference is only what they write: a complete set of
-                // figures, or none. `applyBodyBasics()` records whatever currently parses, which
-                // is `nil` for a half-filled step — so skipping discards the partial answer
-                // rather than storing three quarters of a body (D126).
-                Button("Save and finish") {
-                    vm.applyBodyBasics()
-                    Task { await vm.finish() }
-                }
-                .disabled(vm.saveState == .saving || (vm.hasStartedBodyBasics && vm.bodyBasicsFromInputs == nil))
-
+                // Both buttons write — this one and *Save and finish* (pinned, or inline at
+                // accessibility sizes). The difference is only what they write: a complete set of
+                // figures, or none. `applyBodyBasics()` records whatever currently parses, which is
+                // `nil` for a half-filled step — so skipping discards the partial answer rather
+                // than storing three quarters of a body (D126).
                 if vm.canSkipBodyBasics {
                     Button("Finish without the figures") {
                         vm.applyBodyBasics()
                         Task { await vm.finish() }
                     }
                     .disabled(vm.saveState == .saving)
-                    // Both buttons write, and read next to each other their labels already say
-                    // what differs — but only the label. The hint spells out the one part that
-                    // is not obvious from "Save and finish" sitting right above it: anything
-                    // already typed above is discarded, not stored partially (WCAG 3.3.2).
+                    // Both buttons write, and read together their labels already say what differs —
+                    // but only the label. The hint spells out the one part that is not obvious from
+                    // "Save and finish" pinned below: anything already typed above is discarded, not
+                    // stored partially (WCAG 3.3.2).
                     .accessibilityHint("Discards anything typed above rather than saving part of it.")
                 }
 
@@ -139,6 +141,13 @@ struct BodyBasicsView: View {
                     .formCaption()
                 }
             }
+
+            InlinePrimaryActionSection {
+                saveAndFinish
+            }
+        }
+        .pinnedPrimaryAction {
+            saveAndFinish
         }
         .navigationTitle("About you")
         .navigationBarTitleDisplayMode(.inline)
@@ -149,6 +158,16 @@ struct BodyBasicsView: View {
             guard case .failed = newValue else { return }
             AccessibilityNotification.Announcement(String(localized: saveFailureMessage)).post()
         }
+    }
+
+    /// The same action in both places it can sit — pinned, or inline at accessibility sizes.
+    private var saveAndFinish: some View {
+        Button("Save and finish") {
+            vm.applyBodyBasics()
+            Task { await vm.finish() }
+        }
+        .disabled(vm.saveState == .saving || (vm.hasStartedBodyBasics && vm.bodyBasicsFromInputs == nil))
+        .primaryAction()
     }
 }
 
