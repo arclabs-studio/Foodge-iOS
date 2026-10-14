@@ -63,3 +63,7 @@ fastlane/test_output
 
 ## macOS
 .DS_Store
+
+# asc CLI runtime state
+.asc/sessions/
+.asc/cache/

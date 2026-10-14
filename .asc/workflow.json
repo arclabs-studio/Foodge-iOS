@@ -1,0 +1,33 @@
+{
+  // Foodge — App Store Connect automation. Review before running: steps execute shell commands.
+  "env": {
+    "APP_ID": "6822812368"
+  },
+  "workflows": {
+    "tf-push": {
+      "description": "Attach the latest processed build to the internal 'Beta Testers' group.",
+      "env": {
+        // The internal group's ID: asc testflight groups list --app 6822812368
+        "GROUP_ID": ""
+      },
+      "steps": [
+        {
+          "name": "resolve_build",
+          "run": "asc builds info --app $APP_ID --latest --platform IOS --output json",
+          "outputs": {
+            "BUILD_ID": "$.data.id"
+          }
+        },
+        {
+          "name": "add_build_to_group",
+          "run": "asc builds add-groups --build-id ${steps.resolve_build.BUILD_ID} --group $GROUP_ID",
+          "retry": {
+            "max_attempts": 6,
+            "delay": "10s"
+          },
+          "timeout": "2m"
+        }
+      ]
+    }
+  }
+}
