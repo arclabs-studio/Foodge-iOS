@@ -204,3 +204,4 @@ primary type (D27). No file mixes unrelated types.
   claims more than the code does."**
   Also give them the context to avoid reporting intended state as a defect — deliberate stubs,
   temporary debug code, and the decisions log.
+@ASC.md
