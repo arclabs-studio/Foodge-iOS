@@ -3032,7 +3032,7 @@ the same check-ins, the same stages, the same announcements plus one (below).
   on case detail (stamp heading first); History's error state at AX 5; case detail below the fold at
   AX 3–AX 5 (evidence, flourish, *Recorded*), which a still render cannot scroll to.
 
-### WU-29-G 🟦 Close — the palette reaches every form, and DESIGN.md says what shipped
+### WU-29-G ✅ Close — the palette reaches every form, and DESIGN.md says what shipped
 
 No new decision: D148's rule, which the user approved for these screens too. **Open: the simulator
 walk** (below).
@@ -3112,7 +3112,7 @@ walk** (below).
   on a History row and case detail, case detail below the fold (WU-29-F); the scenario rows' hit area
   and the delete row here.
 
-### WU-29-H 🟦 The form screens get their own character
+### WU-29-H ✅ The form screens get their own character
 
 Plan `docs/migrations/2026-10-13-form-screens-character.md`, approved by the user on 13 Oct 2026 ("Go
 ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs"). Decisions **D150**
@@ -3275,6 +3275,22 @@ ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs
   now shows the stage edge to edge. The run destination had been left on the user's iPhone, so the first
   rebuild produced a device build and the simulator kept running the old one — caught by the build
   product's timestamp and redone on iPhone 17 Pro.
+
+#### WU-29-G and WU-29-H closed (14 Oct 2026)
+
+- **iOS 26:** `RunAllTests` on **iPhone 17 Pro (26.5)** → **425 tests, 425 passed**; the result bundle
+  names the device's `osVersion` as 26.5. This closes *symbol availability on iOS 26*: `SymbolNameTests`
+  and `DinnerCategoryAppearanceTests` resolve every symbol the app names on the minimum OS's runtime.
+  The suite on iOS 27 (iPhone 17 Pro (27.0)) is also 425/425. iOS 26 on a physical device, and the UI on
+  iOS 26, are not covered by this.
+- **Closed on:** zero-warning build, the suite green on iOS 26.5 and 27, renders, the simulator walk, and
+  three audits per unit with every BLOCKER acted on; the user confirmed the last two fixes on their own
+  run ("working correctly").
+- **Still owed, to a hand pass on a device** — nothing this harness can observe: VoiceOver (the gauge's
+  label and true negative value; focus moving to *Continue* on Apple Health and to the self-report's
+  question on Today; a History row; case detail), haptics (the judge's tap, the stamp), Reduce Motion at
+  runtime, About you's pinned bar over the number pad on a small phone, and the scroll to the stage card at
+  accessibility sizes.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
