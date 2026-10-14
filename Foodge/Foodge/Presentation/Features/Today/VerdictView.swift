@@ -8,14 +8,33 @@
 import Accessibility
 import SwiftUI
 
-/// Tonight's dinner, the category it landed in, and why.
+/// Tonight's dinner, the category it landed in, and why — on a stage tinted by the category
+/// (D145), revealed once per verdict (D147).
+///
+/// The reveal: the stamp lands, the dish pops with a burst of confetti, the cards arrive. It plays
+/// only when `TodayViewModel.claimReveal()` says this revision has not been revealed yet in this
+/// launch, so coming back from Evidence details — or to tonight's verdict from Today — shows it
+/// settled. Reduce Motion is read here and passed down: every step is then a fade with the layout
+/// settling at once, and there is no confetti.
 @MainActor
 struct VerdictView: View {
     @Bindable var vm: TodayViewModel
-    @State private var showingAlternative = false
+    /// `false` shows the settled verdict at once — what a preview needs, since a still frame cannot
+    /// wait for the reveal.
+    var playsReveal = true
 
-    private var saveFailureMessage: LocalizedStringResource {
-        "Foodge couldn’t save this verdict. Nothing has been lost — try again."
+    @State private var showingAlternative = false
+    @State private var reveal = VerdictReveal()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// What to draw. A revision whose reveal has not been claimed yet draws nothing until the reveal
+    /// starts, so a new verdict never flashes fully drawn and then collapses into its reveal.
+    private var phase: RevealPhase {
+        guard playsReveal else { return .settled }
+        // Read before the pending check, so the body tracks the reveal even while it is pending —
+        // otherwise the stamp's first animated change would go unobserved and snap in.
+        let current = reveal.phase
+        return vm.isRevealPending ? .waiting : current
     }
 
     var body: some View {
@@ -33,101 +52,93 @@ struct VerdictView: View {
         .task(id: vm.currentRevision?.id) {
             await vm.narrateIfNeeded()
         }
-        // The first failure pushes `.verdict` onto the path, so VoiceOver announces a screen
-        // change — but that reads the navigation title, not what went wrong, and a failed *retry*
-        // re-enters `.saveFailed` with the row already on screen and no push at all (WCAG 4.1.3).
-        // `logLabel` is the change key because `Stage` carries a draft and an error and is
-        // deliberately not `Equatable`; the retry passes through `.evaluating`, so a second
-        // failure is a real change of label and does announce.
-        .onChange(of: vm.stage.logLabel) { _, _ in
+        // The same identity for the reveal: a new revision is a new reveal; reappearing for the
+        // same one is not, because `claimReveal()` answers `true` only once per revision.
+        .task(id: vm.currentRevision?.id) {
+            if playsReveal, vm.claimReveal() {
+                await reveal.play(motion: !reduceMotion)
+            } else {
+                reveal.settle()
+            }
+        }
+        // Heavy with the slam; light with the fade that replaces it under Reduce Motion.
+        .sensoryFeedback(.impact(weight: reduceMotion ? .light : .heavy), trigger: reveal.stampLandings)
+        // The first failure pushes this screen already in `.saveFailed`, so the announcement has to
+        // fire for the initial value too — VoiceOver would otherwise read only the navigation title.
+        // A failed *retry* re-enters `.saveFailed` with the card already on screen and no push at all
+        // (WCAG 4.1.3). `logLabel` is the change key because `Stage` carries a draft and an error and
+        // is deliberately not `Equatable`; the retry passes through `.evaluating`, so a second failure
+        // is a real change of label and does announce.
+        .onChange(of: vm.stage.logLabel, initial: true) { _, _ in
             guard case .saveFailed = vm.stage else { return }
-            AccessibilityNotification.Announcement(String(localized: saveFailureMessage)).post()
+            AccessibilityNotification.Announcement(String(localized: SaveFailedCard.message)).post()
         }
     }
+
+    /// With motion off a phase changes without animation, so each view carries its own fade.
+    private static let fade = AnyTransition.opacity.animation(.easeInOut(duration: 0.25))
 
     /// Renders from ``TodayViewModel/Display`` rather than `SavedRevision` directly: a failed
     /// save has no `SavedRevision` yet — no id, no sequence — but the computed decision must stay
     /// visible with a retry regardless, never silently dropped to a spinner.
     private func content(for display: TodayViewModel.Display) -> some View {
-        Form {
-            CategoryHeaderSection(category: display.decision.category, isProvisional: display.decision.isProvisional)
+        let category = display.decision.category
+        let motion = !reduceMotion
 
-            dishSection(for: display.dishOutcome)
-
-            Section {
-                ForEach(display.decision.reasonCodes, id: \.self) { reason in
-                    Text(reason.displayText)
+        return ScrollView {
+            VStack(spacing: 24) {
+                if phase >= .stamp {
+                    VerdictStampSection(category: category, isProvisional: display.decision.isProvisional)
+                        .transition(motion ? AnyTransition(StampSlamTransition()) : Self.fade)
                 }
-            } header: {
-                Text("Why")
-            } footer: {
-                // The disclaimer qualifies the reasons above it, so it belongs in the footer
-                // rather than as one more row among them (`arc-audit-hig`, WU-EB). A footer is
-                // already footnote-sized, so only the color is set: `.secondary` measures ~3.4:1
-                // in standard-contrast light appearance, below the 4.5:1 WCAG 1.4.3 needs, while
-                // `appBurgundyMuted` is tuned to ≥4.5:1 everywhere.
-                Text("These are prototype product heuristics, not nutritional advice.")
-                    .foregroundStyle(.appBurgundyMuted)
-            }
 
-            if vm.currentRevision != nil {
-                // Gated on a saved revision: a decorative flourish over a verdict that has not
-                // actually been recorded reads as if everything went fine. `arc-audit-hig` caught this — `.saveFailed` still has a
-                // `display`, so an ungated section showed the template over an unsaved verdict.
-                NarrationSection(
-                    text: vm.narrationStage.text,
-                    category: display.decision.category
-                )
-            }
-
-            if case .saveFailed = vm.stage {
-                Section {
-                    // `.secondary` measures ~3.4:1 against the row background in standard-contrast
-                    // light appearance — below the 4.5:1 WCAG 1.4.3 needs. `AppBurgundyMuted` is
-                    // the brand's dedicated secondary-text color, tuned to ≥4.5:1 everywhere.
-                    Text(saveFailureMessage)
-                        .foregroundStyle(.appBurgundyMuted)
-                    Button("Retry save") {
+                if case .saveFailed = vm.stage {
+                    // Straight under the stamp, above the fold: nothing else on the screen says the
+                    // verdict is unsaved, so the retry cannot wait at the bottom of a long scroll.
+                    SaveFailedCard {
                         Task { await vm.retrySave() }
                     }
                 }
-            }
 
-            if vm.currentRevision != nil {
-                Section {
-                    NavigationLink(value: TodayRoute.evidenceDetails) {
-                        Text("Evidence details")
+                if phase >= .dish {
+                    VerdictDishSection(dishOutcome: display.dishOutcome, showingAlternative: $showingAlternative)
+                        .transition(motion ? .scale(scale: 0.4).combined(with: .opacity) : Self.fade)
+                }
+
+                if phase >= .cards {
+                    VStack(spacing: 24) {
+                        VerdictReasonsCard(reasonCodes: display.decision.reasonCodes)
+
+                        if vm.currentRevision != nil {
+                            // Gated on a saved revision: a decorative flourish over a verdict that
+                            // has not actually been recorded reads as if everything went fine.
+                            VerdictFlourishView(text: vm.narrationStage.text, category: category)
+                        }
+
+                        if vm.currentRevision != nil {
+                            NavigationLink(value: TodayRoute.evidenceDetails) {
+                                Text("Evidence details")
+                            }
+                            .secondaryAction()
+                        }
                     }
+                    .transition(motion ? .offset(y: 24).combined(with: .opacity) : Self.fade)
                 }
             }
+            // Full width in every phase. The scroll view is only as wide as this column, and the
+            // stage is drawn behind the scroll view: while the reveal had drawn nothing, or only the
+            // stamp, the stage was a column the stamp's width with the system background either side
+            // of it, until the dish arrived and widened it (seen on the simulator and on a device).
+            .frame(maxWidth: .infinity)
+            .padding()
         }
-    }
-
-    private func dishSection(for dishOutcome: PersistedDishOutcome) -> some View {
-        let displayedVariantID = showingAlternative
-            ? (dishOutcome.alternativeVariantID ?? dishOutcome.variantID)
-            : dishOutcome.variantID
-        let displayedFamily = showingAlternative
-            ? (dishOutcome.alternativeFamily ?? dishOutcome.family)
-            : dishOutcome.family
-
-        return Section {
-            DishSummaryRow(variantID: displayedVariantID, family: displayedFamily)
-            // The row above changes in place with no navigation, so VoiceOver has no reason to
-            // land on it on its own (WCAG 4.1.3) — the announcement is what tells a screen-reader
-            // user which dish is now shown. The label carries the same information for anyone
-            // revisiting the button afterwards, rather than always reading "See alternative" once
-            // the alternative is already what's on screen (WCAG 4.1.2).
-            Button(showingAlternative ? "See original dish" : "See alternative") {
-                showingAlternative.toggle()
-                let shownVariantID = showingAlternative
-                    ? (dishOutcome.alternativeVariantID ?? dishOutcome.variantID)
-                    : dishOutcome.variantID
-                let shownName = DishCatalogue.displayName(forVariantID: shownVariantID)
-                let message = String(localized: "Now showing \(shownName).")
-                AccessibilityNotification.Announcement(message).post()
+        .background { StageBackground(accent: Color(category.tint)) }
+        .overlay {
+            if reveal.showsConfetti, playsReveal {
+                ConfettiView(colors: [Color(category.tint), .appGold, .appTomato, .appCheese, .appBasil])
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
             }
-            .disabled(dishOutcome.alternativeVariantID == nil)
         }
     }
 }
@@ -145,7 +156,7 @@ struct VerdictView: View {
     .makeTodayViewModel()
 
     NavigationStack {
-        VerdictView(vm: vm)
+        VerdictView(vm: vm, playsReveal: false)
     }
     .task { await vm.onAppear() }
 }
@@ -154,7 +165,7 @@ struct VerdictView: View {
     @Previewable @State var vm = PreviewDependencies.savingFails().makeTodayViewModel()
 
     NavigationStack {
-        VerdictView(vm: vm)
+        VerdictView(vm: vm, playsReveal: false)
     }
     .task { await vm.requestVerdict() }
 }

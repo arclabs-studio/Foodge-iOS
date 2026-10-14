@@ -34,6 +34,9 @@ final class HistoryViewModel {
     }
 
     private(set) var stage: Stage = .loading
+    /// The loaded cases grouped by month, most recent first — the sections the list draws. Built once
+    /// per load rather than in the view's body; empty until a load succeeds, and again after one fails.
+    private(set) var months: [HistoryMonth] = []
     var path: [HistoryRoute] = []
 
     @ObservationIgnored private let caseStore: any CaseStore
@@ -46,8 +49,10 @@ final class HistoryViewModel {
     func load() async {
         do {
             let cases = try await caseStore.allCases()
+            months = HistoryMonth.grouping(cases)
             transition(to: .loaded(cases))
         } catch {
+            months = []
             transition(to: .error(.storeUnavailable))
         }
     }

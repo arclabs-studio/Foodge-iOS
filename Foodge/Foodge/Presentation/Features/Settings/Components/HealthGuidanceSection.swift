@@ -20,11 +20,12 @@ struct HealthGuidanceSection: View {
             Text("Change what Foodge can read in the Health app, under Sharing. With nothing readable, Foodge asks you how the day went instead.")
         } header: {
             Text("Health")
+                .formCaption()
         }
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         HealthGuidanceSection()
     }

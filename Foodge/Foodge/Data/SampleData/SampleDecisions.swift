@@ -79,6 +79,39 @@ enum SampleDecisions {
         reasonCodes: [.slimAllowance, .allowanceSpent, .restingEnergyEstimated, .intakeEstimated]
     )
 
+    /// A balanced dish with its runner-up, for the verdict's dish section and its toggle.
+    static let dishOutcome = PersistedDishOutcome(
+        variantID: "dish.pasta.pesto",
+        family: .pasta,
+        alternativeVariantID: "dish.tortilla.potato",
+        alternativeFamily: .tortilla
+    )
+
+    /// The catalogue's longest dish name in Spanish — *Hamburguesa de frijoles negros* — for layouts
+    /// that must survive it.
+    static let longestNameDishOutcome = PersistedDishOutcome(
+        variantID: "dish.burgers.blackBean",
+        family: .burgers,
+        alternativeVariantID: nil,
+        alternativeFamily: nil
+    )
+
+    /// The sample day as History files it: the balanced verdict and its dish, read back for a row
+    /// and for case detail.
+    static let savedRevision = SavedRevision(
+        id: UUID(),
+        sequence: 0,
+        createdAt: SyntheticScenarios.evaluationDate,
+        decision: balancedVerdict,
+        evidence: SyntheticScenarios.modestAllowance.snapshot,
+        catalogueVersion: DishCatalogue.version,
+        dishOutcome: dishOutcome,
+        narrationText: nil
+    )
+
+    /// ``savedRevision`` filed under its local day.
+    static let savedCase = SavedCase(localDayKey: "2026-09-18", revisions: [savedRevision])
+
     static func decision(
         category: DinnerCategory,
         allowance: EnergyAllowance,

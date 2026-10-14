@@ -172,6 +172,13 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D142 | **Two test oracles were wrong, not the production code, and both are fixed at the oracle.** (1) `NarrationTemplateLocalizationTests` looked its Spanish values up by `String(localized:)`, which resolves in the **host's** locale — the XCTestDevices clone reports `es_ES`, so the key it searched with was the Spanish sentence. It now reads `category.flourishTemplate.key`, the String Catalog key itself. (2) `BasalMetabolicRateTests`' three day-length preconditions compared an optional-chained `duration` to an integer literal inside `#expect` and failed while printing equal operands; each now `#require`s the value out first. | These six failures were carried as a "measured baseline" through WU-28-A and WU-28-B, which is a polite way of saying two suites were red and nobody knew whether the product was. Neither was a product defect: `RunCodeSnippet` against the real Madrid calendar returned 86400 / 82800 / 90000 with **bit patterns identical** to the expected figures and `==` → `true`, and the three Spanish templates were present in the built `es.lproj` all along. Fixing the clone's language instead (the WU-25-A lever) works and has to be redone for every new device; reading the key is locale-independent for good. The literal-typing mechanism behind the `#expect` failure is **inferred, not proven** — recorded that way in `memory/expect-on-an-optional-can-fail-with-equal-operands.md`. |
 | D143 | **Two user-facing sentences still promised the appeal, and one screen showed two different kilocalorie formats.** `WelcomeView`'s footnote (*"…and you can always appeal."*) and the **Light** flourish template (*"The defence may still appeal."*) are rewritten and re-translated; `EvidenceSectionsView`'s three interpolated `"\(Int(kilocalories)) kcal"` values and its raw step count now go through `Measurement`/`.formatted`, the same call `AllowanceFigureRow` already uses. | Same class as D127: the appeal was deleted in WU-28-B and these two strings only *described* it, so they survived a search for appeal types and kept promising a button that no longer exists — one of them on the first screen a judge reads, the other inside the verdict itself. The formatting was WU-27-A's second walk finding, deferred then because it changes Spanish copy and the suite could not be run; both are now possible, so it is fixed rather than carried: `1200 kcal` beside `1,200 Cal` on one screen also put a unit outside the String Catalog, where no locale could reach it. The new English strings add two keys and leave the two old ones stale, which is the standing catalogue problem, not a new one. |
 | D144 | **`See alternative` stays, and is declared compatible with D138.** The verdict keeps its two-state toggle between the dish Foodge chose and the one it chose as runner-up in the same category and the same diet profile; it is not a picker and no third dish is reachable. `JudgeAppeal.imageset` is **deleted** — nothing has referenced it since D141 — and the 165 stale catalogue keys are listed in `docs/stale-string-catalog-keys.md` for a manual pass in Xcode's own editor. | Raised by the fresh-install walk, which correctly asked the uncomfortable question: this is the only control in the app that changes which dish is on screen, and D138 is the rule the product was rejected for breaking once. The distinction the user settled on is between **choosing** and **seeing the runner-up**: both dishes come out of `select`, in the category the rule decided, filtered by the stored diet profile, in the order D139 fixes — the person cannot reach a third, cannot cross a category, and cannot reach anything their diet excludes. Removing it was the alternative and was rejected as a larger change than the demo warranted; recording it here is the cost of keeping it, so the next reader does not have to re-derive whether it breached D138. The three remaining walk findings — keyboard dismissal and silent validation on *About you*, and the self-report's jump straight to the verdict — are deliberately **not** fixed before the demo, and stand recorded as found. |
+| D145 | **Visual identity v2 (WU-29, plan `docs/migrations/2026-10-09-playful-redesign.md`).** A hybrid palette: burgundy re-tinted more vivid (`#A3173F` light / `#FF8FAB` dark) and still the brand, tint and `AccentColor`; gold re-tinted brighter and **decoration only**; four new pizza colours — tomato = Treat, cheese = Balanced, basil = Light, dough = the stage background — each fill with its own measured *On* label colour. Rounded system type once at the window root. Ritual screens become a stage (`StageBackground`: opaque dough washed from the top with the screen's accent at 15 %) holding native `GroupBox` cards (`StageCardGroupBoxStyle`) filled with a new `AppCard` set — white in light, a warm grey in dark that is lighter than dough and every stage top — with a hairline `separator` edge; data entry and settings stay `Form`. **Supersedes two lines of `DESIGN.md`**: "artwork stays subordinate" on stage screens (the artwork leads; the dinner name and primary action stay the largest *text*), and "native system backgrounds … throughout" (dough and `AppCard` are custom surfaces, at the cost of the HIG's "prefer the system background colors" — paid because `secondarySystemGroupedBackground` is darker than the dark stage and the card read as a hole in it, `arc-audit-hig`). Cheese and gold fail 3:1 as *shapes* on light surfaces (1.49–1.88:1) and are accepted: neither is ever the sole carrier of meaning — a stamp's meaning is its text and symbol, on its measured On colour. | The app "looks like Settings": two `Form`s, the 3D judge at 76 pt and the dishes at 64 pt, a muted palette. Colour goes into backgrounds, the hero and the stamps, and text only ever sits on a pair `PaletteContrastTests` measures — never the system's `.secondary`, which is ~3.4:1 on a light row (D134) — so the app gets louder without a contrast regression — `PaletteContrastTests` resolves the shipped sets in four appearances and fails below 4.5:1. The alternative, colour behind text everywhere, would have needed a measured pair for every surface and is exactly how D134's 3.4:1 happened. |
+| D146 | **The judge is tappable.** `JudgeHeroView` — placed on Today in WU-29-C and Welcome in WU-29-E — is a `Button` whose visible label is the artwork and whose accessible name is *The judge*. It squashes on press (`JudgeButtonStyle`), breathes twice after it appears (4.8 s, under WCAG 2.2.2's five seconds) and not at all once tapped, and on every tap hops, plays a light impact haptic, shows the next of eight quips in a `SpeechBubble` **below** it — so the judge never moves out from under the finger — and announces the quip to VoiceOver. Reduce Motion is read inside the hero, so no screen can forget it. Quips play in declared order and wrap (`JudgeReaction`), so no line repeats twice in a row and every judge a screen creates starts from the first line. Quips are decoration in the flourish's voice; the machine-checkable part of that voice is enforced by running every English and Spanish line through `NarrationValidator`. `JudgeReaction` reaches no rule, dish, diet or store. | The brief asked for characters that feel like a game, and a mascot that reacts is the cheapest honest version of that. Deterministic rather than random because a random deck needs its own no-repeat guard and makes the order untestable, and nothing about a joke rotation benefits from chance. The line D138/D144 draw is what can reach a dish; a tap that changes only the bubble is on the safe side of it — `JudgeReaction` is initialised with nothing, so it holds no dependency through which it could reach anything else. The bubble went below the judge after `arc-audit-hig` and `arc-audit-accessibility` both found the first layout — bubble above — moved the tap target by up to ~320 pt at AX 5 and slid the judge under Reduce Motion. |
+| D147 | **Motion policy, and the verdict's reveal plays once per revision per launch.** Every motion is decoration and has a still form. Motion nobody asked for stops within five seconds (WCAG 2.2.2): the judge's breath (two 2.4 s breaths, none after a tap), the deliberating tilt (4.8 s), the confetti (2.5 s, then its timeline pauses). Under Reduce Motion the hop, the press squash, the stamp slam, the dish pop, the dish swap and the cards' entrance become fades that each view carries itself, with no animation on the layout around them, and the confetti draws nothing. Where Reduce Motion is read: by each screen, which passes `motion` down, and also by the judge components, the dish section and the confetti themselves, whose `motion` input can only turn motion off. The verdict's reveal — stamp slams in with a heavy impact haptic, dish pops with confetti, cards arrive — plays when `TodayViewModel.claimReveal()` answers `true`, exactly once per `SavedRevision.id` in a launch: returning from Evidence details or from Today shows it settled, a narration line arriving on the same revision does not replay it, a failed save does not spend it, and a cold start that reopens tonight's verdict reveals it once more. Until the claim, a pending revision draws nothing (`isRevealPending`), so a new verdict never flashes and collapses. | A reveal that replays every time the screen appears stops being a reveal and starts being a delay. Keyed on the revision id rather than a flag because a second revision is a new verdict, and rather than on the `SavedRevision` value because narration swaps in a new value with the same id. Not persisted: a reveal per launch costs a second, and storing it would mean a schema change for decoration. The five-second ceiling and the still forms are where a playful screen meets WCAG; both are code paths, not settings someone has to find. |
+| D148 | **Data-entry forms keep the system grouped background, and every `Picker` is a whole-row menu.** **Approved by the user on 10 Oct 2026**, over two alternatives put to them: a stage with every row filled in `AppCard`, and the plan as written (a stage behind system rows). The plan put a `StageBackground` behind the Apple Health and About you forms; it is not used there. Health connection gets the judge as a hero section at the head of its form instead (`StageArtworkSize.formJudge`, 120 pt), and both forms keep the palette and the rounded face. Every `Picker` becomes a `MenuPickerRow`: a `Menu` whose label is the row (a list's vertical row insets are zeroed), a native `Picker` inside it, the value in the tint, at least 44 pt, stacked when one line does not fit. In the WU-29-E forms, section headers, footers and text-field prompts are drawn in `appBurgundyMuted`. | A choice, not a necessity — first recorded as one, corrected after `arc-constitution-review` and `arc-audit-hig` showed the alternative would have met the floor. **For it:** the HIG's preference for `systemGroupedBackground` in settings-style forms; in dark the system row (`#1C1C1E`) is darker than the stage's tinted top (about 1.3:1 against the wash, though 1.02:1 *lighter* than bare dough), so rows near the top read as holes — the defect `arc-audit-hig` raised against the first card fill (D145); and cost — a stage without holes needs `AppCard` fills on every section, not two modifiers per form. **Against it:** a stage with `AppCard` rows plus `MenuPickerRow` would have met 4.5:1 — `PaletteContrastTests` measures the tint, the muted colour and `label` on `AppCard` — since the 4.44:1 measured for `.secondary` on `AppCard` in dark applied only to system-drawn picker values, which `MenuPickerRow` removes. **A struct, not a `*Style`:** `PickerStyle` has no public requirements and `MenuStyleConfiguration` carries only a label and content, so no style can lay out a title and a value; `Menu { Picker }` is Apple's documented pattern. System `.secondary` text measures about 3.4:1 on a light row and 3.3:1 on the grouped background. The option the user chose said the WU-29-G forms (Settings, Evidence details, Demonstration) follow the same rule; Evidence details' section headers already did in WU-29-F, through the `EvidenceSectionsView` it shares with case detail. |
+| D149 | **A History row names its dish.** The plan's row was the dish's artwork, the date and a mini category stamp; the row also shows the dish name, as `.headline`, with the date beneath it in `appBurgundyMuted` `.subheadline`. | The artwork is decorative (`accessibilityHidden`) and drawn per *family*, so two pasta nights look the same: without the name a VoiceOver user hears a date and a category, and a sighted one cannot tell pesto from bolognese. The cost is that the date stops being the row's primary text. Both auditors judged it justified (WU-29-F). |
+| D150 | **The onboarding forms end on the stage's primary action, and the judge heads About you (WU-29-H, plan `docs/migrations/2026-10-13-form-screens-character.md`; the action and the judge approved by the user on 13 Oct 2026, the withdrawal of *Connect* below decided while building and flagged to the user the same day).** Apple Health's *Connect Apple Health* — then *Continue* once Health has answered — and About you's *Save and finish* are `primaryAction()`, pinned with `pinnedPrimaryAction` and placed as the form's last section at accessibility sizes (`InlinePrimaryActionSection`), as Welcome's *Continue* is. Health's *Continue* is a `Button` pushing through `OnboardingViewModel.continueToBodyBasics()`, not Welcome's `NavigationLink`: inside a `Form` a link is drawn as a list row whatever its style, and at AX 2 it rendered as a white label on a clear row with a chevron (`memory/troubleshooting/a-navigation-link-in-a-form-is-a-row.md`). The secondary ways out (*Continue without Health*, *Finish without the figures*) stay form rows. *Connect Apple Health* is no longer offered once Health has answered (`HealthState.awaitsConnection`): iOS does not show its sheet twice (D137), and a failed request keeps its own retry in `HealthUnavailableSection`. **Cost:** `connectHealth()` also re-reads today's evidence, so the old button let someone who changed Health's sharing mid-onboarding refresh the *What Health could read* report; now that report updates only on the next verdict, which re-reads Health anyway. About you carries the same tappable judge as Apple Health (`FormJudgeHeroSection`). D148 stands: both forms keep the system grouped background. | Onboarding dropped from Welcome's prominent button to a text row on the two screens that finish it, and the HIG asks onboarding to be "fast, fun". The alternative — plain rows — kept the screens consistent with Settings but not with the flow they belong to. The pinned bar and its accessibility-size fallback are the stage's, reused rather than copied, so the WCAG 1.4.10 reasoning in `PinnedPrimaryActionModifier` carries over unchanged. |
+| D151 | **Symbols on form screens: interactive in the tint, informative in the muted colour.** Settings rows that act wear a filled tile (`SettingsIconLabelStyle`: `appOnBurgundy` on `appBurgundy`; red for *Delete local data*). Evidence sources and verdict reasons wear a monochrome symbol in `appBurgundyMuted` (`InformativeSymbol`, `ReasonLabel`). Category colours never decorate a symbol that is not about the category. The allowance gauge's fill is the verdict's category tint — the one place a category colour fills a data graphic, which **extends D145's shape exception**: cheese reads under 3:1 there too, accepted because the share and every band are also text. One suggestion was **dropped** in the same check: a verdict badge per demonstration scenario, because the outcome is computed by running the rule (`DemonstrationScenarioOutcomeTests`) and *No readable Health data* depends on the check-in answer. | The HIG's *Color* page (read through the `cupertino` HIG index on 13 Oct 2026): "avoid using the same color to mean different things … if you use your brand color to indicate that a borderless button is interactive, using the same or similar color to stylize noninteractive text is confusing". Burgundy is Foodge's tint, the colour of what acts; `appBurgundyMuted` is already the app's colour for what does not — every form header, footer and prompt (D134, D148) — so an informative symbol takes the muted colour with the rest of the non-interactive text, not the tint. Tomato, cheese and basil *are* Treat, Balanced and Light. A fixed badge per scenario would either copy the rule into a view or misstate a scenario. |
 
 ---
 
@@ -2655,6 +2662,635 @@ screen's two kilocalorie formats, went with them.
 - **Owed, unchanged by this unit**: the interactive iOS 26 walk, WU-28-A's physical-device
   `ONBOARDING health-request-status=` line, pruning the 163 stale catalogue keys in Xcode's own
   editor, and `Artwork/Judge/JudgeAppeal.imageset`, which nothing references since the appeal left.
+
+## Day 29 — the playful redesign (WU-29)
+
+The user's brief (9 Oct 2026): a game-like, colourful Foodge — large animated tappable characters,
+brighter colours — on strict HIG and native SwiftUI only. Plan approved 10 Oct 2026 and committed as
+`docs/migrations/2026-10-09-playful-redesign.md`: seven units, WU-29-A → G, and D145–D147. **No
+product rule changes**; every new interaction is decoration and can never reach the rule, the dish or
+the diet (D138, D144).
+
+### WU-29-A ✅ Foundations — the palette, the stage and the card
+
+**D145.**
+
+- **Files:** 13 colour sets (`AppBurgundy`, `AccentColor`, `AppOnBurgundy`, `AppBurgundyMuted`,
+  `AppGold` re-valued; `AppTomato`, `AppOnTomato`, `AppCheese`, `AppOnCheese`, `AppBasil`,
+  `AppOnBasil`, `AppDough` from the plan, and `AppCard` added after `arc-audit-hig`) ·
+  `DinnerCategory+Appearance` (`tint`/`onTint` as `ColorResource`, which resolves in any trait
+  collection, high contrast included) · `StageBackground` · `StageCardGroupBoxStyle` ·
+  `.fontDesign(.rounded)` in `FoodgeApp`, wrapping the launch switch, rather than in `AppRootView`
+  as the plan wrote — the launch screen, the store-failure screen and the demonstration banner sit
+  outside `AppRootView` — and in both shared preview modifiers (`SampleData`), which a preview needs
+  because it never reaches the window root · `PaletteContrastTests` + `Support/WCAGContrast` +
+  `Support/PaletteAppearance` (written first by `arc-test-engineer`).
+- **Deferred to WU-29-D:** `DinnerCategory.symbolName`, which the plan lists here. Nothing uses it
+  before the stamp exists, and its test (a typo'd SF Symbol name returns `nil`, which no compiler
+  catches) belongs with its first caller.
+- **Tests:** `PaletteContrastTests` — 4 tests, 13 cases, **160 pairs** per run (40 per
+  appearance). `appBurgundy`, `appBurgundyMuted` and primary `label` on 12 surfaces: the three
+  system backgrounds at the base level and at the elevated level a sheet is drawn at, `AppCard`,
+  dough, and the top of every stage (accent composited over dough at
+  `StageBackground.accentOpacity` — the `arc-audit-accessibility` pixel probe of a rendered Treat
+  stage read (249,215,196) against a modelled (249,214.8,196.7)); the four On pairs, read through
+  the production category mapping; `AccentColor` == `AppBurgundy` per channel; `AppCard` lighter
+  than dough and every stage top; and a harness guard that the four trait collections select four
+  variants. Red before the implementation: four missing-symbol compile errors, nothing else.
+- **Could it fail — run, not argued:**
+  - `AppBurgundyMuted` light set back to its old `#A85C72` → **1 of 9 failed**, six pairs in
+    `light+normal`: grouped 4.23, dough 4.34, the four stage tops 3.35–4.06 (the tool's summary
+    truncates to five messages; the count is from the full log). **The old value measured 4.23:1 on
+    `systemGroupedBackground`**, the surface `Form` section footers sit on. D134/D135 measured 4.73:1
+    against a *row*; every burgundy-muted footer shipped through WU-28 was below the floor in
+    standard-contrast light, and no test could see it. The new value measures 6.52:1 there.
+  - `AppCard` dark set to `#1C1C1E` (the system's `secondarySystemGroupedBackground`) → **1 of 13
+    failed**: four pairs in `dark+normal`, card luminance 0.0117 against stage tops 0.0257–0.0358.
+  - Both restored; green again.
+- **Build:** green after every edit (latest 4.6 s); `GetBuildLog { severity: "warning" }` after each
+  → **`totalFound: 0`**.
+- **Suite:** `RunAllTests` → **310 tests, 310 passed** (297 + 13) on iPhone 18 Pro / iOS 27, on the
+  final tree.
+- **Render:** card on a Balanced stage in dark (raised, no gap in the label-less card) · Treat stage
+  dark · `AppRootView` *First launch* at AX 5 in `es`, dark (rounded, wraps, no clipping) · *Onboarding
+  already done* in Increased Contrast. `arc-audit-hig` and `arc-audit-accessibility` rendered Welcome,
+  the demonstration banner and Settings in light, dark and Increased Contrast: the Continue and Exit
+  labels hold on the new burgundy fill (7.63–12.10:1); toggles stay system green.
+- **Rounded, seen rather than assumed:** the same Welcome text at AX 5 rendered through
+  `AppRootView` (preview modifier applies `.fontDesign(.rounded)`) and through `WelcomeView`'s own
+  preview (no modifier) — round terminals on "court" and the "T" bar in the first, flat cuts in the
+  second. `arc-verify-ui` could not tell from Form rows at AX 3, and system-drawn text (picker
+  values, navigation titles, tab labels) is not confirmed either way; WU-29-G's simulator walk owns
+  that.
+- **`arc-verify-ui`:** build 0 errors, `totalFound: 0` warnings, **310/310**; ten renders, no clipping
+  or truncation, the dark card 1.23–1.27:1 lighter than the stage behind it, no gap in the
+  label-less card. Its device check could not screenshot: every `DeviceInteractionSynthesize` call
+  returned "Session not found" and left a stranded session holding the simulator
+  (`memory/troubleshooting/device-interaction-synthesize-session-not-found.md`).
+- **Audits:** `arc-constitution-review` 0 BLOCKER, 2 MAJOR · `arc-audit-hig` 0 BLOCKER, 1 MAJOR ·
+  `arc-audit-accessibility` 0 BLOCKER, 2 MAJOR. Acted on: the card's dark fill (`AppCard`, plus a
+  test that fails on the old fill); `label` and the elevated surfaces added to the pair table; rounded
+  type in the preview modifiers; seven comments, DocC and ledger lines that claimed more than the code
+  (card "guaranteed" contrast, a "traffic lights" line, an untested `Color` impossibility, stale
+  ratios in `WelcomeView` and `ReadableValueLabeledContentStyle`, five-vs-six failing pairs, the shape
+  range, the Dynamic Type sentence in `FoodgeApp`); `PaletteAppearance` moved to its own file;
+  redundant conformances dropped.
+- **Not acted on, with the reason:**
+  - **A category-mapping test** (accessibility MINOR-5a): swapping two categories' `tint` *and*
+    `onTint` together stays contrast-clean. A test pinning treat → tomato would repeat the mapping
+    literal, which `arc-test-engineer` rejected as a test that cannot fail independently.
+  - **Tomato and basil share a luminance in light** (0.167, 1.00:1; similar under deuteranopia). The
+    approved palette stays; the category's meaning must never be colour alone, so WU-29-D's stamp
+    ships text **and** symbol, and that is checked there.
+  - **The status bar over the demonstration banner** (2.15–2.75:1, accessibility MINOR-4) is
+    pre-existing system chrome on demonstration mode only, and moving the fill off the safe area is a
+    product call — owed to the user, not taken here.
+- **Owed — found here, pre-existing, not caused by this unit:** text the **system** draws in
+  `.secondary` — unstyled `Form` headers and footers (`DietProfileSection`, `EveningReminderSection`,
+  `IntakeCheckInSection`) and picker values — measures about 3.3–3.4:1 in standard-contrast light, so
+  WU-27-A's "WCAG 1.4.3 closed repo-wide" is not true of system-drawn text. Headers and footers are
+  styled with `appBurgundyMuted` in the unit that next touches each screen (Today in WU-29-C, onboarding
+  in WU-29-E, Settings in WU-29-G); picker values cannot be recoloured and are recorded then as a
+  system exception or restyled. Whether navigation titles, tab labels and sheets take the rounded face
+  is checked on the simulator in WU-29-G.
+
+### WU-29-B ✅ The judge — tappable, breathing, and talking
+
+**D146.** Built and tested as components; no screen places the hero until WU-29-C (Today) and
+WU-29-E (Welcome).
+
+- **Files:** `Presentation/Components/Judge/` — `JudgeHeroView` (the `Button`, the bubble, the
+  haptic, the announcement, the breath's 4.8 s expiry), `JudgeFigureView` (the artwork and its two
+  `keyframeAnimator`s, its own file after `arc-constitution-review` found a 60-line nested view
+  outside D27), `JudgeButtonStyle`, `JudgeReaction` (`@Observable @MainActor`, initialised with
+  nothing; `tap()` returns the quip it shows), `SpeechBubble` (tail on top, drawn as a `Path.union`)
+  · `Presentation/Components/Stage/StageSurface` — the `AppCard` fill and hairline shared by cards
+  and bubbles, whose `fill` `PaletteContrastTests` now resolves instead of assuming `.appCard` ·
+  `Presentation/Localization/JudgeQuip` (eight lines) · 11 catalogue keys with Spanish written
+  through `StringCatalogEdit` by translation sub-agents following Xcode's bundled skill, the plan's
+  three approved lines mandatory. The wig line is *Que nadie pregunte por la peluca.*, not the
+  *No pregunten…* this session suggested, which addressed the user as plural *usted* against the
+  app's *tú*. The hint is *Plays a line from the judge.* / *Reproduce una frase del juez.*, a
+  third-person result like the app's other hints; the first wording, *Hear a word from the bench.*,
+  is now a stale catalogue key, owed to Xcode's own editor with the others.
+- **Motion** (the plan's motion policy; D147 records it with the reveal in WU-29-D): Reduce Motion is
+  read inside the hero and ANDed with an optional `motion` override, so a screen cannot forget it and
+  a preview can still hold the judge still. Breath: `keyframeAnimator(repeating:)`, two 2.4 s breaths
+  then rest, never after the first tap. Hop: every keyframe multiplied by an amplitude that is 0 with
+  motion off, so the timeline plays rest to rest. Press: squash, or a dim with an ease-out instead of a
+  spring. Bubble: scales in, or — motion off — only fades while the layout settles without animation
+  (`.animation(nil)` on the stack, `.opacity.animation(…)` on the transition). The haptic is
+  `.impact(weight: .light)`; the plan's API table said `.heavy` was not found, but Apple's docs list
+  `impact(weight:intensity:)` with `.light/.medium/.heavy`.
+- **Tests first** (`arc-test-engineer`, red on 15 missing-symbol errors): `JudgeReactionTests` — 4
+  tests; `JudgeQuipLocalizationTests` — 5 tests, 26 cases: every English and Spanish line `.accepted`
+  by the production `NarrationValidator`, both sets distinct, every quip shipped in the built
+  `es.lproj` and different from its English.
+- **Could it fail — run, not argued:**
+  - Production files in, translations absent → **17 of 30 failed**: every Spanish case, each naming its
+    quip as absent from `es.lproj`; the 13 behaviour and English cases passed.
+  - `tap()` mutated to show `deck[(taps + 1) % n]` and to reset `taps` at the wrap → **2 of 4 failed**:
+    the walk (*tap 1 showed .noBribes, but the declared order calls for .orderInTheKitchen*) and the
+    trigger (*after tap 9 (the tap that wraps the deck) taps was 1*). The untouched and no-repeat tests
+    passed, as they should — that mutation repeats nothing. Restored.
+- **Audits:** `arc-audit-concurrency` 0 BLOCKER / 0 MAJOR (6 MINOR, all wording or evidence) ·
+  `arc-audit-hig` 0 / 2 · `arc-audit-accessibility` 0 / 2 · `arc-constitution-review` 0 / 1. The two
+  shared MAJORs — the bubble moving the tap target and sliding the judge under Reduce Motion; the
+  breath at 12 s against WCAG 2.2.2 — and the nested `Figure` are fixed as above. Also acted on: the
+  press spring under Reduce Motion, the `.task(id:)` guard so no sleep runs where nothing breathes,
+  the duplicated card surface, the bubble's fill tied to the test, and DocC/ledger lines claiming a
+  D147 that does not exist yet, press tracking the style does not own, a re-evaluation saving it does
+  not make, validator rules it does not have, and an order "held by the test".
+- **Build:** green after every edit (latest 3.0 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**
+  after each. One build right after the files landed returned in 1.0 s with the old missing-symbol
+  errors — Xcode had not yet seen the new files; the retry compiled them.
+- **Suite:** `RunAllTests` → **340 tests, 340 passed** (310 + 30) on the final tree.
+- **Render:** *Speaking, held still* in `es` dark and in `en` at AX 5; *Longest line* (the wig, 63
+  characters) in `es` at AX 5, dark — five lines, no word broken, the judge where it was.
+- **Owed to WU-29-C / G (cannot be shown by a still frame or this harness):** the hop, haptic and
+  announcement at runtime; VoiceOver not dropping the announcement as the bubble inserts; the
+  Reduce Motion walk with the real setting.
+
+### WU-29-C ✅ Today and the loading state — a stage with cards
+
+No new decision: D145 (stage, cards) and D146 (the judge) applied to Today. No product rule moves —
+the same check-ins, the same stages, the same announcements plus one (below).
+
+- **Today** (`TodayBeforeVerdictView`): a `ScrollView` on a burgundy `StageBackground`; the
+  `JudgeHeroView` at `JudgeHeroView.stageHeight` (180 pt; idling stops once a verdict is asked for);
+  the intro sentence on the stage in `appBurgundyMuted`, now `.callout` rather than `.footnote`;
+  cards — `IntakeCheckInCard`, `SelfReportCheckInCard`, `EvidenceUnavailableCard`,
+  `NoDishAvailableCard` (renamed or split out of the old `Section`s, one type per file;
+  `MealPortionPicker` has a file of its own); and `TodayPrimaryAction` in a `safeAreaBar`, inline at
+  accessibility sizes (the Welcome pattern). On the self-report card the question is now the card's
+  title, and the "isn't enough readable data" sentence a footnote under it.
+- **Each meal is a `Menu` holding a native `Picker`**, the whole row its label. The first version,
+  a `.menu` picker inside `LabeledContent`, had a ~34 pt target (only its value), broke *Sin
+  responder* into five fragments at AX 5, and — found by `arc-audit-accessibility` on the real screen,
+  hidden by the standalone card preview — inside the `ScrollView` reported a one-line height at
+  XX Large while its value wrapped, so the second line ran across the divider. The row is now at least
+  44 pt (`@ScaledMetric`), uses `ViewThatFits` to stack the meal above its value when one line does
+  not fit, keeps the meal in the primary colour (`.buttonStyle(.plain)`) and the value in the tint,
+  and carries an explicit accessibility label and value. This also closes WU-29-A's owed picker-value
+  item for Today: the value is `appBurgundy`, measured on the card fill, not system `.secondary`.
+- **Shared actions** (rule 7), each applied to the button itself: `PrimaryActionModifier` —
+  `glassProminent`, flexible width, `.large` (`.extraLarge` rendered identically on iOS, as the API
+  table warned), semibold, tint burgundy, label `appOnBurgundy`; the label on the glass fill sampled by
+  `arc-audit-accessibility` at 7.78 / 10.93 / 8.95 / 12.10:1 across the four appearances.
+  `SecondaryActionModifier` — `bordered`, flexible, label `.primary`: the tint on the dark bordered
+  fill measured **3.75:1**, sampled at (84, 79, 79); white on it **8.05:1**.
+- **Loading** (`CourtLoadingView`, also the launch screen): the stage instead of `systemBackground`,
+  and `DeliberatingJudgeView` at the hero's size — a 1.25 s gavel-tap tilt stopped by a 4.8 s timer
+  during the fourth tap's rest, none under Reduce Motion. The `ProgressView` stays the accessible
+  status, and Today now **announces** the loading message when it enters `.evaluating`: the column
+  underneath is hidden from VoiceOver at that moment, so focus had nowhere to go.
+- **Owed from WU-29-A, closed here for Today:** the intake footer was unstyled system `.secondary`;
+  it is `appBurgundyMuted` inside the card.
+- **Tests:** none new — view-only, as the plan says. `TodayViewModelTests` unchanged and green.
+- **Build:** green (latest 4.8 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key (`StringCatalogRead` `new` → 0).
+- **Suite:** `RunAllTests` → **340 tests, 340 passed** on the final tree.
+- **Render (final tree):** Today *Gathering* `es` at XXX Large and AX 5; `IntakeCheckInCard` in a
+  `ScrollView` at AX 5 `es` (stacked, words whole) and XX Large `en` dark; `SelfReportCheckInCard` in a
+  `ScrollView` at AX 5 `es`; `TodayPrimaryAction` *Back to tonight's verdict* `es` dark; primary action
+  enabled/disabled; `CourtLoadingView` `es` dark. Earlier on this unit: Today `en` light, *Needs the
+  self-report* `es` dark, the evidence and no-dish cards at AX 5 `es` (by the auditor).
+- **Audits:** `arc-audit-hig` 0 BLOCKER / 3 MAJOR · `arc-audit-accessibility` 0 / 2 ·
+  `arc-constitution-review` 0 / 1 (it also checked the `.task(id:)` isolation; the pattern is the one
+  `arc-audit-concurrency` cleared in WU-29-B, so no separate concurrency audit ran). All MAJORs acted
+  on: `safeAreaBar` for the scroll edge effect; `TodayPrimaryAction` narrowed to
+  `hasVerdict`/`isEvaluating`/`requestVerdict`; the menu row above; the missing renders. Also:
+  4.8 s instead of 5 s; sizes shared through `JudgeHeroView` constants; a *Held still* preview;
+  `JudgeBadgeView`'s stale call-site list; the evidence message single-sourced on
+  `EvidenceUnavailableCard`; card previews hosted in a `ScrollView` with the sample-data trait (so they
+  show the rounded face); modifiers applied per button.
+- **Owed to the WU-29-G simulator walk:** the scroll edge effect under the bar (a still preview does
+  not draw it); VoiceOver on the meal menus and the new loading announcement; Reduce Transparency on
+  the glass button; the 44 pt row target with the Accessibility Inspector.
+
+### WU-29-D ✅ The verdict — a stamp, a dish, and a reveal that plays once
+
+**D147.**
+
+- **Verdict** (`VerdictView`): a `ScrollView` on a `StageBackground` tinted by the category;
+  `VerdictStampSection` (`CategoryStampView` — category fill, SF Symbol, name in the measured On
+  colour, a rubber-stamp tilt, the screen's heading — and the provisional caveat); `SaveFailedCard`
+  straight under it when the save failed, above the fold; `VerdictDishSection` — `DishHeroView` at
+  200 pt, the dish name in `.largeTitle.bold()` (the largest text on screen, D145), the family, and
+  *See alternative* (D144's two-state toggle); then `VerdictReasonsCard`, `VerdictFlourishView` (the
+  judge badge above a `SpeechBubble` with the narrated line or the reviewed template, and the
+  "Decoration only" caption) and *Evidence details*. `CategoryHeaderSection`, `NarrationSection` and
+  `DishSummaryRow` remain only for case detail; WU-29-F reuses the verdict's components there, which
+  also ends the three atoms `arc-audit-hig` found duplicated (the provisional caveat, the prototype
+  disclaimer, the flourish caption).
+- **The reveal** (`VerdictReveal`, `RevealPhase`, `StampSlamTransition`, `ConfettiView`):
+  `.task(id: revision id)` asks `vm.claimReveal()`. On `true`, with motion: stamp after a 350 ms
+  lead-in (a slam transition; the heavy haptic 200 ms later, as it touches down), dish +250 ms (pop and
+  confetti), cards +450 ms, settled. Without motion: everything at once, each view fading itself in,
+  the layout unanimated, one light haptic, no confetti — nothing to wait for. Cancelled, it settles.
+  Until the claim, a pending revision draws nothing (`isRevealPending`), and `VerdictReveal` starts
+  settled, so neither a new verdict nor a revisited one flashes.
+- **Stamp sizing:** `ViewThatFits` steps from `.title` black expanded to `.title` to `.title3`, all
+  uppercase. At AX 5 in `es` even `.title3` cannot hold *EQUILIBRADO* on one line and the system
+  hyphenates it (*EQUILI-BRADO*); kept rather than shrinking the word further. Balanced's symbol is
+  `equal.circle.fill`: the first choice, `scalemass.fill`, is a weight and read as a weigh-in, which
+  the voice rules keep out (raised by `arc-constitution-review`).
+- **Single-source helpers:** `DishFamily.artwork` (D60's mapping, out of `DishArtworkView`),
+  `StageArtworkSize` (180 / 220 / 200 pt and the 0.6 accessibility share), `PersistedDishOutcome.
+  shownVariantID` / `shownFamily`, `SaveFailedCard.message`, `SampleDecisions.dishOutcome`,
+  `DinnerCategory.symbolName`.
+- **Tests first** (`arc-test-engineer`, red on missing `claimReveal`, then on missing `symbolName`
+  and `isRevealPending`): `TodayRevealViewModelTests` — 9 tests, 10 cases (no revision and a failed
+  save never reveal and do not spend it; first ask `true` then `false` for a requested and a reopened
+  verdict; a second revision reveals again, ids asserted distinct; narration on the same revision does
+  not replay; `isRevealPending` is a pure read; `claimReveal()` takes no navigation input).
+  `VerdictRevealTests` — 4 (starts settled; without motion: landed, no confetti; with motion: landed,
+  confetti; cancelled before it starts: settled, nothing landed). `DinnerCategoryAppearanceTests` — 2
+  tests, 4 cases (every symbol resolves on the runtime that runs the tests; none shared).
+- **Could it fail — run:** `claimReveal()` as a one-shot flag → **1 of 9 failed** (*Revision
+  3AAF2C94… is new, so its first ask must play the reveal.*); `VerdictReveal.play` without the
+  `settle()` on cancellation → **1 of 4 failed** (*sut.phase → .waiting*). Both restored.
+- **Build:** green (latest 7.3 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key.
+- **Suite:** `RunAllTests` → **358 tests, 358 passed** (340 + 18).
+- **Render:** the three stamps in `es`; the verdict settled in `en` light and `es` dark at AX 5;
+  `VerdictDishSection` runner-up in `es` dark. The auditors added AX 3/AX 5, landscape and Increased
+  Contrast renders of every component.
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 3 MAJOR · `arc-audit-concurrency` 0 / 3 ·
+  `arc-audit-hig` 1 / 4 (the missing `VerdictDishSection` preview, added) · `arc-audit-accessibility`
+  0 / 1. Acted on: the slam that would have snapped in — `revealedRevisionID` was
+  `@ObservationIgnored` and the view did not read the reveal while it was pending, found by reading
+  the code, not by a test; D147's claims about where Reduce Motion is read and what animates; the
+  untested `VerdictReveal`; the haptic leading the touchdown; the first save failure never announced
+  (`onChange(…, initial: true)`); `.move(edge:)` replaced by a 24 pt offset; a flash on retry
+  success; the save-failure card's position; the weigh-in symbol; stale component docs; dead timing.
+- **Owed to the WU-29-G simulator walk:** the reveal's timing and slam against the push, the haptic,
+  the confetti, the Reduce Motion pass, VoiceOver landing on push; and a retry-save that replaces the
+  screen with a bare `ProgressView` (pre-existing: `currentDisplay` is `nil` while `.evaluating`).
+
+### WU-29-E ✅ Welcome and onboarding — the stage stops at the forms
+
+**D148**, approved by the user on 10 Oct 2026.
+
+- **Welcome:** the burgundy stage; `JudgeHeroView` at `StageArtworkSize.welcomeJudge` (220 pt, the
+  welcome pose, tappable); the title — now the screen's VoiceOver heading — the sentence and the
+  footnote on the stage; *Continue* as a `primaryAction()` `NavigationLink` pinned with the new shared
+  `pinnedPrimaryAction` modifier (a `safeAreaBar`, inline at accessibility sizes), which Today now
+  uses too. Replaces Welcome's own `.borderedProminent` recipe, the third copy of the primary action.
+  Both halves of the contract read one property, `DynamicTypeSize.pinsPrimaryAction`.
+- **Apple Health:** a judge hero section (120 pt) at the head of the form on a clear row; the
+  permission footer and the *What Health could read* header in `appBurgundyMuted`.
+- **About you:** the sex picker and — through the shared `DietProfileSection`, so **Settings → Diet
+  too** — the diet picker become `MenuPickerRow`s; three footers in `appBurgundyMuted` (two in
+  `BodyBasicsView`, one in `DietProfileSection`); the Age, Height and Weight prompts — the only place
+  the unit shows until the person types — in `appBurgundyMuted` instead of the system placeholder
+  colour (about 1.7:1 on a light row; pre-existing, found by `arc-audit-accessibility`).
+- **`MenuPickerRow`:** the generic form of WU-29-C's meal menu; `MealPortionPicker` is now a thin use
+  of it. In a list it zeroes its row's vertical insets, so the label is the row: the first version
+  sat a 44 pt label inside the insets and came out about 20 pt taller than its neighbours. "Not
+  given" and "Not answered" each have one source, an `Optional` display name that the row's value and
+  its menu entry both read, so VoiceOver cannot announce a value the menu does not list.
+- **Tests:** none new — view-only, as the plan says. No view test exists for these screens, so the
+  suite guards the view models only; it could not fail on this diff.
+- **Build:** green (9.2 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key: the build rewrote the comments of *Not given* and *Not answered*, translations kept.
+- **Suite:** `RunAllTests` → **358 tests, 358 passed**.
+- **Render (after the fixes):** About you `es` light (rows of equal height, prompts in the muted
+  colour) and `en` dark + Increased Contrast; `MenuPickerRow` `es` dark at AX 5, standard and
+  Increased Contrast; `MealPortionPicker` `en`; Apple Health *Some kinds missing* `es` dark + Increased
+  Contrast; the pinned-action preview `es` dark. The four form previews now carry `.sampleData`, so
+  they render the rounded face the app ships. The auditors rendered 36 more, among them Welcome in
+  light, dark, AX 5 and landscape, Apple Health at AX 5 and About you at AX 1–AX 5 in both languages.
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 4 MAJOR · `arc-audit-hig` 0 / 2 ·
+  `arc-audit-accessibility` 0 / 2. Acted on: D148 put to the user and rewritten as a choice with both
+  sides; the inflated row; the placeholder contrast; the duplicated fallback literals; the AX-size
+  threshold written in three places; the missing pinned-action preview and Welcome heading; the
+  previews without the rounded face; the no-`*Style` reasoning; stale docs (`StageArtworkSize`,
+  `JudgeHeroView`'s "to be recorded as D147", Today's pointer to Welcome); footer contrast figures
+  corrected to 3.3:1 on the grouped background. Not taken: `accessibilityInputLabels` for Voice
+  Control on the value — the accessible name already contains the visible name (2.5.3).
+- **Owed to the WU-29-G simulator walk:** the judge hero in a `Form` row — only the figure fires, no
+  row highlight, the bubble grows the row without a jump or clip; `MenuPickerRow` with VoiceOver and
+  Voice Control, and the menu's own checkmark; *Pescetariana* at AX 5 on a 375 pt phone (estimated to
+  overflow by about 23 px); Welcome in landscape, where the pinned bar sits over the title at rest;
+  the Health hero's share of the screen at AX 5.
+
+### WU-29-F ✅ History and case detail — the filed case wears the verdict
+
+**D149.** Otherwise the plan's rows for History and case detail, on D145 and D148.
+
+- **History rows:** `HistoryCaseRow` (now a file of its own) shows the dish's artwork
+  (`DishArtworkView`, 56 pt scaled), the dish name (D149), the date in `appBurgundyMuted` and a
+  `CategoryBadgeView` — a small capsule in the category's tint with its symbol and name in the measured
+  label colour. At accessibility sizes the text column moves under the artwork (`AnyLayout`, one
+  identity). The badge drops its symbol, then a size, then its capitals; past all four it wraps.
+- **Empty state:** still `ContentUnavailableView`, with the judge (`JudgeBadgeView`, welcome pose) as
+  its icon, capped at XXX Large because the view does not scroll. In Spanish at AX 5 the title and
+  description fill the screen and the system leaves the judge out; in English it still shows. The
+  empty and error descriptions now draw in `appBurgundyMuted` — the defect, system `.secondary` at
+  about 3.4:1 on white, was pre-existing; the error branch is beyond the plan row, same rule.
+- **Case detail:** `CaseHeroSection` at the head of the existing `Form` — `VerdictStampSection`, then
+  `DishHeroView`, then `DishTitleView` — the verdict's parts with no reveal and no confetti, on a clear
+  row. It shows the dish that day named; the stored runner-up stays off the screen. `DishTitleView` is
+  extracted from `VerdictDishSection`, which now uses it too. The *Why* and *Recorded* sections are
+  their own structs (`CaseReasonsSection`, `CaseRecordSection`); the *Why* header stacks its date
+  once it would wrap. The *Why*, *Recorded* and flourish headers and the three `EvidenceSectionsView`
+  headers draw in `appBurgundyMuted` — `EvidenceSectionsView` is shared, so **Evidence details
+  changes too** (D148's scope).
+- **Truncation in a `Form` row, found by both auditors:** the stamp's name truncated in case detail
+  from AX 3 in Spanish (*EQUILIBRA…*, *EQUILIB…* at AX 5) while the same stamp hyphenated on the
+  stage — the row measured it at one line. `.fixedSize(horizontal: false, vertical: true)` on the
+  stamp's name, the badge's name and `DishTitleView`; now *EQUILI-/BRADO* in both places, and the
+  catalogue's longest name, *Hamburguesa de frijoles negros*, wraps whole at AX 3 and hyphenated at
+  AX 5 (new preview, `SampleDecisions.longestNameDishOutcome`). My own AX 3 render had been English.
+- **Removed:** `CategoryHeaderSection` and `DishSummaryRow`, left with no caller. `CaseDetailView`'s
+  preview and the new row preview read `SampleDecisions.savedCase` instead of an inline literal, and
+  the case-detail previews apply `.labeledContentStyle(.readableValue)` as the root does (D135).
+- **Tests:** none new — view-only, as the plan says. No view test exists for these screens, so the
+  suite **could not fail on this diff**; the signals that could were the build and the renders.
+  `PaletteContrastTests` already measures every pair the new text uses (`onTint` on `tint` per
+  category, `appBurgundyMuted` on the grouped surfaces).
+- **Build:** green (9.0 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key.
+- **Suite:** `RunAllTests` → **358 tests, 358 passed**.
+- **Render (after the fixes):** History populated `en` light and `es` dark at AX 5; empty `es` dark,
+  light at AX 2 and AX 5; `CaseHeroSection` `es` at AX 5 and the longest name `es` dark at AX 3 and
+  light at AX 5; `VerdictStampSection` on the stage `es` AX 5 (unchanged); `CaseReasonsSection` `es`
+  dark + Increased Contrast at AX 3; the badges `es` light + Increased Contrast. The auditors rendered
+  History and case detail from Small to AX 5 in both languages, light, dark and Increased Contrast.
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 1 MAJOR · `arc-audit-hig` 0 / 1 ·
+  `arc-audit-accessibility` 0 / 1. Acted on: the truncating stamp; the header muting in the shared
+  evidence sections, recorded under D148's approval; D149; inputs narrowed (`CaseHeroSection` takes
+  four values, not a decision and an outcome); sections extracted; "off the record" → "off the
+  screen"; contrast figures unified at 3.3:1 on the grouped background; stale comments on the stamp's
+  caveat, the badge and the empty state; the readable-value style in the previews. **Not taken:**
+  moving `DishArtworkView` (now History-only) and `JudgeBadgeView` and `VerdictStampSection` (now
+  shared) to `Components/` — proposed for WU-29-G; `@ScaledMetric` padding on the badge (the AX 5
+  renders hold); a preview for History's error state (pre-existing); deriving `savedCase`'s day key
+  (the derivation is private to `PersistenceActor`; the literal matches `evaluationDate`).
+- **Owed to the WU-29-G simulator walk:** VoiceOver on a History row (name, date, category, link) and
+  on case detail (stamp heading first); History's error state at AX 5; case detail below the fold at
+  AX 3–AX 5 (evidence, flourish, *Recorded*), which a still render cannot scroll to.
+
+### WU-29-G ✅ Close — the palette reaches every form, and DESIGN.md says what shipped
+
+No new decision: D148's rule, which the user approved for these screens too. **Open: the simulator
+walk** (below).
+
+- **Settings:** the *Reminder*, *Health* and *On-device AI* headers and every footer (reminder,
+  on-device AI, demonstration, delete) in `appBurgundyMuted`. The Settings root's *Diet* row is a
+  `NavigationLink`; the `MenuPickerRow` is one push deeper, through `DietProfileSection` (WU-29-E).
+  **Demonstration mode:** its footer the same. **Evidence details:** its section headers changed in
+  WU-29-F through the shared `EvidenceSectionsView`; here only its preview, which now reads
+  `SampleDecisions.savedRevision` with the root's readable-value style instead of an inline literal.
+  Every preview of these sections now carries `.sampleData`, so it renders the rounded face. A grep
+  over `Presentation/` for unstyled `header:`/`footer:` closures, `Section("…")`,
+  `.foregroundStyle(.secondary)` and bare `TextField` placeholders finds none left — a grep, not a
+  test: no test can see which colour a view applies, and system-drawn text (a `DatePicker`'s value,
+  menu items, dialogs, `ProgressView("Waiting for Health")`'s label) is outside it.
+- **Two pre-existing failures the accessibility audit found here, fixed:** *Delete local data* was
+  system red, about 3.6:1 as text on a light row — the words now take the label colour (`Color.primary`;
+  inside a destructive button the hierarchical `.primary` *is* the red) and a red trash symbol carries
+  the cue, a graphic needing 3:1; and *Demonstration mode*'s large title truncated from AX 3
+  (*Demonstratio…*) — now inline, wrapping whole.
+- **`PaletteContrastTests`:** its doc now says what the grep established and what the suite cannot see,
+  instead of listing Form headers, footers and picker values as owed.
+- **`DESIGN.md`:** *Visual identity* rewritten — the two kinds of screen (stage, form), the stage's
+  action rules, the palette with its shipped values and roles and what is and is not measured, type,
+  symbols and glass, the judge, the dishes, motion — and *Asset naming* corrected to the catalogue as it
+  is (twelve colour sets plus `AccentColor`, two judge poses, nine dishes; the old file named a third
+  pose and a placeholder that no longer exist). `MenuPickerRow` is named as the one deliberate
+  stand-in for a control. The accessibility gate's shape floor now names D145's exception.
+- **Tests:** none new; the suite cannot fail on colour changes in views. `PaletteContrastTests`
+  measures every pair the new styling uses.
+- **Build:** green (8.0 s); `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. No new
+  catalogue key.
+- **Suite:** `RunAllTests` → **358 tests, 358 passed**.
+- **Render:** previews — Settings `es` light; Demonstration mode `en` dark and `en` AX 5 (inline
+  title); the delete row `es` light and `en` dark. The accessibility audit rendered Settings,
+  Preferences, every Settings section, Demonstration mode and Evidence details at Small to AX 5 in
+  both languages, dark and Increased Contrast.
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 2 MAJOR · `arc-audit-hig` 0 / 3 ·
+  `arc-audit-accessibility` 0 / 2. Acted on: the two failures above; every DESIGN.md overclaim (where
+  Reduce Motion is read, what becomes a fade, "text only ever sits on a measured pair", where the
+  judge is tappable, the badge's symbol, *beside*/*above*), the missing suite line and owed list here.
+  **Proposed, then approved by the user and done (below):** one shared modifier for the
+  `appBurgundyMuted` header/footer recipe (`arc-audit-hig` M1) and filing the shared components under
+  `Components/`. **Not taken:** the toggle label hyphenating at AX 5 in Spanish (the system's own
+  layout, nothing clipped); the unlabelled delete spinner (needs a new catalogue string).
+- **Code organisation, approved by the user on 10 Oct 2026.** Two commits, no visual or behavioural
+  change:
+  - *Shared components filed under `Components/`* — `JudgeBadgeView` → `Components/Judge`,
+    `VerdictStampSection` → `Components/Verdict`, `EvidenceSectionsView` with `AllowanceBreakdownRow`
+    and `ProvenanceRow` → `Components/Evidence`, and `MenuPickerRow`, `DietProfileSection` and the
+    readable-value style → a new `Components/Form`; `DishArtworkView` and `NarrationSection`, now
+    History's alone, → `Features/History/Components`. Moved through the Xcode MCP; git records ten
+    pure renames and `project.pbxproj` untouched (synchronised groups). `SelectableRow`, without a
+    caller since D138, deleted.
+  - *`FormCaptionModifier`* (`.formCaption()`, with a `Text` overload for `TextField` prompts) replaces
+    the hand-set colour and its copied rationale at every `Form` header, footer and prompt — 27 call
+    sites (24 headers and footers, 3 prompts) in 16 files; a brace-matched scan of every `header:`/`footer:` closure finds no raw colour left.
+    `ContentUnavailableView` descriptions and in-row secondary text keep `appBurgundyMuted` directly:
+    they are not form captions.
+  - **Build:** green after each (13.3 s, 11.4 s); `GetBuildLog { severity: "warning" }` →
+    **`totalFound: 0`** both times. **Render:** About you `en` and Evidence details `es` dark, unchanged.
+    **Suite: owed** — `RunAllTests` timed out twice after the moves, the runner wedge this project has
+    met before (`foodge-verify`: ⌘U by hand is the fast path). No test reaches these views, so the
+    suite cannot fail on either diff; the last run, before them, was 358/358.
+- **Simulator walk — taken on 13 Oct 2026 with WU-29-H's** (see that section): everything below that a
+  screen can show was seen; VoiceOver, haptics, Reduce Motion and the number pad remain owed, because the
+  tool cannot observe them. **First attempt —** through the Xcode MCP it failed: `DeviceInteractionInstallAndRun` timed
+  out, `DeviceInteractionSynthesize` answered *Session not found*, and a new session was refused
+  because the device was *already in use by a different session* — the phantom lock in
+  `memory/troubleshooting/device-interaction-synthesize-session-not-found.md`; two attempts, the
+  documented budget. The user approved Claude Code's iOS Simulator tool for this walk instead; it
+  waits on the user granting that tool access to the simulator. **Owed to it**, carried from every
+  unit: the rounded face on system chrome (D145); the judge's hop, haptic and announcement, and the
+  breath, at runtime (WU-29-B); the scroll edge effect under the pinned bar (WU-29-C); the reveal's
+  timing, slam, haptic and confetti, Reduce Motion, VoiceOver landing on the verdict (WU-29-D); the
+  judge hero in a `Form` row, `MenuPickerRow` with VoiceOver and its menu checkmark (WU-29-E); VoiceOver
+  on a History row and case detail, case detail below the fold (WU-29-F); the scenario rows' hit area
+  and the delete row here.
+
+### WU-29-H ✅ The form screens get their own character
+
+Plan `docs/migrations/2026-10-13-form-screens-character.md`, approved by the user on 13 Oct 2026 ("Go
+ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs"). Decisions **D150**
+(the onboarding forms end on the stage's primary action; the judge heads About you) and **D151**
+(symbols: interactive in the tint, informative in the muted colour). No product rule changes.
+
+- **Validated before building**, each against the HIG pages read through the `cupertino` HIG index
+  (*Color*, *Gauges*, *Lists and tables*, *Onboarding*), Apple's `Gauge`/`LinearCapacityGaugeStyle`/
+  `LinearGaugeStyle` documentation through `apple-docs`, and the `axiom-hig` / `axiom-sf-symbols` /
+  `swiftui-doctrine` skills. Two amendments and one drop came out of it: the marker gauge is not on
+  iOS (`.linearCapacity` instead); informative symbols take `appBurgundyMuted`, not the tint; the
+  per-scenario verdict badge in Demonstration was dropped (the outcome is computed, and one scenario
+  depends on the check-in).
+- **Settings:** acting rows wear a symbol in a tile (`SettingsIconLabelStyle`): *Diet*, *Evening
+  reminder*, *Judge's flourish*, *Demonstration mode* / *Exit demonstration*, and *Delete local data*
+  in a red tile. Tiles are dropped at accessibility sizes; the delete row keeps its bare red symbol.
+- **Evidence details and case detail:** `AllowanceHeadlineRow` leads the allowance — *Left for
+  dinner*, a `.linearCapacity` gauge of *Share of today left* in the verdict's category tint, 0 % /
+  100 %, and a legend of the rule's bands read from `CheatMealAllowanceRule` (`DinnerCategory.shareBand`).
+  The *Left for dinner* and *Share of today* rows moved into it. Each Health source wears a muted
+  symbol (`HealthKind.symbolName`, `InformativeSymbol`). `EstimatedKilocalories` is now the one view
+  for a figure and its *Estimated* marker.
+- **Reasons:** `ReasonLabel` (symbol per `ReasonCode.symbolName`, dropped at accessibility sizes)
+  on the verdict's card and on case detail.
+- **Case detail's flourish:** `FlourishBubble` — the judge and speech bubble the verdict shows —
+  replaces the italic row; `VerdictFlourishView` uses the same view.
+- **Onboarding:** Apple Health and About you pin `primaryAction()`, inline at accessibility sizes
+  (`InlinePrimaryActionSection`); both carry the tappable judge (`FormJudgeHeroSection`).
+  `HealthState.awaitsConnection` decides between *Connect Apple Health* and *Continue*; *Continue* is a
+  `Button` over `OnboardingViewModel.continueToBodyBasics()`. VoiceOver focus moves to *Continue* when
+  Health answers.
+- **History:** `HistoryMonth.grouping` (by each case's `localDayKey`, Gregorian month, unreadable
+  keys in a trailing undated group), built by `HistoryViewModel` on load; one `Section` per month,
+  header in the Gregorian calendar. The preview data gained an August case so a preview shows two
+  months.
+- **New strings** (through `StringCatalogEdit` sub-agents, stored `machine_translated` like every
+  `es` entry): *Treat from %@* → *Capricho desde el %@*, *Balanced from %@* → *Equilibrado desde el %@*,
+  *Light below %@* → *Ligero por debajo del %@*, *Share of today left* → *Proporción del día que queda*.
+  *Share of today* is now stale in the catalogue.
+- **Tests, written first by `arc-test-engineer`:** `HistoryMonthTests` (13 functions, two
+  parameterized), `HistoryViewModelTests` +3 (months), `SymbolNameTests` (3), `EnergyAllowanceGaugeTests`
+  (4); after the audits `ShareBandTests` (3), `OnboardingViewModelTests` +2 (`awaitsConnection` over
+  eight states; *Continue* keeps the answer), `PaletteContrastTests` +1 (each tile's glyph on its fill
+  and the bare red symbol on its row, at 3:1, in four appearances). **The red stage was not observed**:
+  Xcode had no workspace open when the tests were written, so the only red possible — a compile failure
+  on the missing API — was never seen. One duplicate (a category-symbol test already in
+  `DinnerCategoryAppearanceTests`) and two assertions that could not fail were removed before use.
+- **Build:** green after every change (last 5.7 s); `GetBuildLog { severity: "warning" }` →
+  **`totalFound: 0`** each time, the log listing both `Foodge` and `FoodgeTests`.
+- **Suite:** the user's ⌘U on the first version of this unit **passed** (no count recorded). After the
+  audit fixes the runners answered *Tests are already running* (the stale operation in
+  `memory/troubleshooting/the-wedged-runner-was-a-stale-test-operation.md`); the user's Stop and ⌘U
+  cleared it and **failed one test** — `PaletteContrastTests.settingsTileGlyphsMeetTheGraphicFloor`,
+  *destructiveSettingsIcon.glyph on destructiveSettingsIcon.fill in dark+high = 2.93:1*. A real defect
+  the new test was written to catch: system red lightens in dark appearance with Increased Contrast and
+  white on it falls under 3:1. **Fixed in the style, not the test:** the delete tile's glyph is now cut
+  out in `systemBackground` (near-black in dark, as the burgundy tile's glyph already is), and the test
+  was widened to measure each tile at the base *and* elevated levels, since a background-colour glyph
+  resolves differently in the Settings sheet. Then `RunSomeTests { PaletteContrastTests }` → **17 tests,
+  17 passed**, and `RunAllTests` → **425 tests, 425 passed** (13 Oct 2026, 21:12).
+- **Render:** the user checked Spanish, light and dark. Here, English light: Settings, Evidence details,
+  case detail, the flourish, Apple Health, About you, History; About you at AX 5; the gauge spent and
+  dark; the inline action at AX 2; after the fixes, the gauge at AX 5 in Spanish and at default in
+  English, Settings at AX 5 in Spanish, the reasons card, *Delete* at AX 3, Apple Health connected in
+  Spanish dark, Evidence details in Spanish. The three auditors rendered about 60 more variants between
+  them (en/es, light/dark, Increased Contrast, Small to AX 5).
+- **Audits:** `arc-constitution-review` 0 BLOCKER / 2 MAJOR / 10 MINOR · `arc-audit-accessibility`
+  1 / 3 / 8 · `arc-audit-hig` 0 / 4 / 6. **Acted on:** the gauge's own label slots truncating at AX 5
+  (BLOCKER: now plain text around a bare gauge, with the true share as its VoiceOver value); the tile's
+  size cap that capped only the glyph (the tile is now dropped at accessibility sizes) and the doc that
+  claimed otherwise; `awaitsConnection` untested and in the view file; the delete row losing its red at
+  accessibility sizes; two atoms drawn twice (`EstimatedKilocalories`, `FlourishBubble`); reason text
+  not starting on one line on the card (`InformativeSymbol` now draws in a fixed scaled column);
+  *Share of today* readable as the share eaten; the white-on-red pair unmeasured; the month header
+  formatted in a non-Gregorian calendar; D150's unstated cost and over-broad attribution; D151's
+  rationale; doc overclaims in `HistoryMonth`, `HealthKind+Symbol`, the plan and the memory note;
+  redundant conformances; long lines; one preview showing only one month. **Found while acting on
+  them:** the inline *Continue* was invisible inside the form at AX 2 —
+  `memory/troubleshooting/a-navigation-link-in-a-form-is-a-row.md`. **Not taken:** `InformativeSymbol`
+  as a `LabelStyle` (a style cannot restyle the icon slot alone without rebuilding the list's label
+  layout; it stays a view in the icon slot); `private var` fragments used twice in one body
+  (`WelcomeView.continueLink` is the precedent); a legend line for the balanced band's upper edge (the
+  legend runs in the bar's order); the Settings literals in `SymbolNameTests` (rendered instead).
+- **Simulator walk, 13 Oct 2026** — Claude Code's iOS Simulator tool (approved by the user for this walk
+  in WU-29-G), `iPhone 17 Pro`, iOS 27, English, light, the Debug build from `BuildProject`. Two passes:
+  - *On the installed app* (Health never answered for Foodge on this simulator): Today → *Give me a
+    verdict* → the self-report → *About usual* → the verdict, its reveal and an on-device narration line
+    in `FlourishBubble` → Evidence details with every source *No readable data* → back to a settled verdict
+    (no replay, D147) → Today offering *Tonight's verdict* (D130) → Settings: the four tiles and the red
+    delete tile → Demonstration mode → *An ordinary allowance*: banner, the stamp mid-slam, the dish,
+    confetti, the reasons card with its symbol → Evidence details: muted source symbols, *Left for dinner
+    540 Cal*, the gauge at 27 %, 0 % / 100 %, the band legend → History: one *September 2026* section →
+    case detail: reasons, sources, the gauge, sleep, the flourish bubble, the record.
+  - *Fresh install* (the user chose *Remove & reinstall* when asked; Foodge was deleted from the
+    simulator and the same build reinstalled): Welcome → Apple Health with the judge and the pinned
+    *Connect Apple Health* → *Waiting for Health*, the pinned action disabled → Apple's sheet, answered
+    **Don't Allow** (the privacy-preserving answer; Foodge cannot tell it from no data) → *Nothing readable
+    came back for today*, *Connect* withdrawn and the pinned action now *Continue* (D150) → About you with
+    the judge and the pinned *Save and finish*, disabled once Height alone was typed, with the "needs all
+    four" footer → *Finish without the figures* → Today. The judge's tap: it hops and shows *Order in the
+    kitchen!* below it (WU-29-B, seen; the haptic is not observable here).
+  - **Closed by sight:** the scroll edge effect under the pinned bar and under the navigation bar
+    (WU-29-C); the reveal settling and not replaying (WU-29-D); D150 end to end; the judge hero in a form
+    row (WU-29-E); case detail below the fold (WU-29-F); the History month header; every WU-29-H screen at
+    runtime. **The rounded face:** the large navigation title (*Today*) and the tab labels draw in the
+    system face, the content in the rounded one — DESIGN.md's line, unverified until now, holds.
+  - **Not observable with this tool, still owed:** VoiceOver (the gauge's value, *Continue* taking focus,
+    a History row), haptics, Reduce Motion at runtime, and About you's pinned bar over the number pad —
+    the simulator took typed text from the Mac keyboard and drew no software keyboard. Symbol availability
+    on iOS 26 (every name used is in SF Symbols by iOS 17, by reading — the simulator and `SymbolNameTests`
+    are iOS 27).
+  - **Found:** on a day with no readable active energy, *Give me a verdict* answers by adding the
+    self-report card **below the pinned bar** — on this phone only its first line shows, half under the
+    tab bar, and the screen does not scroll to it, so the tap looks like it did nothing. Pre-existing
+    (WU-29-C's layout and the self-report flow). Put to the user, who said to fix it "if these
+    decisions are supported by HIG" — **fixed, below.**
+
+#### The stage card comes into view (WU-29-H, fix approved by the user on 13 Oct 2026)
+
+- **HIG check first.** *Scroll views*: "In some cases, scroll automatically to help people find their
+  place … when relevant content is no longer in view" and "only as much as necessary to help people
+  retain context". *Feedback*: "understand the results of actions", "Make sure all feedback is
+  accessible". Both read through the `cupertino` HIG index. The *Scroll views* examples are selections
+  and insertion points; a card added in answer to the user's tap is an extension of "such as", not a
+  listed case (`arc-audit-hig`).
+- **Change** (`TodayBeforeVerdictView`): the column has a `ScrollPosition` and `scrollTargetLayout()`;
+  the first card the stage adds (self-report, failed read, no dish) carries one id, and on the stage
+  change the column scrolls to its top — the minimal scroll at standard sizes, where the card is the
+  column's last item, and the question rather than the buttons at accessibility sizes, where the card
+  is taller than the screen. Under Reduce Motion it jumps. VoiceOver focus moves to the self-report's
+  question or the failed read's message (`@AccessibilityFocusState`, as *Continue* on Apple Health); the
+  self-report now also announces its question; the no-dish card keeps its announcement only.
+- **Audit:** `arc-audit-hig` 0 BLOCKER / 2 MAJOR / 2 MINOR on the first version — an anchorless scroll
+  could land a taller-than-screen card on its buttons, and an announcement alone does not move focus off
+  a button the evaluating overlay hid. Both taken, with the comments it found overclaiming ("replaces the
+  check-in in place", "at most one such card", "by the least it takes"). **Not taken:** resetting the
+  scroll position before a second *Try again* (unverified that a repeated `scrollTo` with the same id is
+  ignored; a failed read needs a device whose Health throws).
+- **Build:** green; `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. **Suite:**
+  `RunAllTests` → **425 tests, 425 passed**. **Simulator:** iPhone 17 Pro, a day with no Health data —
+  *Give me a verdict* now scrolls the self-report card fully into view above the pinned bar, and answering
+  it reaches the verdict. **Owed:** the focus move and announcement under VoiceOver, and the scroll at
+  accessibility sizes, on a device.
+
+#### The verdict's stage is full width from its first frame (WU-29-H, reported by the user on 14 Oct 2026)
+
+- **Reported:** on tapping for the verdict, "a colored column appeared for a second, and after that, the
+  full background was uniform".
+- **Reproduced** on the simulator by frame: during the push and while the reveal had drawn nothing, the
+  category's stage was a narrow column with the system background either side; with only the stamp
+  drawn, a column the stamp's width; it widened to the screen when the dish arrived.
+- **Cause** (`VerdictView`): the stage is the `ScrollView`'s background, and the scroll view was only as
+  wide as its content column — which, during the reveal (D147), is nothing, then the stamp. Pre-existing
+  since WU-29-D; it shows only while the reveal is under way, which is why the settled renders never
+  showed it.
+- **Fix:** the column takes the full width in every phase (`.frame(maxWidth: .infinity)`), so the scroll
+  view and its stage do too.
+- **Build:** green; `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. **Suite:** `RunAllTests` →
+  **425 tests, 425 passed**. **Simulator:** the stamp-only frame of the reveal, captured after a relaunch,
+  now shows the stage edge to edge. The run destination had been left on the user's iPhone, so the first
+  rebuild produced a device build and the simulator kept running the old one — caught by the build
+  product's timestamp and redone on iPhone 17 Pro.
+
+#### WU-29-G and WU-29-H closed (14 Oct 2026)
+
+- **iOS 26:** `RunAllTests` on **iPhone 17 Pro (26.5)** → **425 tests, 425 passed**; the result bundle
+  names the device's `osVersion` as 26.5. This closes *symbol availability on iOS 26*: `SymbolNameTests`
+  and `DinnerCategoryAppearanceTests` resolve every symbol the app names on the minimum OS's runtime.
+  The suite on iOS 27 (iPhone 17 Pro (27.0)) is also 425/425. iOS 26 on a physical device, and the UI on
+  iOS 26, are not covered by this.
+- **Closed on:** zero-warning build, the suite green on iOS 26.5 and 27, renders, the simulator walk, and
+  three audits per unit with every BLOCKER acted on; the user confirmed the last two fixes on their own
+  run ("working correctly").
+- **Still owed, to a hand pass on a device** — nothing this harness can observe: VoiceOver (the gauge's
+  label and true negative value; focus moving to *Continue* on Apple Health and to the self-report's
+  question on Today; a History row; case detail), haptics (the judge's tap, the stamp), Reduce Motion at
+  runtime, About you's pinned bar over the number pad on a small phone, and the scroll to the stage card at
+  accessibility sizes.
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

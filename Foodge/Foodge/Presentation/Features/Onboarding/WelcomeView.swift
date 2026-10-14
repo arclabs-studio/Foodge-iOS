@@ -7,28 +7,28 @@
 
 import SwiftUI
 
-/// The first screen: what Foodge is, in one sentence, and the way in.
+/// The first screen: the judge, what Foodge is in one sentence, and the way in — on the stage
+/// (D145), with the judge as large as it gets in the app and tappable (D146).
 ///
-/// It owns no state of its own — the two `@Environment` reads below only steer layout and label
-/// color for accessibility. The flow's stack is what carries the user forward, so the action is
-/// a `NavigationLink` over a typed route rather than a button that mutates a path.
+/// It owns no state beyond the judge's reaction. The flow's stack is what carries the user forward,
+/// so the action is a `NavigationLink` over a typed route rather than a button that mutates a path.
 @MainActor
 struct WelcomeView: View {
-    /// At accessibility sizes the pinned `safeAreaInset` button grows tall enough to overlap the
-    /// scrolling text above it (observed at AX5 on device and in preview — the inset height and
-    /// the button's own accessibility-scaled height fall out of sync). Below accessibility sizes
-    /// the pinned bar is the correct pattern and stays; at accessibility sizes the button instead
-    /// flows as the last item in the scrollable content, which cannot ever overlap what is above
-    /// it (WCAG 1.4.10 Reflow).
+    @State private var judge = JudgeReaction()
+
+    /// At accessibility sizes the action flows as the last item in the scrolling content instead of
+    /// being pinned, where it would grow tall enough to cover the text above it (WCAG 1.4.10).
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                JudgeBadgeView(artwork: .judgeWelcome)
+                JudgeHeroView(artwork: .judgeWelcome, height: StageArtworkSize.welcomeJudge, reaction: judge)
 
                 Text("The court is now in session.")
                     .font(.largeTitle.bold())
+                    // The screen's heading: the inline navigation title only says "Welcome".
+                    .accessibilityAddTraits(.isHeader)
 
                 Text(
                     """
@@ -38,52 +38,37 @@ struct WelcomeView: View {
                 )
                 .font(.body)
 
-                // `.secondary` measures ~3.4:1 against the white/black scroll background in
-                // standard-contrast light appearance (WCAG 1.4.3 needs 4.5:1) — confirmed by
-                // sampling the rendered preview, not by the system's documented alpha alone.
-                // `AppBurgundyMuted` is the brand's own dedicated secondary-text color, already
-                // tuned to ≥4.5:1 against these surfaces in all four appearance/contrast
-                // combinations, and was sitting unused in the asset catalog.
+                // On the stage: `appBurgundyMuted` is measured where the wash is strongest (D145);
+                // `.secondary` would not be (D134).
                 Text("You can always see the reasoning behind the verdict.")
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
 
-                if dynamicTypeSize.isAccessibilitySize {
+                if !dynamicTypeSize.pinsPrimaryAction {
                     continueLink
                         .padding(.top, 12)
                 }
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal)
-            .padding(.top, 32)
+            .padding(.top, 16)
         }
-        .safeAreaInset(edge: .bottom) {
-            if !dynamicTypeSize.isAccessibilitySize {
-                continueLink
-            }
+        .pinnedPrimaryAction {
+            continueLink
         }
+        .background { StageBackground(accent: .appBurgundy) }
         .navigationTitle("Welcome")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    /// `AppBurgundy` (= AccentColor) is tuned as a *foreground* colour: dark burgundy in light
-    /// appearance, light pink in dark. `.borderedProminent` uses it as the button's *background*
-    /// instead, with a white label by default — fine in light appearance (10.05:1), unreadable in
-    /// dark (2.47:1, where WCAG 1.4.3 needs 4.5:1).
-    ///
-    /// `AppOnBurgundy` is the paired label colour, with its own four appearances, so the pairing
-    /// lives in the asset catalogue where every other colour decision lives — rather than as a
-    /// `colorScheme` branch in the view, which would have been a colour declared in code.
+    /// The same link in both places it can sit — pinned, or inline at accessibility sizes.
     private var continueLink: some View {
         NavigationLink("Continue", value: OnboardingRoute.healthConnection)
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .foregroundStyle(.appOnBurgundy)
-            .padding()
+            .primaryAction()
     }
 }
 
-#Preview {
+#Preview(traits: .sampleData) {
     NavigationStack {
         WelcomeView()
     }

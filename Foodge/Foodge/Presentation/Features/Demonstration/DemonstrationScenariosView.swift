@@ -34,12 +34,13 @@ struct DemonstrationScenariosView: View {
                     // Without this the row is drawn in the button tint, which turns a title and
                     // its explanation into two shades of burgundy and quietly changes the
                     // contrast the accessibility audit measured. `.plain` lets the label keep the
-                    // system's own primary/secondary colours; a `List` row still highlights on
-                    // touch, so nothing about the affordance is lost.
+                    // colours it sets itself — primary and `appBurgundyMuted`; a `List` row still
+                    // highlights on touch, so nothing about the affordance is lost.
                     .buttonStyle(.plain)
                 }
             } footer: {
                 Text("Every scenario uses invented data. Nothing is read from Apple Health, and nothing is saved to this iPhone.")
+                    .formCaption()
             }
 
             if let failure = controls.failure {
@@ -50,6 +51,8 @@ struct DemonstrationScenariosView: View {
             }
         }
         .navigationTitle("Demonstration mode")
+        // A large title truncated to "Demonstratio…" from AX 3; inline, it wraps whole.
+        .navigationBarTitleDisplayMode(.inline)
         // Same shape as `DeleteLocalDataSection` (WCAG 4.1.3): a failure that shows as a plain row
         // with no navigation and no focus change needs its own announcement, because nothing else
         // tells VoiceOver the list just grew a failure message.
@@ -84,13 +87,13 @@ private struct DemonstrationScenarioRow: View {
     }
 }
 
-#Preview {
+#Preview(traits: .sampleData) {
     NavigationStack {
         DemonstrationScenariosView(controls: .previewInert)
     }
 }
 
-#Preview("Failed to start") {
+#Preview("Failed to start", traits: .sampleData) {
     NavigationStack {
         DemonstrationScenariosView(controls: .previewFailed)
     }

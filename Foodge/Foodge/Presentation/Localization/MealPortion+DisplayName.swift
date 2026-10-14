@@ -39,3 +39,25 @@ extension MealSlot {
         }
     }
 }
+
+extension Optional where Wrapped == MealPortion {
+    /// Every answer a meal row offers, "Not answered" first. It is not "Skipped it": a skipped meal is
+    /// an answer worth zero, an unanswered one is no basis at all (D114).
+    static var answers: [MealPortion?] {
+        [nil] + MealPortion.allCases.map(Optional.some)
+    }
+
+    /// An answer as the person reads it — the one source for the row's value and its menu entry, so
+    /// VoiceOver never announces a value the menu does not list.
+    var displayName: LocalizedStringResource {
+        switch self {
+        case let .some(portion):
+            portion.displayName
+        case .none:
+            LocalizedStringResource(
+                "Not answered",
+                comment: "Meal portion: no answer given yet — not the same as having skipped the meal"
+            )
+        }
+    }
+}

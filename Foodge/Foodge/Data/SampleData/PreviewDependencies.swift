@@ -504,8 +504,28 @@
             )
         }()
 
+        /// A balanced day a month earlier, so History shows more than one month's section (WU-29-H).
+        static let lastMonthDay: SavedCase = {
+            let day = evidence(SyntheticScenarios.modestAllowance, shiftedByDays: 31)
+            return SavedCase(
+                localDayKey: localDayKey(for: day),
+                revisions: [
+                    revision(
+                        evidence: day,
+                        decision: decision(category: .balanced, share: 0.27, reasonCode: .moderateAllowance, evidence: day),
+                        dishOutcome: PersistedDishOutcome(
+                            variantID: "dish.riceBowls.tofu",
+                            family: .riceBowls,
+                            alternativeVariantID: nil,
+                            alternativeFamily: nil
+                        )
+                    ),
+                ]
+            )
+        }()
+
         static var all: [SavedCase] {
-            [dishMatch, treatDay, lightDay]
+            [dishMatch, treatDay, lightDay, lastMonthDay]
         }
 
         private static func localDayKey(for evidence: EvidenceSnapshot) -> String {

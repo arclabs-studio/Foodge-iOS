@@ -17,19 +17,24 @@ struct JudgeFlourishSection: View {
 
     var body: some View {
         Section {
-            Toggle("Judge’s flourish", isOn: $vm.draft.narrationEnabled)
-                .onChange(of: vm.draft.narrationEnabled) { _, _ in
-                    Task { await vm.preferencesChanged() }
-                }
+            Toggle(isOn: $vm.draft.narrationEnabled) {
+                Label("Judge’s flourish", systemImage: "sparkles")
+                    .labelStyle(.settingsIcon)
+            }
+            .onChange(of: vm.draft.narrationEnabled) { _, _ in
+                Task { await vm.preferencesChanged() }
+            }
         } header: {
             Text("On-device AI")
+                .formCaption()
         } footer: {
             Text("When this iPhone can write on device, the judge adds a line of its own. Everything else works exactly the same without it.")
+                .formCaption()
         }
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         JudgeFlourishSection(vm: PreviewDependencies.all.makeSettingsViewModel())
     }

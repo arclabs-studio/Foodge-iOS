@@ -124,6 +124,37 @@ final class TodayViewModel {
 
     private(set) var narrationStage: NarrationStage = .idle
 
+    // MARK: - The reveal
+
+    /// The revision whose reveal has already played (D147). Observed, because ``isRevealPending`` reads
+    /// it and the verdict screen renders from that: claiming the reveal has to redraw the screen.
+    private var revealedRevisionID: SavedRevision.ID?
+
+    /// Whether the verdict screen should play its reveal now: `true` exactly once per saved
+    /// revision — the first time it is asked — and `false` on every later ask for that revision and
+    /// whenever there is no saved revision, as during `.saveFailed`.
+    ///
+    /// Keyed on the revision's id, so a new revision reveals again while navigation does not: the
+    /// verdict screen asks every time it appears, and returning from Evidence details or from Today
+    /// finds this already spent. Narration arriving swaps in a revision with the same id, which is
+    /// the same verdict and does not reveal again.
+    ///
+    /// Held in memory, so it is once per revision **per launch**: a cold start that reopens tonight's
+    /// saved verdict reveals it again, once.
+    func claimReveal() -> Bool {
+        guard isRevealPending, let id = currentRevision?.id else { return false }
+        revealedRevisionID = id
+        return true
+    }
+
+    /// Whether there is a saved revision whose reveal has not been claimed yet. Read-only: the
+    /// verdict screen uses it to hold that revision back for the frame before it claims the reveal,
+    /// so a new verdict never flashes fully drawn and then collapses into its reveal.
+    var isRevealPending: Bool {
+        guard let id = currentRevision?.id else { return false }
+        return id != revealedRevisionID
+    }
+
     // MARK: - The intake check-in
 
     //

@@ -70,15 +70,23 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[a-disabled-continue-and-a-hidden-skip-flip-together]] — every exit from a screen disabled at once
 - [[an-auditors-fix-stops-at-its-own-diff]] — a diff-scoped audit cannot close an app-wide floor
 - [[a-preview-named-after-a-state-it-never-showed]] — a self-resetting view cannot be driven from outside
+- [[contrast-is-measured-per-surface-not-per-colour]] — a footer is not a row; 4.73:1 there was 4.23:1 here
+- [[a-tappable-character-must-not-move-under-the-finger]] — a bubble above the judge moved the judge
+- [[a-standalone-preview-hides-scrollview-layout]] — host card previews in a ScrollView
+- [[the-reveal-is-keyed-on-the-revision-id]] — not a flag, not the value; once per launch
+- [[forms-keep-the-system-background]] — D148, the user's call; a preference recorded as a necessity first
+- [[an-icon-colour-says-whether-it-acts]] — D150/D151, HIG-checked before building; the iOS gauge has no marker
 
 ### Troubleshooting
 - [[healthkit-terminates-without-usage-description]] — a tool said success and changed nothing
 - [[filter-branch-deletes-the-working-file]] — purging a tracked file takes the file with it
 - [[string-catalog-edit-marks-translations-machine-made]] — the state is the tool's choice, not ours
 - [[sf-symbol-checkmark-hijacks-voiceover-selection]] — a symbol *name* the OS itself recognizes, no modifier stops it
+- [[a-form-row-truncates-what-a-stage-wraps]] — the same stamp hyphenated on a stage and truncated in a Form row
 - [[swiftdata-unique-does-not-throw-on-save]] — `@Attribute(.unique)` merges silently, it never throws
 - [[localization-tests-cannot-pass-on-a-physical-device]] — `#filePath` is the build machine's path
 - [[the-wedged-runner-was-a-stale-test-operation]] — probe with one test; the refusal arrives in seconds
+- [[a-navigation-link-in-a-form-is-a-row]] — the inline Continue was white on a clear row, with a chevron
 
 ### Sessions
 - [[2026-09-18-day-18-and-19]] — project creation through the persistence layer

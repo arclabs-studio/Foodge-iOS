@@ -42,7 +42,7 @@ struct SettingsSaveFailureSection: View {
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         SettingsSaveFailureSection(saveState: .failed(.saveFailed))
     }

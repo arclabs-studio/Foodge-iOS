@@ -19,10 +19,13 @@ struct EveningReminderSection: View {
 
     var body: some View {
         Section {
-            Toggle("Evening reminder", isOn: $vm.reminderEnabled)
-                .onChange(of: vm.reminderEnabled) { _, isEnabled in
-                    Task { await vm.reminderEnabledChanged(to: isEnabled) }
-                }
+            Toggle(isOn: $vm.reminderEnabled) {
+                Label("Evening reminder", systemImage: "bell.fill")
+                    .labelStyle(.settingsIcon)
+            }
+            .onChange(of: vm.reminderEnabled) { _, isEnabled in
+                Task { await vm.reminderEnabledChanged(to: isEnabled) }
+            }
 
             if vm.reminderEnabled {
                 DatePicker(
@@ -44,8 +47,10 @@ struct EveningReminderSection: View {
             }
         } header: {
             Text("Reminder")
+                .formCaption()
         } footer: {
             Text("A nudge at the time you choose. It says nothing about your day — Foodge reads nothing while you are away.")
+                .formCaption()
         }
         .onChange(of: vm.reminderFailure) { _, failure in
             // The toggle already reverted itself with no navigation and no focus change, so
@@ -57,7 +62,7 @@ struct EveningReminderSection: View {
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout) {
+#Preview(traits: .sizeThatFitsLayout, .sampleData) {
     Form {
         EveningReminderSection(vm: PreviewDependencies.all.makeSettingsViewModel())
     }

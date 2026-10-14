@@ -11,12 +11,22 @@ import SwiftUI
 ///
 /// Every outcome leads somewhere. Nothing here is a dead end, and nothing here says a word
 /// about permission being denied — HealthKit cannot tell an app that.
+///
+/// The screen's one primary action is the stage's (D150): *Connect Apple Health* until Health has
+/// answered, then *Continue* — pinned to the bottom edge, or the form's last section at
+/// accessibility sizes. *Continue without Health* stays a row: it is the way out, not the way on.
 @MainActor
 struct HealthConnectionView: View {
     @Bindable var vm: OnboardingViewModel
+    @State private var judge = JudgeReaction()
+    /// Where VoiceOver goes once Health answers: the button the user just activated is replaced by
+    /// *Continue*, a different view, and focus on a view that left the screen is lost (WCAG 2.4.3).
+    @AccessibilityFocusState private var isContinueFocused: Bool
 
     var body: some View {
         Form {
+            FormJudgeHeroSection(reaction: judge)
+
             Section {
                 Text("Foodge reads what Health already recorded today and works out what you have left to spend on dinner.")
                 // `.secondary` measures ~3.4:1 against a Form row's white/elevated background in
@@ -26,23 +36,21 @@ struct HealthConnectionView: View {
                 Text("It reads on this iPhone and writes nothing back. Your figures never leave the device.")
                     .font(.footnote)
                     .foregroundStyle(.appBurgundyMuted)
+            } footer: {
+                // Says what the pinned *Connect Apple Health* will do, so it closes the section that
+                // explains why Foodge asks.
+                Text("Apple asks for the permission, not Foodge. You choose what to share in its own sheet.")
+                    .formCaption()
             }
 
-            Section {
-                Button("Connect Apple Health") {
-                    Task { await vm.connectHealth() }
-                }
-                .disabled(vm.healthState == .requesting)
-
-                if vm.healthState == .requesting {
+            if vm.healthState == .requesting {
+                Section {
                     ProgressView("Waiting for Health")
                 }
-            } footer: {
-                Text("Apple asks for the permission, not Foodge. You choose what to share in its own sheet.")
             }
 
             if let missing = vm.healthState.missingKinds {
-                Section("What Health could read") {
+                Section {
                     if missing.isEmpty {
                         Text("Everything Foodge asks for is there today.")
                     } else {
@@ -59,6 +67,9 @@ struct HealthConnectionView: View {
                             .font(.footnote)
                             .foregroundStyle(.appBurgundyMuted)
                     }
+                } header: {
+                    Text("What Health could read")
+                        .formCaption()
                 }
             }
 
@@ -66,19 +77,46 @@ struct HealthConnectionView: View {
                 Task { await vm.connectHealth() }
             }
 
-            Section {
-                switch vm.healthState {
-                case .idle, .requesting:
+            if vm.healthState.awaitsConnection {
+                Section {
                     Button("Continue without Health") {
                         vm.skipHealth()
                     }
-                case .connected, .noReadableData, .previouslyAnswered, .unavailable, .requestFailed:
-                    NavigationLink("Continue", value: OnboardingRoute.bodyBasics)
                 }
             }
+
+            InlinePrimaryActionSection {
+                primaryAction
+            }
+        }
+        .pinnedPrimaryAction {
+            primaryAction
+        }
+        .onChange(of: vm.healthState.awaitsConnection) { _, awaits in
+            guard !awaits else { return }
+            isContinueFocused = true
         }
         .navigationTitle("Apple Health")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// The same action in both places it can sit — pinned, or inline at accessibility sizes.
+    @ViewBuilder
+    private var primaryAction: some View {
+        if vm.healthState.awaitsConnection {
+            Button("Connect Apple Health") {
+                Task { await vm.connectHealth() }
+            }
+            .disabled(vm.healthState == .requesting)
+            .primaryAction()
+        } else {
+            // A button, not a `NavigationLink`: see `OnboardingViewModel.continueToBodyBasics()`.
+            Button("Continue") {
+                vm.continueToBodyBasics()
+            }
+            .primaryAction()
+            .accessibilityFocused($isContinueFocused)
+        }
     }
 }
 
@@ -94,13 +132,13 @@ extension OnboardingViewModel.HealthState {
     }
 }
 
-#Preview("Not connected yet") {
+#Preview("Not connected yet", traits: .sampleData) {
     NavigationStack {
         HealthConnectionView(vm: PreviewDependencies.all.makeOnboardingViewModel())
     }
 }
 
-#Preview("Connected") {
+#Preview("Connected", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.modestAllowance).makeOnboardingViewModel()
 
     NavigationStack {
@@ -109,7 +147,7 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("Some kinds missing") {
+#Preview("Some kinds missing", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.estimatedResting)
         .makeOnboardingViewModel()
 
@@ -119,7 +157,7 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("No readable data") {
+#Preview("No readable data", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
         .makeOnboardingViewModel()
 
@@ -129,7 +167,7 @@ extension OnboardingViewModel.HealthState {
     .task { await vm.connectHealth() }
 }
 
-#Preview("Health unavailable") {
+#Preview("Health unavailable", traits: .sampleData) {
     @Previewable @State var vm = PreviewDependencies.healthUnavailable().makeOnboardingViewModel()
 
     NavigationStack {

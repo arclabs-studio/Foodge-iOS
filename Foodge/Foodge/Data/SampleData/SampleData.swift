@@ -18,7 +18,10 @@ struct SampleData: PreviewModifier {
     }
 
     func body(content: Content, context: ModelContainer) -> some View {
-        content.modelContainer(context)
+        content
+            .modelContainer(context)
+            // The app sets this once at the window root (D145), which a preview never reaches.
+            .fontDesign(.rounded)
     }
 }
 
@@ -39,7 +42,10 @@ struct CompletedOnboardingSampleData: PreviewModifier {
     }
 
     func body(content: Content, context: ModelContainer) -> some View {
-        content.modelContainer(context)
+        content
+            .modelContainer(context)
+            // The app sets this once at the window root (D145), which a preview never reaches.
+            .fontDesign(.rounded)
     }
 }
 

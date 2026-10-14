@@ -40,6 +40,7 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
   {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationScenarioCatalogueTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationScenarioOutcomeTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DemonstrationSessionTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "DinnerCategoryAppearanceTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DishCatalogueTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "DishSelectionTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "EvidenceWindowPlannerTests"},
@@ -47,21 +48,26 @@ claim backed by evidence rather than an assumption. `totalFound: 0` is the evide
   {"targetName": "FoodgeTests", "testIdentifier": "HealthEvidenceReaderTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "HistoryViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "IntakeEstimateTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "JudgeQuipLocalizationTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "JudgeReactionTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "LocalReminderServiceTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationPromptTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationTemplateLocalizationTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "NarrationValidatorTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "OnboardingViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "PaletteContrastTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "SettingsViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "SleepIntervalUnionTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayNarrationViewModelTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "TodayRevealViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "TodayViewModelTests"},
   {"targetName": "FoodgeTests", "testIdentifier": "UIStringLocalizationTests"},
-  {"targetName": "FoodgeTests", "testIdentifier": "ValidatingNarratorTests"}
+  {"targetName": "FoodgeTests", "testIdentifier": "ValidatingNarratorTests"},
+  {"targetName": "FoodgeTests", "testIdentifier": "VerdictRevealTests"}
 ]
 ```
 
-These are **all 31 suites in the target as of WU-28-C** (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`). `TodayAppealViewModelTests` and
+These are **all 37 suites in the target as of WU-29-D** (`JudgeQuipLocalizationTests` and `JudgeReactionTests` added in WU-29-B, `TodayRevealViewModelTests`, `DinnerCategoryAppearanceTests` and `VerdictRevealTests` in WU-29-D) (`grep -rhoE '^(struct|final class) [A-Za-z]+Tests'`). `TodayAppealViewModelTests` and
 `IngredientOrderingTests` left with the appeal and the exclusions (D141); `DinnerCategoryRuleTests`
 and `ActivityBaselineCalculatorTests` left with the baseline engine (WU-EB Pass B). Naming any of
 them makes `RunSomeTests` fail on an identifier that no longer exists.
