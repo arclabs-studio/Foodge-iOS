@@ -3257,6 +3257,25 @@ ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs
   it reaches the verdict. **Owed:** the focus move and announcement under VoiceOver, and the scroll at
   accessibility sizes, on a device.
 
+#### The verdict's stage is full width from its first frame (WU-29-H, reported by the user on 14 Oct 2026)
+
+- **Reported:** on tapping for the verdict, "a colored column appeared for a second, and after that, the
+  full background was uniform".
+- **Reproduced** on the simulator by frame: during the push and while the reveal had drawn nothing, the
+  category's stage was a narrow column with the system background either side; with only the stamp
+  drawn, a column the stamp's width; it widened to the screen when the dish arrived.
+- **Cause** (`VerdictView`): the stage is the `ScrollView`'s background, and the scroll view was only as
+  wide as its content column — which, during the reveal (D147), is nothing, then the stamp. Pre-existing
+  since WU-29-D; it shows only while the reveal is under way, which is why the settled renders never
+  showed it.
+- **Fix:** the column takes the full width in every phase (`.frame(maxWidth: .infinity)`), so the scroll
+  view and its stage do too.
+- **Build:** green; `GetBuildLog { severity: "warning" }` → **`totalFound: 0`**. **Suite:** `RunAllTests` →
+  **425 tests, 425 passed**. **Simulator:** the stamp-only frame of the reveal, captured after a relaunch,
+  now shows the stage edge to edge. The run destination had been left on the user's iPhone, so the first
+  rebuild produced a device build and the simulator kept running the old one — caught by the build
+  product's timestamp and redone on iPhone 17 Pro.
+
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 
 | Day | Unit | Deliverable | Exit condition |

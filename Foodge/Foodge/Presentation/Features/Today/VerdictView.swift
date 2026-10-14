@@ -125,6 +125,11 @@ struct VerdictView: View {
                     .transition(motion ? .offset(y: 24).combined(with: .opacity) : Self.fade)
                 }
             }
+            // Full width in every phase. The scroll view is only as wide as this column, and the
+            // stage is drawn behind the scroll view: while the reveal had drawn nothing, or only the
+            // stamp, the stage was a column the stamp's width with the system background either side
+            // of it, until the dish arrived and widened it (seen on the simulator and on a device).
+            .frame(maxWidth: .infinity)
             .padding()
         }
         .background { StageBackground(accent: Color(category.tint)) }
