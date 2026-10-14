@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// A branded loading state for work that temporarily replaces the app's interactive content.
+/// A branded loading state for work that temporarily replaces the app's interactive content: the
+/// judge deliberating on the stage (D145).
 ///
 /// The indeterminate indicator stays native so the system owns its animation and Reduce Motion
 /// behavior. The judge is decorative; the progress label is the single accessible status.
@@ -18,7 +19,7 @@ struct CourtLoadingView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            JudgeBadgeView(artwork: artwork)
+            DeliberatingJudgeView(artwork: artwork)
 
             ProgressView {
                 Text(message)
@@ -32,7 +33,7 @@ struct CourtLoadingView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background { StageBackground(accent: .appBurgundy) }
     }
 }
 

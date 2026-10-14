@@ -21,3 +21,21 @@ extension BiologicalSex {
         }
     }
 }
+
+extension Optional where Wrapped == BiologicalSex {
+    /// Every answer the sex row offers, "Not given" first: declining is an answer, not a gap.
+    static var answers: [BiologicalSex?] {
+        [nil] + BiologicalSex.allCases.map(Optional.some)
+    }
+
+    /// An answer as the person reads it — the one source for the row's value and its menu entry, so
+    /// VoiceOver never announces a value the menu does not list.
+    var displayName: LocalizedStringResource {
+        switch self {
+        case let .some(sex):
+            sex.displayName
+        case .none:
+            LocalizedStringResource("Not given", comment: "Body basics: the person chose not to give their sex")
+        }
+    }
+}

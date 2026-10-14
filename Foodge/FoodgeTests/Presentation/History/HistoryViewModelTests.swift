@@ -141,6 +141,71 @@ struct HistoryViewModelTests {
         }
         #expect(secondCases == second)
     }
+
+    // MARK: - Months
+
+    @Test("A successful load groups the cases into months, newest month first")
+    func loadGroupsTheCasesIntoMonths() async {
+        // Given a store seeded with three days from October and September, newest first
+        let seeded = [
+            makeSavedCase(localDayKey: "2026-10-02", category: .treat),
+            makeSavedCase(localDayKey: "2026-10-01", category: .light),
+            makeSavedCase(localDayKey: "2026-09-18", category: .balanced),
+        ]
+        let (sut, _) = makeSUT(result: .success(seeded))
+
+        // And nothing grouped before the first load
+        #expect(sut.months.isEmpty)
+
+        // When the list is loaded
+        await sut.load()
+
+        // Then the months are the two the keys name, in the order the store returned them
+        #expect(sut.months.map(\.id) == ["2026-10", "2026-09"])
+        #expect(sut.months.map { $0.cases.map(\.localDayKey) } == [["2026-10-02", "2026-10-01"], ["2026-09-18"]])
+
+        // And grouping lost nothing: the same three cases, in the same order
+        #expect(sut.months.flatMap(\.cases) == seeded)
+    }
+
+    @Test("Reloading replaces the months with the new result rather than keeping or adding to the old ones")
+    func reloadingReplacesTheMonths() async {
+        // Given a first load that returned one September day
+        let first = [makeSavedCase(localDayKey: "2026-09-18", category: .balanced)]
+        let (sut, caseStore) = makeSUT(result: .success(first))
+        await sut.load()
+        #expect(sut.months.map(\.id) == ["2026-09"])
+
+        // When the store's result changes to a single October day and the list is loaded again
+        let second = [makeSavedCase(localDayKey: "2026-10-01", category: .light)]
+        await caseStore.setResult(.success(second))
+        await sut.load()
+
+        // Then the months describe the new result alone — September is gone, nothing was appended
+        #expect(sut.months.map(\.id) == ["2026-10"])
+        #expect(sut.months.flatMap(\.cases) == second)
+    }
+
+    @Test("A failing load after a successful one leaves no months behind")
+    func failingLoadClearsTheMonths() async {
+        // Given a successful load that produced a month
+        let seeded = [makeSavedCase(localDayKey: "2026-09-18", category: .balanced)]
+        let (sut, caseStore) = makeSUT(result: .success(seeded))
+        await sut.load()
+        #expect(sut.months.map(\.id) == ["2026-09"])
+
+        // When the store starts failing and the list is loaded again
+        await caseStore.setResult(.failure(FoodgeError.caseCorrupted))
+        await sut.load()
+
+        // Then the screen is in its error state and no stale month is left to be drawn
+        guard case let .error(error) = sut.stage else {
+            Issue.record("Expected .error, got \(sut.stage.logLabel)")
+            return
+        }
+        #expect(error == .storeUnavailable)
+        #expect(sut.months.isEmpty)
+    }
 }
 
 /// A scripted `CaseStore` whose `allCases()` result can be changed between calls — the seam

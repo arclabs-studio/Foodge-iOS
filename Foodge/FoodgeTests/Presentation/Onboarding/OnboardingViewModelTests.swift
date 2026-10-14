@@ -265,6 +265,25 @@ struct OnboardingViewModelTests {
         #expect(missing.isEmpty)
     }
 
+    @Test("Only a state Health has not answered still offers to connect", arguments: [
+        (OnboardingViewModel.HealthState.idle, true),
+        (.requesting, true),
+        (.connected(missing: []), false),
+        (.connected(missing: [.restingEnergy]), false),
+        (.noReadableData, false),
+        (.previouslyAnswered, false),
+        (.unavailable, false),
+        (.requestFailed, false),
+    ])
+    func onlyAnUnansweredStateAwaitsConnection(state: OnboardingViewModel.HealthState, awaits: Bool) {
+        // Given a Health state, and whether the screen should still offer *Connect Apple Health* in
+        // it — written here from what each state means, not read back from the property (D150)
+        // When the screen asks which primary action to show
+        // Then only the two states before Health has answered offer to connect: `.idle` must, or
+        // nothing can ever ask; `.requestFailed` must not, or Connect would sit beside its retry
+        #expect(state.awaitsConnection == awaits)
+    }
+
     // MARK: - Body basics
 
     @Test("All four figures produce a body; three do not")
@@ -349,6 +368,22 @@ struct OnboardingViewModelTests {
         // Then the failure is not left on screen behind them, and the flow advances
         #expect(sut.viewModel.healthState == .idle)
         #expect(sut.viewModel.path == [.bodyBasics])
+    }
+
+    @Test("Continuing once Health has answered goes on to About you and keeps the answer")
+    func continuingAfterAnAnswerKeepsIt() async {
+        // Given a connected state with resting energy missing
+        let sut = makeSUT(snapshot: SyntheticScenarios.estimatedResting.snapshot)
+        await sut.viewModel.connectHealth()
+        let answered = sut.viewModel.healthState
+        #expect(answered == .connected(missing: [.restingEnergy]))
+
+        // When the user continues
+        sut.viewModel.continueToBodyBasics()
+
+        // Then the flow advances, and — unlike skipping — what Health answered is not reset
+        #expect(sut.viewModel.path == [.bodyBasics])
+        #expect(sut.viewModel.healthState == answered)
     }
 
     // MARK: - The injected clock

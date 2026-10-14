@@ -27,7 +27,10 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    NavigationLink("Diet", value: SettingsRoute.preferences)
+                    NavigationLink(value: SettingsRoute.preferences) {
+                        Label("Diet", systemImage: "fork.knife")
+                            .labelStyle(.settingsIcon)
+                    }
                 }
 
                 // Hidden during a demonstration, both of them, because neither can tell the truth
