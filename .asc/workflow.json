@@ -8,7 +8,7 @@
       "description": "Attach the latest processed build to the internal 'Beta Testers' group.",
       "env": {
         // The internal group's ID: asc testflight groups list --app 6822812368
-        "GROUP_ID": ""
+        "GROUP_ID": "590bc2dc-3c1e-4188-a3c9-f5d9ccc9b595"
       },
       "steps": [
         {
