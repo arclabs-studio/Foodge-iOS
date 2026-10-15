@@ -79,11 +79,13 @@ struct TodayFlowView: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    TodayFlowView(
-        vm: PreviewDependencies.all.makeTodayViewModel(),
-        settings: PreviewDependencies.all.makeSettingsViewModel(),
-        onLocalDataErased: {},
-        demonstration: .previewInert
-    )
-}
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        TodayFlowView(
+            vm: PreviewDependencies.all.makeTodayViewModel(),
+            settings: PreviewDependencies.all.makeSettingsViewModel(),
+            onLocalDataErased: {},
+            demonstration: .previewInert
+        )
+    }
+#endif

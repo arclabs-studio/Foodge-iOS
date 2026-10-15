@@ -132,46 +132,48 @@ extension OnboardingViewModel.HealthState {
     }
 }
 
-#Preview("Not connected yet", traits: .sampleData) {
-    NavigationStack {
-        HealthConnectionView(vm: PreviewDependencies.all.makeOnboardingViewModel())
+#if DEBUG
+    #Preview("Not connected yet", traits: .sampleData) {
+        NavigationStack {
+            HealthConnectionView(vm: PreviewDependencies.all.makeOnboardingViewModel())
+        }
     }
-}
 
-#Preview("Connected", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.modestAllowance).makeOnboardingViewModel()
+    #Preview("Connected", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.modestAllowance).makeOnboardingViewModel()
 
-    NavigationStack {
-        HealthConnectionView(vm: vm)
+        NavigationStack {
+            HealthConnectionView(vm: vm)
+        }
+        .task { await vm.connectHealth() }
     }
-    .task { await vm.connectHealth() }
-}
 
-#Preview("Some kinds missing", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.estimatedResting)
-        .makeOnboardingViewModel()
+    #Preview("Some kinds missing", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.estimatedResting)
+            .makeOnboardingViewModel()
 
-    NavigationStack {
-        HealthConnectionView(vm: vm)
+        NavigationStack {
+            HealthConnectionView(vm: vm)
+        }
+        .task { await vm.connectHealth() }
     }
-    .task { await vm.connectHealth() }
-}
 
-#Preview("No readable data", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
-        .makeOnboardingViewModel()
+    #Preview("No readable data", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
+            .makeOnboardingViewModel()
 
-    NavigationStack {
-        HealthConnectionView(vm: vm)
+        NavigationStack {
+            HealthConnectionView(vm: vm)
+        }
+        .task { await vm.connectHealth() }
     }
-    .task { await vm.connectHealth() }
-}
 
-#Preview("Health unavailable", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.healthUnavailable().makeOnboardingViewModel()
+    #Preview("Health unavailable", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.healthUnavailable().makeOnboardingViewModel()
 
-    NavigationStack {
-        HealthConnectionView(vm: vm)
+        NavigationStack {
+            HealthConnectionView(vm: vm)
+        }
+        .task { await vm.connectHealth() }
     }
-    .task { await vm.connectHealth() }
-}
+#endif

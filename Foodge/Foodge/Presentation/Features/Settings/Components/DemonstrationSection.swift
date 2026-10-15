@@ -44,18 +44,20 @@ struct DemonstrationSection: View {
     }
 }
 
-#Preview("Live", traits: .sizeThatFitsLayout, .sampleData) {
-    NavigationStack {
-        Form {
-            DemonstrationSection(controls: .previewInert)
+#if DEBUG
+    #Preview("Live", traits: .sizeThatFitsLayout, .sampleData) {
+        NavigationStack {
+            Form {
+                DemonstrationSection(controls: .previewInert)
+            }
         }
     }
-}
 
-#Preview("Running", traits: .sizeThatFitsLayout, .sampleData) {
-    NavigationStack {
-        Form {
-            DemonstrationSection(controls: .previewRunning)
+    #Preview("Running", traits: .sizeThatFitsLayout, .sampleData) {
+        NavigationStack {
+            Form {
+                DemonstrationSection(controls: .previewRunning)
+            }
         }
     }
-}
+#endif

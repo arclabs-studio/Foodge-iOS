@@ -12,7 +12,8 @@
     ///
     /// A `#Preview` is a composition root, which is why this file may name ``AppDependencies``
     /// while production Presentation code may not (D34). It is `#if DEBUG` and never reaches the
-    /// shipped binary.
+    /// shipped binary — so every `#Preview` that names it sits inside `#if DEBUG` too: a Release
+    /// build still compiles `#Preview` bodies, and an unguarded one fails the archive.
     ///
     /// It vends **Domain-typed seams only**, never a ready-made ViewModel: handing out a ViewModel
     /// would put presentation decisions in Data and quietly become a second place where a screen's

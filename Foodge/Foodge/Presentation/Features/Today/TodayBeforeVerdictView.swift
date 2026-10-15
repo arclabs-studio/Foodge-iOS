@@ -182,18 +182,20 @@ extension TodayBeforeVerdictView {
     }
 }
 
-#Preview("Gathering", traits: .sampleData) {
-    NavigationStack {
-        TodayBeforeVerdictView(vm: PreviewDependencies.all.makeTodayViewModel())
+#if DEBUG
+    #Preview("Gathering", traits: .sampleData) {
+        NavigationStack {
+            TodayBeforeVerdictView(vm: PreviewDependencies.all.makeTodayViewModel())
+        }
     }
-}
 
-#Preview("Needs the self-report", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
-        .makeTodayViewModel()
+    #Preview("Needs the self-report", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.connected(SyntheticScenarios.noHealthData)
+            .makeTodayViewModel()
 
-    NavigationStack {
-        TodayBeforeVerdictView(vm: vm)
+        NavigationStack {
+            TodayBeforeVerdictView(vm: vm)
+        }
+        .task { await vm.requestVerdict() }
     }
-    .task { await vm.requestVerdict() }
-}
+#endif

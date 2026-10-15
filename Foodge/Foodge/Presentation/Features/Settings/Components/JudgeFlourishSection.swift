@@ -34,8 +34,10 @@ struct JudgeFlourishSection: View {
     }
 }
 
-#Preview(traits: .sizeThatFitsLayout, .sampleData) {
-    Form {
-        JudgeFlourishSection(vm: PreviewDependencies.all.makeSettingsViewModel())
+#if DEBUG
+    #Preview(traits: .sizeThatFitsLayout, .sampleData) {
+        Form {
+            JudgeFlourishSection(vm: PreviewDependencies.all.makeSettingsViewModel())
+        }
     }
-}
+#endif

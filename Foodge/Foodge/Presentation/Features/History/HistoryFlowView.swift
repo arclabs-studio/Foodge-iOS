@@ -28,6 +28,8 @@ struct HistoryFlowView: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    HistoryFlowView(vm: PreviewDependencies.historyPopulated.makeHistoryViewModel())
-}
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        HistoryFlowView(vm: PreviewDependencies.historyPopulated.makeHistoryViewModel())
+    }
+#endif

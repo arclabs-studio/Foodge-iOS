@@ -33,8 +33,10 @@ struct SettingsPreferencesView: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    NavigationStack {
-        SettingsPreferencesView(vm: PreviewDependencies.all.makeSettingsViewModel())
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        NavigationStack {
+            SettingsPreferencesView(vm: PreviewDependencies.all.makeSettingsViewModel())
+        }
     }
-}
+#endif

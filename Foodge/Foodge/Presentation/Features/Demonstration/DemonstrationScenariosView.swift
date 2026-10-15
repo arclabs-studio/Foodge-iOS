@@ -87,14 +87,16 @@ private struct DemonstrationScenarioRow: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    NavigationStack {
-        DemonstrationScenariosView(controls: .previewInert)
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        NavigationStack {
+            DemonstrationScenariosView(controls: .previewInert)
+        }
     }
-}
 
-#Preview("Failed to start", traits: .sampleData) {
-    NavigationStack {
-        DemonstrationScenariosView(controls: .previewFailed)
+    #Preview("Failed to start", traits: .sampleData) {
+        NavigationStack {
+            DemonstrationScenariosView(controls: .previewFailed)
+        }
     }
-}
+#endif

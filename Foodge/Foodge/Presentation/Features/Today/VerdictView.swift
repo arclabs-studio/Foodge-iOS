@@ -143,29 +143,31 @@ struct VerdictView: View {
     }
 }
 
-#Preview("Verdict", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.reopeningSavedCase(
-        decision: VerdictDecision(
-            category: .balanced,
-            basis: .energyBalance(SampleDecisions.moderateAllowance),
-            reasonCodes: [.moderateAllowance],
-            isProvisional: false,
-            ruleVersion: CheatMealAllowanceRule.ruleVersion
+#if DEBUG
+    #Preview("Verdict", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.reopeningSavedCase(
+            decision: VerdictDecision(
+                category: .balanced,
+                basis: .energyBalance(SampleDecisions.moderateAllowance),
+                reasonCodes: [.moderateAllowance],
+                isProvisional: false,
+                ruleVersion: CheatMealAllowanceRule.ruleVersion
+            )
         )
-    )
-    .makeTodayViewModel()
+        .makeTodayViewModel()
 
-    NavigationStack {
-        VerdictView(vm: vm, playsReveal: false)
+        NavigationStack {
+            VerdictView(vm: vm, playsReveal: false)
+        }
+        .task { await vm.onAppear() }
     }
-    .task { await vm.onAppear() }
-}
 
-#Preview("Save failed", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.savingFails().makeTodayViewModel()
+    #Preview("Save failed", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.savingFails().makeTodayViewModel()
 
-    NavigationStack {
-        VerdictView(vm: vm, playsReveal: false)
+        NavigationStack {
+            VerdictView(vm: vm, playsReveal: false)
+        }
+        .task { await vm.requestVerdict() }
     }
-    .task { await vm.requestVerdict() }
-}
+#endif
