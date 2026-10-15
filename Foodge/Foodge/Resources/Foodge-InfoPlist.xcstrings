@@ -36,6 +36,24 @@
           }
         }
       }
+    },
+    "NSHealthUpdateUsageDescription" : {
+      "comment" : "Privacy - Health Update Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Foodge never writes to Health. It only reads your activity, sleep and dietary energy to judge tonight's dinner."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Foodge nunca escribe en Salud. Solo lee tu actividad, tu sueño y tu energía alimentaria para juzgar la cena de esta noche."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
