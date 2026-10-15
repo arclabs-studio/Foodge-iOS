@@ -88,14 +88,16 @@ struct HistoryListView: View {
     }
 }
 
-#Preview("Empty", traits: .sampleData) {
-    NavigationStack {
-        HistoryListView(vm: PreviewDependencies.all.makeHistoryViewModel())
+#if DEBUG
+    #Preview("Empty", traits: .sampleData) {
+        NavigationStack {
+            HistoryListView(vm: PreviewDependencies.all.makeHistoryViewModel())
+        }
     }
-}
 
-#Preview("Populated", traits: .sampleData) {
-    NavigationStack {
-        HistoryListView(vm: PreviewDependencies.historyPopulated.makeHistoryViewModel())
+    #Preview("Populated", traits: .sampleData) {
+        NavigationStack {
+            HistoryListView(vm: PreviewDependencies.historyPopulated.makeHistoryViewModel())
+        }
     }
-}
+#endif

@@ -31,6 +31,8 @@ struct OnboardingFlowView: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    OnboardingFlowView(vm: PreviewDependencies.all.makeOnboardingViewModel())
-}
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        OnboardingFlowView(vm: PreviewDependencies.all.makeOnboardingViewModel())
+    }
+#endif

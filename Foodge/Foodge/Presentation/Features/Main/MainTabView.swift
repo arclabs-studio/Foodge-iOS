@@ -64,6 +64,8 @@ struct MainTabView: View {
     }
 }
 
-#Preview(traits: .completedOnboarding) {
-    MainTabView(dependencies: PreviewDependencies.all, demonstration: .previewInert) {}
-}
+#if DEBUG
+    #Preview(traits: .completedOnboarding) {
+        MainTabView(dependencies: PreviewDependencies.all, demonstration: .previewInert) {}
+    }
+#endif

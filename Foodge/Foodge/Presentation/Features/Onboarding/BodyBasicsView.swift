@@ -171,36 +171,38 @@ struct BodyBasicsView: View {
     }
 }
 
-#Preview("Empty", traits: .sampleData) {
-    NavigationStack {
-        BodyBasicsView(vm: PreviewDependencies.all.makeOnboardingViewModel())
+#if DEBUG
+    #Preview("Empty", traits: .sampleData) {
+        NavigationStack {
+            BodyBasicsView(vm: PreviewDependencies.all.makeOnboardingViewModel())
+        }
     }
-}
 
-#Preview("Half answered", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
+    #Preview("Half answered", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
 
-    NavigationStack {
-        BodyBasicsView(vm: vm)
+        NavigationStack {
+            BodyBasicsView(vm: vm)
+        }
+        .task {
+            vm.bodySex = .female
+            vm.ageText = "34"
+        }
     }
-    .task {
-        vm.bodySex = .female
-        vm.ageText = "34"
-    }
-}
 
-#Preview("Complete", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
+    #Preview("Complete", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.all.makeOnboardingViewModel()
 
-    NavigationStack {
-        BodyBasicsView(vm: vm)
+        NavigationStack {
+            BodyBasicsView(vm: vm)
+        }
+        // The state the other two previews cannot show: with all four figures valid, both the
+        // skip button and the footer describing it are gone, and only `Save and finish` is left.
+        .task {
+            vm.bodySex = .male
+            vm.ageText = "35"
+            vm.heightText = "175"
+            vm.weightText = "70"
+        }
     }
-    // The state the other two previews cannot show: with all four figures valid, both the
-    // skip button and the footer describing it are gone, and only `Save and finish` is left.
-    .task {
-        vm.bodySex = .male
-        vm.ageText = "35"
-        vm.heightText = "175"
-        vm.weightText = "70"
-    }
-}
+#endif

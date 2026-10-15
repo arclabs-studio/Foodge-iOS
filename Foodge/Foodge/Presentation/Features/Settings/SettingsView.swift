@@ -72,26 +72,28 @@ struct SettingsView: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    SettingsView(vm: PreviewDependencies.all.makeSettingsViewModel(), onLocalDataErased: {}, demonstration: .previewInert)
-}
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        SettingsView(vm: PreviewDependencies.all.makeSettingsViewModel(), onLocalDataErased: {}, demonstration: .previewInert)
+    }
 
-#Preview("During a demonstration", traits: .sampleData) {
-    SettingsView(
-        vm: PreviewDependencies.all.makeSettingsViewModel(),
-        onLocalDataErased: {},
-        demonstration: .previewRunning
-    )
-}
+    #Preview("During a demonstration", traits: .sampleData) {
+        SettingsView(
+            vm: PreviewDependencies.all.makeSettingsViewModel(),
+            onLocalDataErased: {},
+            demonstration: .previewRunning
+        )
+    }
 
-#Preview("Reminder refused", traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies
-        .reminderRefused()
-        .makeSettingsViewModel()
+    #Preview("Reminder refused", traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies
+            .reminderRefused()
+            .makeSettingsViewModel()
 
-    SettingsView(vm: vm, onLocalDataErased: {}, demonstration: .previewInert)
-        .task {
-            vm.reminderEnabled = true
-            await vm.reminderEnabledChanged(to: true)
-        }
-}
+        SettingsView(vm: vm, onLocalDataErased: {}, demonstration: .previewInert)
+            .task {
+                vm.reminderEnabled = true
+                await vm.reminderEnabledChanged(to: true)
+            }
+    }
+#endif

@@ -46,12 +46,14 @@ struct IntakeCheckInCard: View {
     }
 }
 
-#Preview(traits: .sampleData) {
-    @Previewable @State var vm = PreviewDependencies.all.makeTodayViewModel()
+#if DEBUG
+    #Preview(traits: .sampleData) {
+        @Previewable @State var vm = PreviewDependencies.all.makeTodayViewModel()
 
-    ScrollView {
-        IntakeCheckInCard(vm: vm)
-            .padding()
+        ScrollView {
+            IntakeCheckInCard(vm: vm)
+                .padding()
+        }
+        .background { StageBackground(accent: .appBurgundy) }
     }
-    .background { StageBackground(accent: .appBurgundy) }
-}
+#endif

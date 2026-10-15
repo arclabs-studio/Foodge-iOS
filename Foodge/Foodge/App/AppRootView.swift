@@ -66,10 +66,12 @@ struct AppRootView: View {
     }
 }
 
-#Preview("First launch", traits: .sampleData) {
-    AppRootView(dependencies: PreviewDependencies.all, demonstration: .previewInert)
-}
+#if DEBUG
+    #Preview("First launch", traits: .sampleData) {
+        AppRootView(dependencies: PreviewDependencies.all, demonstration: .previewInert)
+    }
 
-#Preview("Onboarding already done", traits: .completedOnboarding) {
-    AppRootView(dependencies: PreviewDependencies.all, demonstration: .previewInert)
-}
+    #Preview("Onboarding already done", traits: .completedOnboarding) {
+        AppRootView(dependencies: PreviewDependencies.all, demonstration: .previewInert)
+    }
+#endif
