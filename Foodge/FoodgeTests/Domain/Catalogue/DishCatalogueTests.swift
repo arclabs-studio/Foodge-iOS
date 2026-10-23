@@ -105,17 +105,14 @@ struct DishCatalogueTests {
 
     // MARK: - Diet nesting
 
-    @Test("A variant's diets are always a nested set: vegan implies vegetarian implies pescatarian implies omnivore")
+    @Test("A variant's diets are always a nested set: vegan implies vegetarian implies omnivore")
     func dietsNestCorrectly() {
         for entry in DishCatalogue.entries {
             let diets = entry.variant.diets
             if diets.contains(.vegan) {
-                #expect(diets.isSuperset(of: [.vegetarian, .pescatarian, .omnivore]), "\(entry.id)")
+                #expect(diets.isSuperset(of: [.vegetarian, .omnivore]), "\(entry.id)")
             }
             if diets.contains(.vegetarian) {
-                #expect(diets.isSuperset(of: [.pescatarian, .omnivore]), "\(entry.id)")
-            }
-            if diets.contains(.pescatarian) {
                 #expect(diets.contains(.omnivore), "\(entry.id)")
             }
             #expect(!diets.isEmpty, "\(entry.id) satisfies nobody")
@@ -148,8 +145,8 @@ struct DishCatalogueTests {
 
     private static func dietCeiling(for ingredient: Ingredient) -> Set<DietProfile> {
         if meat.contains(ingredient) { return [.omnivore] }
-        if fish.contains(ingredient) { return [.omnivore, .pescatarian] }
-        if eggOrDairy.contains(ingredient) { return [.omnivore, .pescatarian, .vegetarian] }
+        if fish.contains(ingredient) { return [.omnivore] }
+        if eggOrDairy.contains(ingredient) { return [.omnivore, .vegetarian] }
         return Set(DietProfile.allCases)
     }
 

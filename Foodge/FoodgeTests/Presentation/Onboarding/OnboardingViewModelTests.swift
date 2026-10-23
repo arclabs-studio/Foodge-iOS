@@ -413,7 +413,7 @@ struct OnboardingViewModelTests {
     func finishingWritesTheCompletedDraftExactlyOnce() async throws {
         // Given a user who has made every choice onboarding still offers: a diet and four figures
         let sut = makeSUT()
-        sut.viewModel.draft.dietProfile = .pescatarian
+        sut.viewModel.draft.dietProfile = .vegetarian
         sut.viewModel.bodySex = .male
         sut.viewModel.ageText = "41"
         sut.viewModel.heightText = "181"
@@ -426,7 +426,7 @@ struct OnboardingViewModelTests {
         // Then exactly one write happened, carrying all of it
         let saved = try #require(await sut.store.savedDrafts.first)
         #expect(await sut.store.savedDrafts.count == 1)
-        #expect(saved.dietProfile == .pescatarian)
+        #expect(saved.dietProfile == .vegetarian)
         #expect(saved.bodyBasics?.sex == .male)
         #expect(saved.bodyBasics?.ageYears == 41)
         // Stamped from the injected clock, not from `Date()`

@@ -16,8 +16,6 @@ extension DietProfile {
         switch self {
         case .omnivore:
             LocalizedStringResource("Omnivore", comment: "Diet choice: eats everything")
-        case .pescatarian:
-            LocalizedStringResource("Pescatarian", comment: "Diet choice: fish but no other meat")
         case .vegetarian:
             LocalizedStringResource("Vegetarian", comment: "Diet choice: no meat or fish")
         case .vegan:
