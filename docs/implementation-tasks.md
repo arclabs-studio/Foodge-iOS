@@ -179,6 +179,16 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D149 | **A History row names its dish.** The plan's row was the dish's artwork, the date and a mini category stamp; the row also shows the dish name, as `.headline`, with the date beneath it in `appBurgundyMuted` `.subheadline`. | The artwork is decorative (`accessibilityHidden`) and drawn per *family*, so two pasta nights look the same: without the name a VoiceOver user hears a date and a category, and a sighted one cannot tell pesto from bolognese. The cost is that the date stops being the row's primary text. Both auditors judged it justified (WU-29-F). |
 | D150 | **The onboarding forms end on the stage's primary action, and the judge heads About you (WU-29-H, plan `docs/migrations/2026-10-13-form-screens-character.md`; the action and the judge approved by the user on 13 Oct 2026, the withdrawal of *Connect* below decided while building and flagged to the user the same day).** Apple Health's *Connect Apple Health* — then *Continue* once Health has answered — and About you's *Save and finish* are `primaryAction()`, pinned with `pinnedPrimaryAction` and placed as the form's last section at accessibility sizes (`InlinePrimaryActionSection`), as Welcome's *Continue* is. Health's *Continue* is a `Button` pushing through `OnboardingViewModel.continueToBodyBasics()`, not Welcome's `NavigationLink`: inside a `Form` a link is drawn as a list row whatever its style, and at AX 2 it rendered as a white label on a clear row with a chevron (`memory/troubleshooting/a-navigation-link-in-a-form-is-a-row.md`). The secondary ways out (*Continue without Health*, *Finish without the figures*) stay form rows. *Connect Apple Health* is no longer offered once Health has answered (`HealthState.awaitsConnection`): iOS does not show its sheet twice (D137), and a failed request keeps its own retry in `HealthUnavailableSection`. **Cost:** `connectHealth()` also re-reads today's evidence, so the old button let someone who changed Health's sharing mid-onboarding refresh the *What Health could read* report; now that report updates only on the next verdict, which re-reads Health anyway. About you carries the same tappable judge as Apple Health (`FormJudgeHeroSection`). D148 stands: both forms keep the system grouped background. | Onboarding dropped from Welcome's prominent button to a text row on the two screens that finish it, and the HIG asks onboarding to be "fast, fun". The alternative — plain rows — kept the screens consistent with Settings but not with the flow they belong to. The pinned bar and its accessibility-size fallback are the stage's, reused rather than copied, so the WCAG 1.4.10 reasoning in `PinnedPrimaryActionModifier` carries over unchanged. |
 | D151 | **Symbols on form screens: interactive in the tint, informative in the muted colour.** Settings rows that act wear a filled tile (`SettingsIconLabelStyle`: `appOnBurgundy` on `appBurgundy`; red for *Delete local data*). Evidence sources and verdict reasons wear a monochrome symbol in `appBurgundyMuted` (`InformativeSymbol`, `ReasonLabel`). Category colours never decorate a symbol that is not about the category. The allowance gauge's fill is the verdict's category tint — the one place a category colour fills a data graphic, which **extends D145's shape exception**: cheese reads under 3:1 there too, accepted because the share and every band are also text. One suggestion was **dropped** in the same check: a verdict badge per demonstration scenario, because the outcome is computed by running the rule (`DemonstrationScenarioOutcomeTests`) and *No readable Health data* depends on the check-in answer. | The HIG's *Color* page (read through the `cupertino` HIG index on 13 Oct 2026): "avoid using the same color to mean different things … if you use your brand color to indicate that a borderless button is interactive, using the same or similar color to stylize noninteractive text is confusing". Burgundy is Foodge's tint, the colour of what acts; `appBurgundyMuted` is already the app's colour for what does not — every form header, footer and prompt (D134, D148) — so an informative symbol takes the muted colour with the rest of the non-interactive text, not the tint. Tomato, cheese and basil *are* Treat, Balanced and Light. A fixed badge per scenario would either copy the rule into a view or misstate a scenario. |
+| D152 | **No ads, ever: no ad SDK and no affiliate links (monetization strategy, decided 22 Oct 2026; plan `docs/migrations/2026-10-23-monetization-phase-0.md`).** The only sponsorship that fits is packaged editorial content shipped in an app update, with no network and no targeting. It is considered from about 5k MAU, not before. | The owner's estimate is about 50 €/month from ads at 10k downloads a year. Ads would end the "Data Not Collected" label and the zero-tracking promise, and they meet App Review 2.5.18, 5.1.2(vi) and 5.1.3(i) head on for a Health app. The income is not worth any of that. |
+| D153 | **Free app + one non-consumable "Foodge+" (3.99 € at launch, then 4.99 €) + a tip jar. No subscription.** A subscription tier ("Foodge Chef") is reconsidered only at the 90-day review (D159), and only as an *extra* tier next to the lifetime purchase, never in place of it. | Foodge has no server costs to cover with a recurring fee, and a one-off price suits a small, playful app. A lifetime purchase sold first cannot later be withdrawn without breaking faith with the people who bought it, so any subscription can only be added beside it. |
+| D154 | **Raw StoreKit 2, Apple frameworks only.** No RevenueCat and no ARCPurchasing. | The zero-dependency rule (CLAUDE.md, Non-negotiables) stands. One non-consumable and three consumables do not need a purchase platform, and learning StoreKit 2 directly is a goal of this work. |
+| D155 | **The free tier stays complete**: the full daily verdict and dish, the evidence screen, a 7-day history, the standard judge, the on-device flourish, one small widget and the "What's for dinner?" App Intent / Siri phrase. **The 7-day history hides, never deletes** (decided with the user on 23 Oct 2026). Every case stays in the store; buying or restoring Foodge+ shows all of them again. | The free app has to be the whole product, or the verdict becomes a teaser. Deleting cases beyond 7 days would destroy data the person may want back, and a refund followed by a repurchase would lose history for good. Hiding is a read-time rule (D161) and needs no schema change. The limit does not exist until WU-30-D ships; until then the free tier shows every case. Today `PersistenceActor.allCases()` has no fetch limit and nothing prunes, so this rule keeps the current storage behaviour. |
+| D156 | **Foodge+ unlocks:** catalogue packs, alternative judges and alternate app icons, the full case file (unlimited history, streaks, monthly and yearly summaries), extra widget families and Lock Screen widgets, a Watch complication and a Live Activity (low priority). **A pack joins the selection pool automatically for an owner.** There is no per-pack toggle. | A toggle that adds or removes dishes is a food-choice control, which is the thing D138 removed. A pack widens the pool the rule draws from; the person still never chooses the meal. |
+| D157 | **The tip jar is "bribe the judge": three consumables at 0.99 / 2.99 / 4.99 €, with a cosmetic reward only** — a judge reaction and a "Court benefactor" seal in History. The jar shows on the verdict screen, never in demonstration mode, and its copy follows D118/D119 (playful, never guilt). **The seal is derived from `Transaction.all` with `SKIncludeConsumableInAppPurchaseHistory = YES`** (iOS 18+), and revoked tips are excluded, so it needs no schema field. | A tip that changed the verdict or the dish would be pay-to-pick-food (see open question Q1 in the plan). Deriving the seal from StoreKit's own history keeps it honest after a refund, with nothing stored to drift. The Info.plist key is verified on the built `Foodge.app/Info.plist` (D26) in WU-30-A. |
+| D158 | **Widgets, App Intents, Siri and Shortcuts move into scope**, split free/paid per D155/D156. **The widget reads a small App Group snapshot file, never the store** (decided with the user on 23 Oct 2026). The file is `Codable` and holds the local day, the category, the dish ID and the provenance label. It holds no Health figures, and the widget never calls HealthKit. | The store is in the app's own container with no App Group, under `.completeUnlessOpen` (D29, D107). Moving it to a shared container would widen who can open the Health-derived store. A snapshot carries only what a widget displays. Lock Screen widgets (Foodge+) need a later decision on the snapshot's protection class (Q6). |
+| D159 | **Phases and the 90-day gate.** Phase 0 pre-launch, Phase 1 launch (weeks 1–4), Phase 2 validation (days 30–90), Phase 3 decision. **Measurement uses App Store Connect Analytics and sales reports only, with no in-app analytics.** Thresholds: product page conversion > 30 %, D7 retention > 15 %, D30 > 7 %, download → Foodge+ > 3 %, tips / downloads > 1 %, rating ≥ 4.6 with > 50 ratings. Three outcome branches from the owner's private study (not in this repository) decide what follows; they are restated in the ledger when Phase 3 is taken. | Thresholds written before launch cannot be moved to fit the result. In-app analytics would end "Data Not Collected"; App Store Connect already reports what these thresholds need. |
+| D160 | **Defect: recency was never wired.** `TodayViewModel.finish` (`Presentation/Features/Today/TodayViewModel.swift:391`) builds `DishSelectionRequest` without `recentSelections`, which defaults to `[]`. D139's third key ("avoid the last three days") is therefore dead in the shipped app; only `DishSelectionTests` exercise it. It is fixed in WU-30-0, before any pack changes the pool. | CLAUDE.md, the plan banner and D139 all describe the rule as live. The domain function was tested and correct, but no test asked whether the caller passed the history in. A pack that widens the pool would make the missing key easier to notice and harder to attribute, so the fix goes first. |
+| D161 | **Entitlement is derived, never persisted.** It is read from `Transaction.currentEntitlements` and kept current by a `Transaction.updates` listener started once at launch, for the live session only. The store holds no "isPlus" flag. | A stored flag would be something to tamper with, something to migrate, and something a refund would have to clear by hand. A derived value has none of those: revocation applies itself at the next update, and demonstration and preview modes supply fixed values through the same protocol. |
 
 ---
 
@@ -3291,6 +3301,219 @@ ahead with suggestions. Validate all of them using HIG and Apple skills and MCPs
   question on Today; a History row; case detail), haptics (the judge's tap, the stamp), Reduce Motion at
   runtime, About you's pinned bar over the number pad on a small phone, and the scroll to the stage card at
   accessibility sizes.
+
+## Post-launch — monetization Phase 0 (WU-30)
+
+Foodge left the hackathon and is on TestFlight (`0.1.0`, `beta/20261015-4`). The TestFlight release
+work — bundle ID and version (#5), DEBUG-only preview fixtures out of Release (#6), the Health update
+purpose string (#7) and the export-compliance declaration (#8) — shipped through those PRs without a
+ledger unit; this line records it.
+
+The monetization strategy was decided on 22 Oct 2026 and planned on 23 Oct 2026 (D152–D161, plan
+`docs/migrations/2026-10-23-monetization-phase-0.md`): no ads, a free app plus a Foodge+
+non-consumable, a tip jar, raw StoreKit 2, and widgets and App Intents on the roadmap. **The judgement
+call everything follows from: monetization may never reach the rule or the dish.** Entitlement is
+derived (D161), and a pack widens the pool, never the person's choice (D138, D156). Open questions
+Q1–Q7 in the plan are **not decided**; units marked *(depends on Q…)* wait for the user's answer.
+
+Every unit below closes with the `foodge-verify` skill — a zero-warning build (`GetBuildLog` at
+`severity: "warning"` → `totalFound: 0`) and a green suite with real counts — plus its audit agents.
+UI units also need renders on iOS 27 and iOS 26, and in `es`. Tests are written first by
+`arc-test-engineer`. Every audit prompt carries the instruction: *check whether each test could
+actually fail, and whether any comment, doc or ledger entry claims more than the code does.*
+
+**Order:** WU-30-I (admin — start now, in parallel) → 0 → A → B → C → D → E / F → G → H.
+
+### WU-30-0 ⬜ Recency wiring
+
+**D160.**
+
+- **Objective / scope:** `CaseStore` exposes the dish picks of the last 3 local days, and
+  `TodayViewModel.finish` passes them to `DishSelectionRequest` as `recentSelections`. **No catalogue
+  change, no new selection key, no UI change.**
+- **Inputs / docs:** D139, D40; `Domain/UseCases/DishSelection.swift`;
+  `Presentation/Features/Today/TodayViewModel.swift:391`; `memory/decisions/recency-was-never-wired.md`;
+  skills `swift-testing-doctrine`, `swiftdata-architecture`.
+- **Acceptance:** a Today test that **fails when `recentSelections` is dropped** from the request:
+  yesterday's variant is not re-picked when an alternative exists in the same category and diet
+  profile. The 3-day window is computed in local calendar days (DST-safe). Demonstration mode behaves
+  the same against its in-memory store.
+- **Tests / verifier:** `arc-test-engineer` first; `foodge-verify`; `arc-constitution-review`.
+- **Evidence:**
+- **Next:** WU-30-A.
+
+### WU-30-A ⬜ StoreKit 2 foundation (no UI)
+
+**D153, D154, D157, D161.**
+
+- **Objective / scope:** product IDs `com.arclabs.foodge.plus`, `com.arclabs.foodge.tip.small`,
+  `.tip.medium`, `.tip.large`; a `Foodge.storekit` configuration on the scheme. Domain (Foundation
+  only): `FoodgeFeature`, `Entitlements` (owned features plus tip history as `[TipRecord]`), protocol
+  `EntitlementProviding: Sendable` (`current()`, `updates()`, `restore()`). Data:
+  `actor StoreKitEntitlementService` (maps verified transactions, owns the `Transaction.updates`
+  listener, finishes transactions, Restore through `AppStore.sync()`), `DemonstrationEntitlements`,
+  `PreviewEntitlements`, test `FixtureEntitlements` (an actor, D11). `AppDependencies` gains
+  `entitlements`; `AppLaunch` starts the listener once, live session only.
+  `SKIncludeConsumableInAppPurchaseHistory = YES` through `AddInfoPlist`. **No UI, no schema change.**
+  **Starts with a spike:** can `SKTestSession` run from Swift Testing (serially)? The result is
+  reported to the user before anything is built on it.
+- **Inputs / docs:** the plan's *Verified Apple facts* and *Architecture* sections; skills
+  `swift-concurrency-strict`, `apple-app-security`, `swift-testing-doctrine`, `axiom:axiom-storekit-ref`.
+- **Acceptance:** a revoked transaction → feature absent; an unverified transaction → ignored; tip
+  history excludes revoked tips; the listener finishes the transactions it handles; demonstration mode
+  never calls StoreKit. These are tested against a fake transaction source behind a seam in
+  `StoreKitEntitlementService`, so they have an oracle whatever the `SKTestSession` spike finds;
+  `SKTestSession` adds an end-to-end check only if the spike shows it works. The Info.plist key is present in the **built** `Foodge.app/Info.plist` (D26).
+- **Tests / verifier:** `arc-test-engineer` first; `foodge-verify`; `arc-audit-concurrency`;
+  **`arc-audit-security`**; `axiom:iap-auditor`; `arc-constitution-review`.
+- **Evidence:**
+- **Next:** WU-30-B.
+
+### WU-30-B ⬜ Foodge+ sheet and Restore
+
+**D153, D155, D156.**
+
+- **Objective / scope:** a sheet with the feature list (our copy), `ProductView(id:)` and our own
+  Restore button calling `AppStore.sync()` (`.storeButton(.visible, for: .restorePurchases)` applies to
+  `StoreView`/`SubscriptionStoreView` only). Settings rows "Foodge+" and "Restore purchases"; entry
+  points from locked features. The disclosure copy mentions Apple Health. ES/EN through
+  `StringCatalogEdit`.
+- **Inputs / docs:** HIG in-app purchase; skills `swiftui-doctrine`, `ios-accessibility-wcag`; D118/D119.
+- **Acceptance:** a view-model test that an entitlement update unlocks features with no relaunch, and
+  one that demonstration mode exposes no purchase or Restore action. Restore visible without buying is
+  a **manual check** on the simulator, recorded with a screenshot path.
+- **Tests / verifier:** `foodge-verify`; `arc-verify-ui`; `arc-audit-hig`; `arc-audit-accessibility`;
+  `arc-constitution-review`.
+- **Evidence:**
+- **Next:** WU-30-C.
+
+### WU-30-C ⬜ Tip jar and the cosmetic reward
+
+**D157.**
+
+- **Objective / scope:** a card after *Evidence details* on `VerdictView`, shown only with a saved
+  revision and outside demonstration mode; three compact `ProductView`s; a judge reaction quip that
+  passes `NarrationValidator`; a "Court benefactor" seal on the History row and case of the tip's local
+  day. **The verdict and the dish never change.**
+- **Inputs / docs:** D118, D119, D157; plan Q1.
+- **Acceptance:** no guilt copy (a `NarrationValidator` test over every new line, both languages; the
+  validator bans digits, so tip prices come only from `ProductView`, never from our copy); the seal
+  disappears for a revoked tip; the jar is absent in demonstration mode.
+- **Tests / verifier:** as WU-30-B.
+- **Evidence:**
+- **Next:** WU-30-D.
+
+### WU-30-D ⬜ The case file
+
+**D155, D156.**
+
+- **Objective / scope:** `HistoryWindow` as a pure Domain function (free: the last 7 local days plus a
+  locked "case file" row; Foodge+: everything); streaks as a pure Domain function. Monthly and yearly
+  summaries are deferred to Phase 1. **No store deletion, no schema change.**
+- **Inputs / docs:** `memory/decisions/free-history-hides-never-deletes.md`; skills
+  `swift-testing-doctrine`, `swiftui-doctrine`.
+- **Acceptance:** nothing is ever deleted — asserted through `CaseStore` on an in-memory store: the
+  case count is the same before gating, after gating as free, and after an entitlement change free →
+  Foodge+ → free (a test on the pure function alone cannot fail this way); DST-safe day math; after
+  a refund only 7 days show, and buying again shows all of them.
+- **Tests / verifier:** as WU-30-B, plus `arc-audit-concurrency` if any new code is async.
+- **Evidence:**
+- **Next:** WU-30-E / WU-30-F.
+
+### WU-30-E ⬜ Alternative judge and matching icon *(shape depends on Q2)*
+
+**D156.**
+
+- **Objective / scope:** `JudgeSkin` parameterising quips, templates, the prompt persona and 2
+  artworks; **`FoodgeSchemaV2`** adds `selectedJudgeRawValue: String?` — a lightweight added optional,
+  and the first real migration (TestFlight testers hold V1 stores, so D10/D140 no longer apply); a
+  matching alternate icon (`setAlternateIconName`, a documented UIKit exception; build settings through
+  `UpdateTargetBuildSetting`, verified on the built app, D26).
+- **Inputs / docs:** skills `swiftdata-architecture`, `foundation-models`; D118/D119; plan Q2, Q4.
+- **Acceptance:** a V1 → V2 migration test on a V1 store fixture; every skin line passes the validator
+  in both languages; a revoked entitlement renders the standard judge at read time and keeps the stored
+  selection.
+- **Tests / verifier:** `foodge-verify`; SwiftData review (`axiom:swiftdata-auditor`); `arc-audit-hig`;
+  `arc-audit-accessibility`; `arc-constitution-review`.
+- **Evidence:**
+- **Next:** WU-30-G.
+
+### WU-30-F ⬜ First catalogue pack *(shape depends on Q2, Q3)*
+
+**D156.**
+
+- **Objective / scope:** pack variants inside existing families first (no new artwork); a
+  `DishCatalogue.version` bump; the entitled pool for selection, the full catalogue for name lookup.
+  No per-pack toggle.
+- **Inputs / docs:** D139, D156; `memory/decisions/the-catalogue-is-a-domain-constant-not-a-seam.md`;
+  plan Q3, Q7.
+- **Acceptance:** `everyCategoryOffersEveryDietProfile` holds for the base catalogue alone **and** for
+  base + each pack; a past pack dish still renders after a refund; the rotation modulus follows the
+  decision taken on Q7 (a new D-number, **before this unit starts**), pinned by a test that compares
+  the pick for a fixed date before and after a purchase and a refund.
+- **Tests / verifier:** `foodge-verify`; `arc-constitution-review`.
+- **Evidence:**
+- **Next:** WU-30-G.
+
+### WU-30-G ⬜ Free widget and the "What's for dinner?" intent
+
+**D158.**
+
+- **Objective / scope:** a widget extension target (`XcodeNewTarget`); an App Group on both targets
+  (`AddEntitlement`, verified on the built products, D26); the app writes the snapshot file after a
+  saved verdict; a small Home Screen widget; an `AppIntent` plus `AppShortcutsProvider` that reads
+  today's case and continues into the app when there is no verdict. **Before code:** verify the
+  `IntentDialog`, snippet and authentication-policy forms on iOS 26, and the snapshot file's protection.
+- **Inputs / docs:** `memory/decisions/widget-reads-a-snapshot-not-the-store.md`; D29, D107; skills
+  `swift-concurrency-strict`, `apple-app-security`; plan Q6.
+- **Acceptance:** the extension links no HealthKit — verified by inspecting the built extension's
+  linked frameworks, not by a test; the snapshot's encoded key set is pinned to exactly `day`,
+  `category`, `dishID`, `provenance`, and provenance is a closed enum; the written snapshot file is
+  `.completeUnlessOpen` and `isExcludedFromBackup`, asserted on the file itself (Health-derived
+  storage, CLAUDE.md); the
+  extension's default actor isolation is reviewed (the constitution: extensions must not default to
+  MainActor); the Siri phrase works in ES and EN on a simulator.
+- **Tests / verifier:** `foodge-verify`; `arc-audit-concurrency`; `arc-audit-security`;
+  `arc-audit-hig`; `arc-audit-accessibility`.
+- **Evidence:**
+- **Next:** WU-30-H.
+
+### WU-30-H ⬜ (non-code) Listing and privacy
+
+**D152, D155.**
+
+- **Objective / scope:** localized listing es-ES, en-US, en-GB (es-MX optional): name, subtitle,
+  keywords, description (mentions Apple Health, App Review 2.5.1), IAP display names, screenshots; a
+  privacy policy page and URL; the privacy label "Data Not Collected"; the README wording in the plan;
+  a content-backlog note that the catalogue is Spain-centric. Uses `asc` with `--dry-run`.
+- **Inputs / docs:** `ASC.md`; the studio's `asc-*` skills; the plan's privacy-label section.
+- **Acceptance:** `asc validate` clean; the privacy URL resolves.
+- **Tests / verifier:** `arc-asc-preflight`.
+- **Evidence:**
+- **Next:** Phase 1.
+
+### WU-30-I ⬜ (non-code) Admin — can start today
+
+**D153.**
+
+- **Objective / scope:** Paid Apps Agreement, banking and tax; the Small Business Program; the IAP
+  products created in App Store Connect with IDs matching WU-30-A; Spanish tax registration (forms
+  036/037, to be confirmed with a *gestor* — orientative only, not advice). Agreements take time, so this
+  runs in parallel from now.
+- **Inputs / docs:** App Store Connect help (agreements, Small Business Program).
+- **Acceptance:** a checklist with each item ticked and dated.
+- **Tests / verifier:** the user.
+- **Evidence:**
+- **Next:** WU-30-A needs the product IDs to match.
+
+### Phases 1–3 (stubs — expand when the phase is taken)
+
+| Phase | Unit | Deliverable | Exit condition |
+|---|---|---|---|
+| 1 (weeks 1–4) | WU-31 | `requestReview` after the 3rd verdict; the owner's launch activities (restated here when taken); monthly/yearly summary; the first alternative judge if not in launch | ⬜ |
+| 1 | WU-3x | Foodge+ Lock Screen widgets (needs Q6), extra widget families, Watch complication, Live Activity (low priority) | ⬜ |
+| 2 (days 30–90) | — | Measure against D159's thresholds from App Store Connect Analytics and sales reports only | ⬜ |
+| 3 (day 90) | — | The decision: one of the three outcome branches (D159); "Foodge Chef" reconsidered only as an extra tier (D153) | ⬜ |
 
 ## Day 21–27 backlog (stubs — expand when the day is taken)
 

@@ -8,6 +8,14 @@
 > check-in, self-report, body basics). Selection order is now diet profile → category → avoid the
 > last three days → date rotation, and there is no no-match outcome. `docs/implementation-tasks.md`
 > carries the reasoning; the code is the authority where this file disagrees with it.
+>
+> **Amended 2026-10-23 by D152–D161 — monetization.** Monetization is no longer deferred and
+> payments are in scope: a free app, one non-consumable "Foodge+", a tip jar, raw StoreKit 2 and
+> no ads. Widgets, App Intents, a Live Activity and an Apple Watch complication move into scope
+> too. §1 "Committed hackathon scope" below stays as the hackathon's record. The current plan,
+> including the open questions that are not yet decided, is
+> `docs/migrations/2026-10-23-monetization-phase-0.md`. Monetization may never reach the rule or
+> the dish (D138, D156, D161).
 
 ## 1. Product direction and project foundation
 
