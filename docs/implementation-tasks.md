@@ -189,6 +189,7 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ closed green · 🟥 b
 | D159 | **Phases and the 90-day gate.** Phase 0 pre-launch, Phase 1 launch (weeks 1–4), Phase 2 validation (days 30–90), Phase 3 decision. **Measurement uses App Store Connect Analytics and sales reports only, with no in-app analytics.** Thresholds: product page conversion > 30 %, D7 retention > 15 %, D30 > 7 %, download → Foodge+ > 3 %, tips / downloads > 1 %, rating ≥ 4.6 with > 50 ratings. Three outcome branches from the owner's private study (not in this repository) decide what follows; they are restated in the ledger when Phase 3 is taken. | Thresholds written before launch cannot be moved to fit the result. In-app analytics would end "Data Not Collected"; App Store Connect already reports what these thresholds need. |
 | D160 | **Defect: recency was never wired.** `TodayViewModel.finish` (`Presentation/Features/Today/TodayViewModel.swift:391`) builds `DishSelectionRequest` without `recentSelections`, which defaults to `[]`. D139's third key ("avoid the last three days") is therefore dead in the shipped app; only `DishSelectionTests` exercise it. It is fixed in WU-30-0, before any pack changes the pool. | CLAUDE.md, the plan banner and D139 all describe the rule as live. The domain function was tested and correct, but no test asked whether the caller passed the history in. A pack that widens the pool would make the missing key easier to notice and harder to attribute, so the fix goes first. |
 | D161 | **Entitlement is derived, never persisted.** It is read from `Transaction.currentEntitlements` and kept current by a `Transaction.updates` listener started once at launch, for the live session only. The store holds no "isPlus" flag. | A stored flag would be something to tamper with, something to migrate, and something a refund would have to clear by hand. A derived value has none of those: revocation applies itself at the next update, and demonstration and preview modes supply fixed values through the same protocol. |
+| D162 | **The pescatarian diet profile is removed.** `DietProfile` keeps three cases: omnivore, vegetarian, vegan. Every catalogue variant drops `.pescatarian`; the fish variants now serve omnivores only. A stored `pescatarian` is not migrated: `UserPreferences.dietProfile` already reads any unknown raw value as omnivore, so a person who chose it is now offered meat as well as fish. The `Pescatarian` catalogue key is stale. The WU-29-G walk item for *Pescetariana* at AX 5 no longer applies. | The owner had never heard the Spanish word, and a diet choice the person cannot read is worse than one fewer choice. Mapping existing pescatarians to vegetarian was offered as the safer reading, because it never adds meat; the owner chose omnivore, so that the fish dishes stay. This is the one place the app relaxes a stored diet, and it is recorded here so it is not mistaken for the "never relax the diet" rule failing. The fallback has no test: `dietProfileRawValue` is `private(set)`, so a test cannot plant the legacy value without a production seam. |
 
 ---
 
@@ -660,7 +661,7 @@ display helpers die with the probe in WU-19-D (D14), and iOS 26 validation is st
   tests against a hand-written five-entry miniature catalogue (filters, all 5 ranking criteria
   individually isolated, the "never beats" comparator-priority pins, all 3 alternative branches,
   a shuffle-safety test) plus 6 rotation tests and a real-catalogue "no diet alone ever produces
-  no-match" sweep across all 3 categories × 4 diets. One test bug caught in review before commit
+  no-match" sweep across all 3 categories × 4 diets (3 × 3 since D162). One test bug caught in review before commit
   (a diet-filter test had over-excluded down to zero candidates, producing a false `.noMatch`
   the test itself didn't expect — fixed by relying on the diet filter alone). **23/23 green,
   0 warnings**, one iteration.
@@ -2981,7 +2982,7 @@ the same check-ins, the same stages, the same announcements plus one (below).
   Control on the value — the accessible name already contains the visible name (2.5.3).
 - **Owed to the WU-29-G simulator walk:** the judge hero in a `Form` row — only the figure fires, no
   row highlight, the bubble grows the row without a jump or clip; `MenuPickerRow` with VoiceOver and
-  Voice Control, and the menu's own checkmark; *Pescetariana* at AX 5 on a 375 pt phone (estimated to
+  Voice Control, and the menu's own checkmark; *Pescetariana* at AX 5 (moot since D162) on a 375 pt phone (estimated to
   overflow by about 23 px); Welcome in landscape, where the pinned bar sits over the title at rest;
   the Health hero's share of the screen at AX 5.
 

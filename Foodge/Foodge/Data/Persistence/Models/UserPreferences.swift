@@ -61,7 +61,7 @@ final class UserPreferences {
 extension UserPreferences {
     /// The stored diet, falling back to omnivore if the stored value is not one this version
     /// knows — which is the honest reading of "we cannot tell", and never silently narrows what
-    /// someone is offered.
+    /// someone is offered. A stored `pescatarian`, removed by D162, reads as omnivore this way.
     var dietProfile: DietProfile {
         DietProfile(rawValue: dietProfileRawValue) ?? .omnivore
     }

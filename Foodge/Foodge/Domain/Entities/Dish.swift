@@ -10,7 +10,6 @@ import Foundation
 /// A diet the catalogue can be filtered against.
 enum DietProfile: String, Codable, CaseIterable, Hashable, Sendable {
     case omnivore
-    case pescatarian
     case vegetarian
     case vegan
 }

@@ -77,6 +77,7 @@ enough to be useful cold. A note here links back to its ledger number.
 - [[forms-keep-the-system-background]] — D148, the user's call; a preference recorded as a necessity first
 - [[an-icon-colour-says-whether-it-acts]] — D150/D151, HIG-checked before building; the iOS gauge has no marker
 - [[recency-was-never-wired]] — a tested use case is not a wired feature
+- [[pescatarian-removed-and-maps-to-omnivore]] — the one deliberate diet relaxation
 - [[entitlement-is-derived-never-persisted]] — no isPlus flag; StoreKit is the source of truth
 - [[free-history-hides-never-deletes]] — the 7-day limit is a read-time filter
 - [[widget-reads-a-snapshot-not-the-store]] — the store stays put; the widget gets a figure-free file

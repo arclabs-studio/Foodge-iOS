@@ -90,7 +90,7 @@ struct ContainerFactoryTests {
         // Given a scenario saved into an in-memory store, as demonstration mode does
         let demo = try ContainerFactory.makeInMemory()
         try await PersistenceActor(modelContainer: demo).savePreferences(
-            PreferencesDraft(dietProfile: .pescatarian)
+            PreferencesDraft(dietProfile: .vegetarian)
         )
 
         // When a second in-memory container is created
